@@ -68,7 +68,7 @@ func NewDeleteIcon() fyne.Resource {
 }
 func NewEditIcon() fyne.Resource {
 	data := theme.DocumentCreateIcon().Content()
-	ChangeSVGIconFG(data, color.RGBA{0x00, 0xff, 0x00, 0x00})
+	ChangeSVGIconFG(data, color.RGBA{0x00, 0x00, 0xff, 0x00})
 	myIcon := &CustomIcon{
 		MyName: "MyEditIcon",
 		MyContent: data,
@@ -78,15 +78,16 @@ func NewEditIcon() fyne.Resource {
 
 func NewBooksHeader() *fyne.Container {
 	fields := []fyne.CanvasObject{
-		widget.NewButtonWithIcon("Title", theme.MoveDownIcon(), func(){return}),
+		//widget.NewButtonWithIcon("Title", theme.MoveDownIcon(), func(){return}),
+		widget.NewLabel("Title"),
 		widget.NewLabel("Author"),
 		widget.NewLabel("Genre"),
 		widget.NewLabel("Ratting"),
 		widget.NewLabel("On Loan"),
-		container.New(layout.NewGridLayout(3), 
+		container.New(layout.NewGridLayout(2), 
 			widget.NewLabel("Actions"),
 			widget.NewButtonWithIcon("", theme.ContentAddIcon(), func(){return}),
-			widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}),
+			//widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}),
 		),
 	}
 
@@ -104,28 +105,34 @@ func NewBookEntry() *fyne.Container {
 			widget.NewButtonWithIcon("", NewEditIcon(), func(){return}),
 			widget.NewButtonWithIcon("", NewDeleteIcon(), func(){return}),
 		)}
-	fields[0].(*widget.Entry).SetPlaceHolder("Title")
-	fields[1].(*widget.Entry).SetPlaceHolder("Author")
-	fields[2].(*widget.Entry).SetPlaceHolder("Genre")
-	fields[3].(*widget.Select).PlaceHolder = "Ratting"
+	fields[0].(*widget.Entry).SetPlaceHolder("")
+	fields[1].(*widget.Entry).SetPlaceHolder("")
+	fields[2].(*widget.Entry).SetPlaceHolder("")
+	fields[3].(*widget.Select).PlaceHolder = "TBR"
 	//fields[4].(*widget.Entry).SetPlaceHolder("Lounded")
 
 	return container.New(layout.NewGridLayout(len(fields)), fields...)
-
 }
-
 
 func Run() {
 	a := app.New()
 	window := a.NewWindow(myapp.AppName)
 
+	searchBy := widget.NewSelectWithData([]string{"Title", "Author", "Genre", "Ratting", "On Loan"}, binding.NewString())
 	header  := NewBooksHeader()
+
+	search := container.New(layout.NewGridLayout(2), searchBy, widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}))
+
+	top := container.New(layout.NewGridLayout(1), search, header)
+
 	entry_1 := NewBookEntry()
 	entry_2 := NewBookEntry()
-	content := container.New(layout.NewVBoxLayout(),header, entry_1, entry_2)
-	scroll := container.NewVScroll(content)
+	entries := container.New(layout.NewVBoxLayout(), entry_1, entry_2, NewBookEntry(), NewBookEntry(), NewBookEntry())
+	scroll := container.NewVScroll(entries)
 
-	window.SetContent(scroll)
+	maincon := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, scroll)
+
+	window.SetContent(maincon)
 	window.ShowAndRun()
 	
 }
