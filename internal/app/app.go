@@ -11,7 +11,7 @@ type State struct {
 	Paths
 }
 
-func Init() *State {
+func Init() (*State, error) {
 	
 	state := &State{}
 
@@ -22,19 +22,19 @@ func Init() *State {
 	var err error
 	paths, err := NewPaths()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	state.Paths = *paths
 
 	err = state.InitStoreage()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	log.Printf("app: Hello, storage: '%s'", state.StoragePath)
 
 	file, err := os.OpenFile(state.LogsPath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	state.Logs.Register(file)
 
@@ -42,14 +42,14 @@ func Init() *State {
 
 	state.DB, err = OpenDatabase(state.DBPath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	log.Println("app: Hello, database!")
 	
 	err = DatabaseMigrateUp(state.DB)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	log.Println("app: Hello, state!")
-	return state
+	return state, nil
 }
