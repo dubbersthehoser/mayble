@@ -4,7 +4,7 @@ import (
 	//"log"
 	"image/color"
 	//"log"
-	"fmt"
+	//"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -18,132 +18,97 @@ import (
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
 )
 
-type CustomIcon struct {
-	MyContent []byte
-	MyName string
+type BooksTabel struct {
+	Body         fyne.CanvasObject
+	Header       fyne.CanvasObject
+	Box          fyne.CanvasObject
+	Entries      []fyne.CanvasObject
+	BookTitles   []binding.String
+	BookAuthors  []binding.String
+	BookGenres   []binding.String
+	BookRattings []binding.String
+	BookSavable  []bool
 }
-func (c *CustomIcon) Content() []byte {
-	return c.MyContent
-}
-func (c *CustomIcon) Name() string {
-	return c.MyName
-}
-
-
-func ChangeSVGIconFG(svg []byte, c color.RGBA) []byte {
-	data := []byte{}
-	red := fmt.Sprintf("%02x", c.R)
-	green := fmt.Sprintf("%02x", c.G)
-	blue := fmt.Sprintf("%02x", c.B)
-	valueStart := -1
-	for i, c := range svg {
-		if c == '"' && valueStart == -1 {
-			valueStart = i+1
-			data = append(data, c)
-		} else if c == '"' && valueStart > -1 {
-			value := svg[valueStart:i]
-			if string(value) == "#f3f3f3" {
-				data = append(data, '#')
-				data = append(data, red[0])
-				data = append(data, red[1])
-				data = append(data, green[0])
-				data = append(data, green[1])
-				data = append(data, blue[0])
-				data = append(data, blue[1])
-			} else {
-				for _, c := range value {
-					data = append(data, c)
-				}
-			}
-			valueStart = -1
-		}
-		if valueStart == -1 {
-			data = append(data, c)
-		}
+func NewBooksTabel() *BooksTabel {
+	b := &BooksTabel{
+		Entries: []fyne.CanvasObject{},
+		BookTitles: []binding.String{},
+		BookAuthors: []binding.String{},
+		BookGenres: []binding.String{},
+		BookRattings: []binding.String{},
+		BookSavable: []bool{},
 	}
-	return data
+	b.InitBooksHeader()
+	b.Box = container.New(layout.NewVBoxLayout(), b.Entries...)
+	return b
 }
 
-func NewDeleteIcon() fyne.Resource {
-	icon := theme.DeleteIcon()
-	data := icon.Content()
-	data = ChangeSVGIconFG(data, color.RGBA{0xff, 0x00, 0x00, 0x00})
-	myIcon := &CustomIcon{
-		MyName: "MyDeleteIcon",
-		MyContent: data,
+func (b *BooksTabel) InitBooksHeader() {
+	style := fyne.TextStyle{
+		Bold: true,
 	}
-	return myIcon
-}
-func NewEditIcon(color color.RGBA, name string) fyne.Resource {
-	data := theme.DocumentCreateIcon().Content()
-	data = ChangeSVGIconFG(data, color)
-	myIcon := &CustomIcon{
-		MyName: name,
-		MyContent: data,
-	}
-	return myIcon
-}
-
-func NewBooksHeader() *fyne.Container {
+	align := fyne.TextAlignCenter
 	fields := []fyne.CanvasObject{
-		//widget.NewButtonWithIcon("Title", theme.MoveDownIcon(), func(){return}),
-		widget.NewLabel("Title"),
-		widget.NewLabel("Author"),
-		widget.NewLabel("Genre"),
-		widget.NewLabel("Ratting"),
-		widget.NewLabel("On Loan"),
+		widget.NewLabelWithStyle("Title", align, style),
+		widget.NewLabelWithStyle("Author", align, style),
+		widget.NewLabelWithStyle("Genre", align, style),
+		widget.NewLabelWithStyle("Ratting", align, style),
+		widget.NewLabelWithStyle("On Loan", align, style),
 		container.New(layout.NewGridLayout(2), 
-			widget.NewLabel("Actions"),
-			widget.NewButtonWithIcon("", theme.ContentAddIcon(), func(){return}),
+			widget.NewLabelWithStyle("Actions", align, style),
+			widget.NewButtonWithIcon("", theme.ContentAddIcon(), b.AddBookEntry),
 			//widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}),
 		),
 	}
-
-	return container.New(layout.NewGridLayout(len(fields)), fields...)
+	b.Header = container.New(layout.NewGridLayout(len(fields)), fields...)
 }
 
-
-type BookEntryWidget struct {
-	widget.BaseWidget
-	object fyne.CanvasObject
-}
-func (b *BookEntryWidget)CreateRenderer() fyne.WidgetRenderer {
-	if b == nil {
-		return nil
-	}
-	if w, ok := b.object.(fyne.Widget); ok {
-		return w.CreateRenderer()
-	}
-	return widget.NewSimpleRenderer(b.object)
-}
-func NewBookEntryWidget(o fyne.CanvasObject) *BookEntryWidget {
-	b := &BookEntryWidget{object: o}
-	b.ExtendBaseWidget(b)
-	return b
-}
-	
-
-func NewBookEntry() *fyne.Container {
+func (b *BooksTabel) AddBookEntry() {
 
 	bookTitle := binding.NewString()
-	bookTitle.Set("The Cat")
+	bookAuthor := binding.NewString()
+	bookGenre  := binding.NewString()
+	bookRatting := binding.NewString()
+
+	b.BookTitles = append(b.BookTitles, bookTitle)
+	b.BookAuthors = append(b.BookAuthors, bookAuthor)
+	b.BookGenres = append(b.BookGenres, bookGenre)
+	b.BookRattings = append(b.BookRattings, bookRatting)
+	b.BookSavable = append(b.BookSavable, false)
 
 	titleLabel := widget.NewLabelWithData(bookTitle)
+	authorLabel := widget.NewLabelWithData(bookAuthor)
+	genreLabel := widget.NewLabelWithData(bookGenre)
+	rattingLabel := widget.NewLabelWithData(bookRatting)
+
+	titleLabel.Wrapping = fyne.TextWrapWord
+	authorLabel.Wrapping = fyne.TextWrapWord
+	genreLabel.Wrapping = fyne.TextWrapWord
+	rattingLabel.Wrapping = fyne.TextWrapWord
+
 	titleLabel.Show()
+	authorLabel.Show()
+	genreLabel.Show()
+	rattingLabel.Show()
 
 	titleEntry :=  widget.NewEntry()
 	authorEntry := widget.NewEntry()
 	genreEntry :=  widget.NewEntry()
-	rattingsEntry := widget.NewSelectWithData([]string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}, binding.NewString())
+	rattingEntry := widget.NewSelectWithData([]string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}, bookRatting)
+	bookRatting.Set("TBR")
 
 	titleEntry.Bind(bookTitle)
+	authorEntry.Bind(bookAuthor)
+	genreEntry.Bind(bookGenre)
 
 	titleEntry.Disable()
 	titleEntry.Hide()
 	authorEntry.Disable()
+	authorEntry.Hide()
 	genreEntry.Disable()
-	rattingsEntry.Disable()
-
+	genreEntry.Hide()
+	rattingEntry.Disable()
+	rattingEntry.Hide()
 
 	green := color.RGBA{0x00, 0xff, 0x00, 0xff}
 	editEnabledBtn := widget.NewButtonWithIcon("", NewEditIcon(green, "EditEnable"), nil)
@@ -158,10 +123,17 @@ func NewBookEntry() *fyne.Container {
 		titleEntry.Disable()
 		authorEntry.Disable()
 		genreEntry.Disable()
-		rattingsEntry.Disable()
+		rattingEntry.Disable()
 
 		titleLabel.Show()
+		authorLabel.Show()
+		genreLabel.Show()
+		rattingLabel.Show()
+		
 		titleEntry.Hide()
+		authorEntry.Hide()
+		genreEntry.Hide()
+		rattingEntry.Hide()
 
 		editDisableBtn.Show()
 		editEnabledBtn.Hide()
@@ -170,10 +142,17 @@ func NewBookEntry() *fyne.Container {
 		titleEntry.Enable()
 		authorEntry.Enable()
 		genreEntry.Enable()
-		rattingsEntry.Enable()
+		rattingEntry.Enable()
 
 		titleLabel.Hide()
+		authorLabel.Hide()
+		genreLabel.Hide()
+		rattingLabel.Hide()
+		
 		titleEntry.Show()
+		authorEntry.Show()
+		genreEntry.Show()
+		rattingEntry.Show()
 
 		editDisableBtn.Hide()
 		editEnabledBtn.Show()
@@ -182,42 +161,34 @@ func NewBookEntry() *fyne.Container {
 
 	fields := []fyne.CanvasObject{
 		container.New(layout.NewStackLayout(), titleEntry, titleLabel),
-		authorEntry,
-		genreEntry,
-		rattingsEntry,
+		container.New(layout.NewStackLayout(), authorEntry, authorLabel),
+		container.New(layout.NewStackLayout(), genreEntry, genreLabel),
+		container.New(layout.NewStackLayout(), rattingEntry, rattingLabel),
 		widget.NewButtonWithIcon("", theme.CheckButtonIcon(), func(){return}),
 		container.New(layout.NewGridLayout(2),
 			editBtn,
 			widget.NewButtonWithIcon("", NewDeleteIcon(), func(){return})),
 	}
-	fields[3].(*widget.Select).PlaceHolder = "TBR"
 
-	return container.New(layout.NewGridLayout(len(fields)), fields...)
+	entry := container.New(layout.NewGridLayout(len(fields)), fields...)
+	b.Entries = append(b.Entries, entry)
+	b.Box.(*fyne.Container).Add(entry)
 }
 
 func Run() {
-	//data := theme.DocumentCreateIcon().Content()
-	//fmt.Println(string(data))
-	//data = ChangeSVGIconFG(data, color.RGBA{0xff, 0x00, 0x00, 0x00})
-	//fmt.Println(string(data))
 	a := app.New()
 	window := a.NewWindow(myapp.AppName)
 
 	searchBy := widget.NewSelectWithData([]string{"Title", "Author", "Genre", "Ratting", "On Loan"}, binding.NewString())
-	header  := NewBooksHeader()
-
 	search := container.New(layout.NewGridLayout(2), searchBy, widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}))
 
-	top := container.New(layout.NewGridLayout(1), search, header)
+	tabel := NewBooksTabel()
 
-	entry_1 := NewBookEntry()
-	entry_2 := NewBookEntry()
-	entries := container.New(layout.NewVBoxLayout(), entry_1, entry_2, NewBookEntry(), NewBookEntry(), NewBookEntry())
-	scroll := container.NewVScroll(entries)
+	top := container.New(layout.NewGridLayout(1), search, tabel.Header)
+	scroll := container.NewVScroll(tabel.Box)
 
 	maincon := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, scroll)
 
 	window.SetContent(maincon)
 	window.ShowAndRun()
-	
 }
