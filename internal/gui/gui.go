@@ -18,11 +18,20 @@ import (
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
 )
 
+
+/*
+  I have don't know how I'm going to implement the data to canvas object entrys with the list widget.
+  How am I going to hook the data to the edit button toggle that is with in the canvas entry object?
+  What will I do when the edit button gets turned off, how is it going to update loaded data, how is
+  it going to update that data to the tabel?
+  When the labels gets wrapped how I'm I going to update the list object's height to be render with the new hight?
+*/
+
 type BooksTabel struct {
 	Body         fyne.CanvasObject
 	Header       fyne.CanvasObject
-	Box          fyne.CanvasObject
-	Entries      []fyne.CanvasObject
+	List         *widget.List
+	ListObjs     []fyne.CanvasObject
 	BookTitles   []binding.String
 	BookAuthors  []binding.String
 	BookGenres   []binding.String
@@ -31,15 +40,58 @@ type BooksTabel struct {
 }
 func NewBooksTabel() *BooksTabel {
 	b := &BooksTabel{
-		Entries: []fyne.CanvasObject{},
-		BookTitles: []binding.String{},
-		BookAuthors: []binding.String{},
-		BookGenres: []binding.String{},
+		ListObjs:     []fyne.CanvasObject{},
+		BookTitles:   []binding.String{},
+		BookAuthors:  []binding.String{},
+		BookGenres:   []binding.String{},
 		BookRattings: []binding.String{},
-		BookSavable: []bool{},
+		BookSavable:  []bool{},
+	}
+	b.List = widget.NewList(
+		func() int {return len(b.BookTitles)}, // Length
+		func() { // CreateItem
+			o := b.AddBookEntry()
+			b.ListObjs = append(b.ListObjs, o)
+			return o
+			}),          
+		func(id int, o fyne.CanvasObject) { // UpdateItem
+			o.(*fyne.Container).Objects[0].(*fyne.Container).Objects[0].(*widget.Entry).Bind(b.BookTitles[id])
+			o.(*fyne.Container).Objects[0].(*fyne.Container).Objects[1].(*widget.Label).Bind(b.BookTitles[id])
+		})
+	b.List.HideSeparators = true
+	b.List.OnSelected = func(i int) {} // Disable selection highlighting
+	b.List.OnUnselected = func(id int) {
+		
+		o := b.List.Objects[id]
+		
+		// Book Title
+		o.(*fyne.Container).Objects[0].(*fyne.Container).Objects[0].(*widget.Entry).Disable() // Entry
+		o.(*fyne.Container).Objects[0].(*fyne.Container).Objects[0].(*widget.Entry).Hide()
+		o.(*fyne.Container).Objects[0].(*fyne.Container).Objects[1].(*widget.Label).Show()    // Label
+
+		// Book Author
+		o.(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Entry).Disable() // Entry
+		o.(*fyne.Container).Objects[1].(*fyne.Container).Objects[0].(*widget.Entry).Hide()
+		o.(*fyne.Container).Objects[1].(*fyne.Container).Objects[1].(*widget.Label).Show()    // Label
+
+		// Book Genre
+		o.(*fyne.Container).Objects[2].(*fyne.Container).Objects[0].(*widget.Entry).Disable() // Entry
+		o.(*fyne.Container).Objects[2].(*fyne.Container).Objects[0].(*widget.Entry).Hide()
+		o.(*fyne.Container).Objects[2].(*fyne.Container).Objects[1].(*widget.Label).Show()    // Label
+
+		// Book Ratting
+		o.(*fyne.Container).Objects[3].(*fyne.Container).Objects[0].(*widget.Entry).Disable() // Entry
+		o.(*fyne.Container).Objects[3].(*fyne.Container).Objects[0].(*widget.Entry).Hide()
+		o.(*fyne.Container).Objects[3].(*fyne.Container).Objects[1].(*widget.Label).Show()    // Label
+
+		// Edit Button 
+		o.(*fyne.Container).Objects[3].(*fyne.Container).Objects[0].(*widget.Entry).Hide()
+
+		// Delete Button 
+		editDisableBtn.Show()
+		editEnabledBtn.Hide()
 	}
 	b.InitBooksHeader()
-	b.Box = container.New(layout.NewVBoxLayout(), b.Entries...)
 	return b
 }
 
@@ -56,25 +108,28 @@ func (b *BooksTabel) InitBooksHeader() {
 		widget.NewLabelWithStyle("On Loan", align, style),
 		container.New(layout.NewGridLayout(2), 
 			widget.NewLabelWithStyle("Actions", align, style),
-			widget.NewButtonWithIcon("", theme.ContentAddIcon(), b.AddBookEntry),
-			//widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}),
+			widget.NewButtonWithIcon("", theme.ContentAddIcon(), 
+				func() {
+					b.BookTitles = append(b.BookTitles, binding.NewString())
+					b.BookAuthors = append(b.BookAuthors, binding.NewString())
+					b.BookGenres = append(b.BookGenres, binding.NewString())
+					r := binding.NewString()
+					r.Set("TBR")
+					b.BookRattings = append(b.BookRattings, r)
+					b.BookSavable = append(b.BookSavable, false)
+					b.List.Refresh()
+					}),
 		),
 	}
 	b.Header = container.New(layout.NewGridLayout(len(fields)), fields...)
 }
 
-func (b *BooksTabel) AddBookEntry() {
+func (b *BooksTabel) AddBookEntry() fyne.CanvasObject {
 
 	bookTitle := binding.NewString()
 	bookAuthor := binding.NewString()
 	bookGenre  := binding.NewString()
 	bookRatting := binding.NewString()
-
-	b.BookTitles = append(b.BookTitles, bookTitle)
-	b.BookAuthors = append(b.BookAuthors, bookAuthor)
-	b.BookGenres = append(b.BookGenres, bookGenre)
-	b.BookRattings = append(b.BookRattings, bookRatting)
-	b.BookSavable = append(b.BookSavable, false)
 
 	titleLabel := widget.NewLabelWithData(bookTitle)
 	authorLabel := widget.NewLabelWithData(bookAuthor)
@@ -95,7 +150,6 @@ func (b *BooksTabel) AddBookEntry() {
 	authorEntry := widget.NewEntry()
 	genreEntry :=  widget.NewEntry()
 	rattingEntry := widget.NewSelectWithData([]string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}, bookRatting)
-	bookRatting.Set("TBR")
 
 	titleEntry.Bind(bookTitle)
 	authorEntry.Bind(bookAuthor)
@@ -171,8 +225,7 @@ func (b *BooksTabel) AddBookEntry() {
 	}
 
 	entry := container.New(layout.NewGridLayout(len(fields)), fields...)
-	b.Entries = append(b.Entries, entry)
-	b.Box.(*fyne.Container).Add(entry)
+	return entry
 }
 
 func Run() {
@@ -185,9 +238,9 @@ func Run() {
 	tabel := NewBooksTabel()
 
 	top := container.New(layout.NewGridLayout(1), search, tabel.Header)
-	scroll := container.NewVScroll(tabel.Box)
+	//scroll := container.NewVScroll(tabel.Box)
 
-	maincon := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, scroll)
+	maincon := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, tabel.List)
 
 	window.SetContent(maincon)
 	window.ShowAndRun()
