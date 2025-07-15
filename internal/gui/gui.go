@@ -5,6 +5,7 @@ import (
 	//"image/color"
 	//"log"
 	"fmt"
+	"errors"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -276,7 +277,8 @@ type UIState struct {
 	BookSelected  int
 	BookOrderedBy string
 	BookList []string // TODO add book data
-	UniqueGenre []string
+	UniqueGenres []string
+	UniqueAuthors []string
 }
 func NewUIState(window fyne.Window) *UIState {
 	u := &UIState{
@@ -287,26 +289,104 @@ func NewUIState(window fyne.Window) *UIState {
 }
 
 func (u *UIState) OpenNewBookForm() {
-	rattingEntry := widget.NewSelect([]string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}, nil)
+
+	rattings := []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
+
+	titleData := binding.NewString()
+	authorData := binding.NewString()
+	genreData := binding.NewString()
+	rattingData := binding.NewString()
+
+	titleEntry := widget.NewEntry()
+	//authorEntry := widget.NewEntryWithData(authorData)
+	authorSelect := widget.NewSelectEntry(u.UniqueAuthors)
+	genreEntry := widget.NewSelectEntry(u.UniqueGenres)
+	rattingSelect := widget.NewSelect(rattings, nil)
+
+
+
+	titleEntry.Validator = func(s string) error {
+		if len(s) == 0 {
+			return errors.New("Must have an Title")
+		}
+		return nil
+	}
+
+	authorSelect.Validator = func(s string) error {
+		if len(s) == 0 {
+			return errors.New("Must have an Author")
+		}
+		return nil
+	}
+
+	rattingSelect.PlaceHolder = rattings[0]
+	rattingData.Set(rattings[0])
+
+	titleEntry.Bind(titleData)
+	authorSelect.Entry.Bind(authorData)
+	genreEntry.Bind(genreData)
+	rattingSelect.Bind(rattingData)
+
+	
+	onLoanCheck := widget.NewCheck(
+		"", 
+		nil,
+	)
+
+	onLoanCheck.OnChanged = func (checked bool) {
+		if checked {
+			dialog.ShowForm("Add Loaned Book", "Add", "Cancel", []*widget.FormItem{}, 
+				func(b bool){
+					if !b {
+						onLoanCheck.Checked = false
+						onLoanCheck.Refresh()
+					}
+				}, 
+				u.Window,
+			)
+		} else {
+			dialog.ShowConfirm("Remove Loaning", "Are you sure?", 
+				func(b bool){
+					if !b {
+						onLoanCheck.Checked = true
+						onLoanCheck.Refresh()
+					}
+				},
+				u.Window,
+			)
+		}
+	}
+	
+
 	o := []*widget.FormItem{
 		widget.NewFormItem(
 			"Title", 
-			widget.NewEntry(),
+			titleEntry,
 		),
 		widget.NewFormItem(
 			"Author", 
-			widget.NewEntry(),
+			authorSelect,
 		),
 		widget.NewFormItem(
 			"Genre", 
-			widget.NewEntry(),
+			genreEntry,
 		),
 		widget.NewFormItem(
 			"Ratting", 
-			rattingEntry,
+			rattingSelect,
+		),
+		widget.NewFormItem(
+			"On Loan",
+			onLoanCheck,
 		),
 	}
-	dialog.ShowForm("Add Book", "Add", "Cancel", o, func(b bool){}, u.Window)
+	dialog.ShowForm("Add New Book", "Add", "Cancel", o, func(b bool){
+		if b {
+			fmt.Println("YES")
+		} else {
+			fmt.Println("NO")
+		}
+		}, u.Window)
 }
 
 const (
