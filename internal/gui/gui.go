@@ -4,7 +4,7 @@ import (
 	//"log"
 	//"image/color"
 	//"log"
-	//"fmt"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -16,6 +16,7 @@ import (
 	_ "fyne.io/fyne/v2/canvas"
 
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/event"
 )
 
 
@@ -72,6 +73,16 @@ func NewBooksTabel() *BooksTabel {
 			authorLabel.Wrapping = fyne.TextWrapWord
 			genreLabel.Wrapping = fyne.TextWrapWord
 			rattingLabel.Wrapping = fyne.TextWrapWord
+
+			titleLabel.Truncation = fyne.TextTruncateEllipsis
+			authorLabel.Truncation = fyne.TextTruncateEllipsis
+			genreLabel.Truncation = fyne.TextTruncateEllipsis
+			rattingLabel.Truncation = fyne.TextTruncateEllipsis
+
+			titleLabel.Selectable = true
+			authorLabel.Selectable = true
+			genreLabel.Selectable = true
+			rattingLabel.Selectable = true
 
 			fields := []fyne.CanvasObject{
 				titleLabel,
@@ -219,20 +230,57 @@ func (b *BooksTabel) AddBookEntry() fyne.CanvasObject {
 	return entry
 }
 
+func RattingToLabel(r int) (string, error) {
+	switch r {
+	case 0:
+		return "TBR", nil
+	case 1:
+		return "⭐", nil
+	case 2:
+		return "⭐⭐", nil
+	case 3:
+		return "⭐⭐⭐", nil
+	case 4:
+		return "⭐⭐⭐⭐", nil
+	case 5:
+		return "⭐⭐⭐⭐⭐", nil
+	}
+	return "", fmt.Errorf("Invalid ratting: %d", r)
+}
+
+type UIState struct {
+	DataHasChanged bool
+	Emiter *event.EventEmiter
+	BookSelected  int
+	BookOrderedBy string
+	BookList []string // TODO add book data
+}
+func NewUIState() *UIState {
+	u := &UIState{
+		Emiter: event.NewEventEmiter(),
+	}
+	return u
+}
+
+const (
+	SaveButtonClicked    string = "SaveButtonClicked"
+	ChangedOrderBy              = "ChangedOrderBy"
+	ChangedOrderByAsc           = "ChangedOrderByAcs"
+	ChangedOrderByDesc          = "ChangedOrderByDesc"
+	ChangedSearchBy             = "ChangedSearchBy"
+	ChangedSearch               = "ChangedSearch"
+	NewBookButtonClicked        = "NewBookButtonClicked"
+)
+
 func Run() {
+	UI := NewUIState()
+
 	a := app.New()
 	window := a.NewWindow(myapp.AppName)
 
-	searchBy := widget.NewSelectWithData([]string{"Title", "Author", "Genre", "Ratting", "On Loan"}, binding.NewString())
-	search := container.New(layout.NewGridLayout(2), searchBy, widget.NewButtonWithIcon("", theme.DocumentSaveIcon(), func(){return}))
-
-	tabel := NewBooksTabel()
-
-	top := container.New(layout.NewGridLayout(1), search, tabel.Header)
-	//scroll := container.NewVScroll(tabel.Box)
-
-	maincon := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, tabel.List)
-
-	window.SetContent(maincon)
+	top:= UI.NewHeaderComp()
+	body := UI.NewBookTableComp()
+	mainComp := container.New(layout.NewBorderLayout(top, nil, nil, nil), top, body)
+	window.SetContent(mainComp)
 	window.ShowAndRun()
 }
