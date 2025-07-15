@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/dialog"
 	_ "fyne.io/fyne/v2/canvas"
 
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
@@ -230,7 +231,10 @@ func (b *BooksTabel) AddBookEntry() fyne.CanvasObject {
 	return entry
 }
 
-func RattingToLabel(r int) (string, error) {
+
+
+
+func RattingIntToLabel(r int) (string, error) {
 	switch r {
 	case 0:
 		return "TBR", nil
@@ -247,19 +251,62 @@ func RattingToLabel(r int) (string, error) {
 	}
 	return "", fmt.Errorf("Invalid ratting: %d", r)
 }
+func RattingLabelToInt(r string) (int, error) {
+	switch r {
+	case "TBR":
+		return 0, nil
+	case "⭐":
+		return 1, nil
+	case "⭐⭐":
+		return 2, nil
+	case "⭐⭐⭐":
+		return 3, nil
+	case "⭐⭐⭐⭐":
+		return 4, nil
+	case "⭐⭐⭐⭐⭐":
+		return 5, nil
+	}
+	return 0, fmt.Errorf("Invalid ratting: %d", r)
+}
 
 type UIState struct {
+	Window fyne.Window
 	DataHasChanged bool
 	Emiter *event.EventEmiter
 	BookSelected  int
 	BookOrderedBy string
 	BookList []string // TODO add book data
+	UniqueGenre []string
 }
-func NewUIState() *UIState {
+func NewUIState(window fyne.Window) *UIState {
 	u := &UIState{
 		Emiter: event.NewEventEmiter(),
+		Window: window,
 	}
 	return u
+}
+
+func (u *UIState) OpenNewBookForm() {
+	rattingEntry := widget.NewSelect([]string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}, nil)
+	o := []*widget.FormItem{
+		widget.NewFormItem(
+			"Title", 
+			widget.NewEntry(),
+		),
+		widget.NewFormItem(
+			"Author", 
+			widget.NewEntry(),
+		),
+		widget.NewFormItem(
+			"Genre", 
+			widget.NewEntry(),
+		),
+		widget.NewFormItem(
+			"Ratting", 
+			rattingEntry,
+		),
+	}
+	dialog.ShowForm("Add Book", "Add", "Cancel", o, func(b bool){}, u.Window)
 }
 
 const (
@@ -273,10 +320,11 @@ const (
 )
 
 func Run() {
-	UI := NewUIState()
 
 	a := app.New()
 	window := a.NewWindow(myapp.AppName)
+
+	UI := NewUIState(window)
 
 	top:= UI.NewHeaderComp()
 	body := UI.NewBookTableComp()
