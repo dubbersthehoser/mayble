@@ -235,39 +235,8 @@ func (b *BooksTabel) AddBookEntry() fyne.CanvasObject {
 
 
 
-func RattingIntToLabel(r int) (string, error) {
-	switch r {
-	case 0:
-		return "TBR", nil
-	case 1:
-		return "⭐", nil
-	case 2:
-		return "⭐⭐", nil
-	case 3:
-		return "⭐⭐⭐", nil
-	case 4:
-		return "⭐⭐⭐⭐", nil
-	case 5:
-		return "⭐⭐⭐⭐⭐", nil
-	}
-	return "", fmt.Errorf("Invalid ratting: %d", r)
-}
-func RattingLabelToInt(r string) (int, error) {
-	switch r {
-	case "TBR":
-		return 0, nil
-	case "⭐":
-		return 1, nil
-	case "⭐⭐":
-		return 2, nil
-	case "⭐⭐⭐":
-		return 3, nil
-	case "⭐⭐⭐⭐":
-		return 4, nil
-	case "⭐⭐⭐⭐⭐":
-		return 5, nil
-	}
-	return 0, fmt.Errorf("Invalid ratting: %d", r)
+func GetRattingStrings() []string {
+	return []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
 }
 
 type UIState struct {
@@ -290,24 +259,16 @@ func NewUIState(window fyne.Window) *UIState {
 
 func (u *UIState) OpenNewBookForm() {
 
-	rattings := []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
-
-	titleData := binding.NewString()
-	authorData := binding.NewString()
-	genreData := binding.NewString()
-	rattingData := binding.NewString()
+	rattings := GetRattingStrings()
 
 	titleEntry := widget.NewEntry()
-	//authorEntry := widget.NewEntryWithData(authorData)
 	authorSelect := widget.NewSelectEntry(u.UniqueAuthors)
 	genreEntry := widget.NewSelectEntry(u.UniqueGenres)
 	rattingSelect := widget.NewSelect(rattings, nil)
 
-
-
 	titleEntry.Validator = func(s string) error {
 		if len(s) == 0 {
-			return errors.New("Must have an Title")
+			return errors.New("Must have a Title")
 		}
 		return nil
 	}
@@ -319,15 +280,11 @@ func (u *UIState) OpenNewBookForm() {
 		return nil
 	}
 
+
+
 	rattingSelect.PlaceHolder = rattings[0]
-	rattingData.Set(rattings[0])
+	rattingSelect.Selected = rattings[0]
 
-	titleEntry.Bind(titleData)
-	authorSelect.Entry.Bind(authorData)
-	genreEntry.Bind(genreData)
-	rattingSelect.Bind(rattingData)
-
-	
 	onLoanCheck := widget.NewCheck(
 		"", 
 		nil,
@@ -356,9 +313,8 @@ func (u *UIState) OpenNewBookForm() {
 			)
 		}
 	}
-	
 
-	o := []*widget.FormItem{
+	f := []*widget.FormItem{
 		widget.NewFormItem(
 			"Title", 
 			titleEntry,
@@ -380,13 +336,23 @@ func (u *UIState) OpenNewBookForm() {
 			onLoanCheck,
 		),
 	}
-	dialog.ShowForm("Add New Book", "Add", "Cancel", o, func(b bool){
-		if b {
-			fmt.Println("YES")
-		} else {
-			fmt.Println("NO")
-		}
-		}, u.Window)
+
+	Dialog := dialog.NewForm("New Book", "Add", "Cancel", f,
+		func (b bool) {
+			if b {
+				fmt.Println("Yes")
+			} else {
+				fmt.Println("No")
+			}
+		}, 
+		u.Window,
+	)
+	height := Dialog.MinSize().Height
+	size := fyne.NewSize(400, 0)
+	size.Height = height
+	Dialog.Resize(size)
+	Dialog.Show()
+
 }
 
 const (
