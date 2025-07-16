@@ -4,8 +4,8 @@ import (
 	//"log"
 	//"image/color"
 	//"log"
-	"fmt"
-	"errors"
+	//"fmt"
+	//"errors"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,8 +14,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/dialog"
-	_ "fyne.io/fyne/v2/canvas"
+	_"fyne.io/fyne/v2/dialog"
+	_"fyne.io/fyne/v2/canvas"
 
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/event"
@@ -239,15 +239,21 @@ func GetRattingStrings() []string {
 	return []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
 }
 
-type UIState struct {
-	Window fyne.Window
-	DataHasChanged bool
-	Emiter *event.EventEmiter
+
+
+type BookLibary struct {
 	BookSelected  int
 	BookOrderedBy string
-	BookList []string // TODO add book data
-	UniqueGenres []string
+	BookList      []string // TODO add book data
+	UniqueGenres  []string
 	UniqueAuthors []string
+}
+
+type UIState struct {
+	BookLibary
+	Window         fyne.Window
+	DataHasChanged bool
+	Emiter         *event.EventEmiter
 }
 func NewUIState(window fyne.Window) *UIState {
 	u := &UIState{
@@ -257,103 +263,6 @@ func NewUIState(window fyne.Window) *UIState {
 	return u
 }
 
-func (u *UIState) OpenNewBookForm() {
-
-	rattings := GetRattingStrings()
-
-	titleEntry := widget.NewEntry()
-	authorSelect := widget.NewSelectEntry(u.UniqueAuthors)
-	genreEntry := widget.NewSelectEntry(u.UniqueGenres)
-	rattingSelect := widget.NewSelect(rattings, nil)
-
-	titleEntry.Validator = func(s string) error {
-		if len(s) == 0 {
-			return errors.New("Must have a Title")
-		}
-		return nil
-	}
-
-	authorSelect.Validator = func(s string) error {
-		if len(s) == 0 {
-			return errors.New("Must have an Author")
-		}
-		return nil
-	}
-
-
-
-	rattingSelect.PlaceHolder = rattings[0]
-	rattingSelect.Selected = rattings[0]
-
-	onLoanCheck := widget.NewCheck(
-		"", 
-		nil,
-	)
-
-	onLoanCheck.OnChanged = func (checked bool) {
-		if checked {
-			dialog.ShowForm("Add Loaned Book", "Add", "Cancel", []*widget.FormItem{}, 
-				func(b bool){
-					if !b {
-						onLoanCheck.Checked = false
-						onLoanCheck.Refresh()
-					}
-				}, 
-				u.Window,
-			)
-		} else {
-			dialog.ShowConfirm("Remove Loaning", "Are you sure?", 
-				func(b bool){
-					if !b {
-						onLoanCheck.Checked = true
-						onLoanCheck.Refresh()
-					}
-				},
-				u.Window,
-			)
-		}
-	}
-
-	f := []*widget.FormItem{
-		widget.NewFormItem(
-			"Title", 
-			titleEntry,
-		),
-		widget.NewFormItem(
-			"Author", 
-			authorSelect,
-		),
-		widget.NewFormItem(
-			"Genre", 
-			genreEntry,
-		),
-		widget.NewFormItem(
-			"Ratting", 
-			rattingSelect,
-		),
-		widget.NewFormItem(
-			"On Loan",
-			onLoanCheck,
-		),
-	}
-
-	Dialog := dialog.NewForm("New Book", "Add", "Cancel", f,
-		func (b bool) {
-			if b {
-				fmt.Println("Yes")
-			} else {
-				fmt.Println("No")
-			}
-		}, 
-		u.Window,
-	)
-	height := Dialog.MinSize().Height
-	size := fyne.NewSize(400, 0)
-	size.Height = height
-	Dialog.Resize(size)
-	Dialog.Show()
-
-}
 
 const (
 	SaveButtonClicked    string = "SaveButtonClicked"
