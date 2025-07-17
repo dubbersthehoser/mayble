@@ -29,6 +29,7 @@ type Book struct {
 	OnLoan Loan
 }
 
+const DialogWidth float32 = 400
 
 func (u *UIState) NewOnLoanDialog(loan *Loan) dialog.Dialog {
 	if loan == nil {
@@ -36,10 +37,18 @@ func (u *UIState) NewOnLoanDialog(loan *Loan) dialog.Dialog {
 	}
 	dateEntry := widget.NewDateEntry()
 	nameEntry := widget.NewEntry()
-	d := dialog.NewForm("Add Loaned Book", "Add", "Cancel", 
+
+	nameEntry.Validator = func(s string) error {
+		if len(s) == 0 {
+			return errors.New("Must have a Name")
+		}
+		return nil
+	}
+
+	d := dialog.NewForm("Loaned Book", "Add", "Cancel", 
 		[]*widget.FormItem{
-			widget.NewFormItem("Name", nameEntry),
-			widget.NewFormItem("Date", dateEntry),
+			widget.NewFormItem("Name*", nameEntry),
+			widget.NewFormItem("Date*", dateEntry),
 		}, 
 		func(b bool){
 			if b {
@@ -49,17 +58,31 @@ func (u *UIState) NewOnLoanDialog(loan *Loan) dialog.Dialog {
 		}, 
 		u.Window,
 	)
+	height := d.MinSize().Height
+	size := fyne.NewSize(DialogWidth, 0)
+	size.Height = height
+	d.Resize(size)
 	return d
 }
 
 func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
-	
+
+	if book == nil {
+		book = &Book{}
+	}
+
 	rattings := GetRattingStrings()
 
 	titleEntry := widget.NewEntry()
-	authorSelect := widget.NewSelectEntry(u.UniqueAuthors)
+	authorEntry := widget.NewSelectEntry(u.UniqueAuthors)
 	genreEntry := widget.NewSelectEntry(u.UniqueGenres)
 	rattingSelect := widget.NewSelect(rattings, nil)
+
+	titleEntry.Text = book.Title
+	authorEntry.Text = book.Author
+	genreEntry.Text = book.Genre
+	rattingSelect.Selected = book.Ratting
+
 
 	titleEntry.Validator = func(s string) error {
 		if len(s) == 0 {
@@ -68,7 +91,7 @@ func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
 		return nil
 	}
 
-	authorSelect.Validator = func(s string) error {
+	authorEntry.Validator = func(s string) error {
 		if len(s) == 0 {
 			return errors.New("Must have an Author")
 		}
@@ -85,15 +108,13 @@ func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
 
 	onLoanCheck.OnChanged = func (checked bool) {
 		if checked {
-			var loan *Loan = nil
-			ld := u.NewOnLoanDialog(loan)
-			ld.Show()
-			if loan != nil {
+			u.Emiter.Emit(NewOnLoanEvent, book)
+			if book.IsOnLoan {
 				onLoanCheck.Checked = true
 				onLoanCheck.Refresh()
 			}
 		} else {
-			dialog.ShowConfirm("Remove Loaning", "Are you sure?", 
+			dialog.ShowConfirm("Unloan Book", "Are you sure?", 
 				func(b bool){
 					if !b {
 						onLoanCheck.Checked = true
@@ -107,12 +128,12 @@ func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
 
 	f := []*widget.FormItem{
 		widget.NewFormItem(
-			"Title", 
+			"Title*", 
 			titleEntry,
 		),
 		widget.NewFormItem(
-			"Author", 
-			authorSelect,
+			"Author*", 
+			authorEntry,
 		),
 		widget.NewFormItem(
 			"Genre", 
@@ -129,9 +150,14 @@ func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
 	}
 
 	Dialog := dialog.NewForm("New Book", "Add", "Cancel", f,
-		func (b bool) {
-			if b {
+		func (ok bool) {
+			if ok {
 				fmt.Println("Yes")
+				book.Title = titleEntry.Text
+				book.Author = authorEntry.Text
+				book.Genre = genreEntry.Text
+				book.Ratting = rattingSelect.Selected
+				fmt.Printf("%#v\n", book)
 			} else {
 				fmt.Println("No")
 			}
@@ -139,14 +165,8 @@ func (u *UIState) NewBookDialog(book *Book) dialog.Dialog {
 		u.Window,
 	)
 	height := Dialog.MinSize().Height
-	size := fyne.NewSize(400, 0)
+	size := fyne.NewSize(DialogWidth, 0)
 	size.Height = height
 	Dialog.Resize(size)
 	return Dialog
-}
-
-func (u *UIState) OpenNewBookForm() {
-	b := &Book{}
-	d := u.NewBookDialog(b)
-	d.Show()
 }

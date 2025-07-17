@@ -42,7 +42,7 @@ func (u *UIState) NewHeaderComp() fyne.CanvasObject {
 
 	// SearchBy Select
 	selectSearchBy := widget.NewSelect(
-		[]string{"All", "Title", "Author", "Genre"},
+		[]string{"Title", "Author", "Genre"},
 		func(s string) {
 			u.Emiter.Emit(ChangedSearchBy, s)
 		},
@@ -61,8 +61,7 @@ func (u *UIState) NewHeaderComp() fyne.CanvasObject {
 	bookBtn := widget.NewButton(
 		"New",
 		func() {
-			u.Emiter.Emit(NewBookButtonClicked, nil)
-			u.OpenNewBookForm()
+			u.Emiter.Emit(NewBookEvent, nil)
 		},
 	)
 	
