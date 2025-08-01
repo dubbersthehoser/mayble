@@ -5,8 +5,7 @@ import (
 
 	//"github.com/dubbersthehoser/mayble/internal/app"
 	//"github.com/dubbersthehoser/mayble/internal/database"
-	"github.com/dubbersthehoser/mayble/internal/gui"
-
+	  gui "github.com/dubbersthehoser/mayble/internal/view"
 )
 
 //go:embed sql/schemas

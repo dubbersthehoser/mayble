@@ -10,10 +10,19 @@ import (
 	_"fyne.io/fyne/v2/data/binding"
 	_"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
+
+	_"github.com/dubbersthehoser/mayble/internal/controler"
+)
+
+const (
+	ChangedOrderBy string = "ChangedOrderBy"
+	ChangedSearch         = "ChangedSearch"
+	ChangedSearchBy       = "ChangedSearchBy"
+	SaveButtonClicked     = "SaveButtonClicked"
 )
 
 
-func (u *UIState) NewHeaderComp() fyne.CanvasObject {
+func (u *UI) NewHeaderComp() fyne.CanvasObject {
 
 	// Save Button
 	saveBtn := widget.NewButton(
@@ -61,7 +70,8 @@ func (u *UIState) NewHeaderComp() fyne.CanvasObject {
 	bookBtn := widget.NewButton(
 		"New",
 		func() {
-			u.Emiter.Emit(NewBookEvent, nil)
+			b := u.VM.NewBook()
+			u.NewBookDialog(b).Show()
 		},
 	)
 	
