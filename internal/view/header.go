@@ -3,6 +3,8 @@ package gui
 // Main App Header
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
@@ -40,6 +42,7 @@ func (u *UI) NewHeaderComp() fyne.CanvasObject {
 		},
 	)
 
+
 	// OrderBy Select
 	selectOrderBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre", "Ratting"},
@@ -70,15 +73,44 @@ func (u *UI) NewHeaderComp() fyne.CanvasObject {
 	bookBtn := widget.NewButton(
 		"New",
 		func() {
-			b := u.VM.NewBook()
-			u.NewBookDialog(b).Show()
+			book := u.VM.NewBook()
+			u.NewBookDialog(book).Show()
 		},
 	)
+
+	// Delete Book Button
+	OnDelete := func() {
+		fmt.Println("Delete button pressed")
+	}
+	deleteBtn := widget.NewButton("Delete", OnDelete)
+	deleteBtn.Disable()
+
+	// Update Book Button
+	OnUpdate := func() {
+		book := u.VM.SelectedBook()
+		u.UpdateBookDialog(book).Show()
+	}
+	updateBtn := widget.NewButton("Edit", OnUpdate)
+	updateBtn.Disable()
+
+	// On Book Selection
+	OnBookSelected := func(nothing any) {
+		updateBtn.Enable()
+		//deleteBtn.Enable()
+	}
+	OnBookUnselected := func(nothing any) {
+		updateBtn.Disable()
+		//deleteBtn.Disable()
+	}
+	
+	u.Emiter.On(BookSelected, OnBookSelected)
+	u.Emiter.On(BookUnselected, OnBookUnselected)
 	
 	// Box
 	boxes := []fyne.CanvasObject{
 		saveBtn,
 		bookBtn,
+		updateBtn,
 		selectSearchBy,
 		//container.New(layout.NewStackLayout(), searchEnt),
 		//selectOrderBy,

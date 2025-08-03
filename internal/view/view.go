@@ -39,7 +39,7 @@ func NewUI(window fyne.Window, vm *controler.VM) *UI {
 
 func Run() {
 	a := app.New()
-	vm := &controler.VM{}
+	vm := controler.NewVM()
 	window := a.NewWindow("alpha")
 	window.Resize(fyne.NewSize(800, 500))
 	UI := NewUI(window, vm)

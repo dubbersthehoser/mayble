@@ -12,11 +12,6 @@ import (
 	_"github.com/dubbersthehoser/mayble/internal/controler"
 )
 
-
-const (
-	NewBookSortingSelected string = "NewSortingSelected"
-)
-
 func (u *UI) NewBookTableComp() fyne.CanvasObject {
 
 	// Top Labels
@@ -33,7 +28,7 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 		button.OnTapped = func() {
 			u.VM.ChangeOrderBy(label)
 			if button.Text == labelNormal {
-				u.Emiter.Emit(NewBookSortingSelected, label)
+				u.Emiter.Emit(SelectedBookSorting, label)
 			}
 			if button.Text != labelDesc {
 				button.SetText(labelDesc)
@@ -47,7 +42,7 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 		OnNewOrdring := func(data any) {
 			button.SetText(labelNormal)
 		}
-		u.Emiter.On(NewBookSortingSelected, OnNewOrdring)
+		u.Emiter.On(SelectedBookSorting, OnNewOrdring)
 		return button
 	}
 
@@ -56,63 +51,91 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 		newSortByButtonAndLabel("Author"),
 		newSortByButtonAndLabel("Genre"),
 		newSortByButtonAndLabel("Ratting"),
-		newSortByButtonAndLabel("On Loan"),
+		newSortByButtonAndLabel("Loan To"),
+		newSortByButtonAndLabel("Date"),
 	}
 
+	// setting the the title feild to be sorted
 	fields[0].(*widget.Button).OnTapped() /* COULD CAUSE UNWANTED STATE CHANGE */
 
 	Heading := container.New(layout.NewGridLayout(len(fields)), fields...)
 
 	OnListLength := func() int {
-		return len(u.VM.BookList)
+		return u.VM.ViewListSize()
 	}
-
 	OnCanvasCreation := func() fyne.CanvasObject {
 		titleLabel := widget.NewLabel("")
 		authorLabel := widget.NewLabel("")
 		genreLabel := widget.NewLabel("")
 		rattingLabel := widget.NewLabel("")
+		onLoanName := widget.NewLabel("")
+		onLoanDate := widget.NewLabel("")
 
 		titleLabel.Wrapping = fyne.TextWrapWord
 		authorLabel.Wrapping = fyne.TextWrapWord
 		genreLabel.Wrapping = fyne.TextWrapWord
 		rattingLabel.Wrapping = fyne.TextWrapWord
+		onLoanName.Wrapping = fyne.TextWrapWord
+		onLoanDate.Wrapping = fyne.TextWrapWord
+		
 
 		titleLabel.Truncation = fyne.TextTruncateEllipsis
 		authorLabel.Truncation = fyne.TextTruncateEllipsis
 		genreLabel.Truncation = fyne.TextTruncateEllipsis
 		rattingLabel.Truncation = fyne.TextTruncateEllipsis
+		onLoanName.Truncation = fyne.TextTruncateEllipsis
+		onLoanDate.Truncation = fyne.TextTruncateEllipsis
 
-		titleLabel.Selectable = true
-		authorLabel.Selectable = true
-		genreLabel.Selectable = true
-		rattingLabel.Selectable = true
+		titleLabel.Selectable = false
+		authorLabel.Selectable = false
+		genreLabel.Selectable = false
+		rattingLabel.Selectable = false
+		onLoanName.Selectable = false
+		onLoanDate.Selectable = false
 
 		fields := []fyne.CanvasObject{
 			titleLabel,
 			authorLabel,
 			genreLabel,
 			rattingLabel,
+			onLoanName,
+			onLoanDate,
 		}
 		entry := container.New(layout.NewGridLayout(len(fields)), fields...)
 		return entry
 	}   
-
-	OnCanvasInit := func(id int, o fyne.CanvasObject) {
-		index := id
-		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(u.VM.BookList[index].Title())
-		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(u.VM.BookList[index].Author())
-		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(u.VM.BookList[index].Genre())
-		o.(*fyne.Container).Objects[3].(*widget.Label).SetText(u.VM.BookList[index].Ratting())
+	OnCanvasInit := func(index int, o fyne.CanvasObject) {
+		book := u.VM.GetBook(index)
+		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title())
+		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author())
+		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre())
+		o.(*fyne.Container).Objects[3].(*widget.Label).SetText(book.Ratting())
+		o.(*fyne.Container).Objects[4].(*widget.Label).SetText(book.LoanName())
+		o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.LoanDate())
 	} 
 
 	// The List of Books
 	List := widget.NewList(OnListLength, OnCanvasCreation, OnCanvasInit)
 	List.HideSeparators = false
-	List.OnSelected = func(id int) {
-		u.VM.SetBookSelected(id)
+	List.OnSelected = func(index int) {
+		u.VM.SetSelectedBook(index)
+		u.Emiter.Emit(BookSelected, index)
 	}
-	List.OnUnselected = func(id int) {} // todo
+	List.OnUnselected = func(index int) {
+		u.Emiter.Emit(BookUnselected, index)
+	}
+
+	OnNewBookToTabel := func(book any) {
+		u.VM.UpdateAndSortBookView()
+		List.Refresh()
+	}
+	OnRemoveBookFromTabel := func(book any) {
+		u.VM.UpdateAndSortBookView()
+		List.Refresh()
+	}
+
+	u.Emiter.On(AddedNewBookToList, OnNewBookToTabel)
+	u.Emiter.On(RemovedBookFromList, OnRemoveBookFromTabel)
 
 	table := container.New(layout.NewBorderLayout(Heading, nil, nil, nil), Heading, List)
 	return table
