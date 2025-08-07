@@ -87,7 +87,7 @@ func (u *UI) NewHeaderComp() fyne.CanvasObject {
 
 	// Update Book Button
 	OnUpdate := func() {
-		book := u.VM.SelectedBook()
+		book := u.VM.SelectedBook
 		u.UpdateBookDialog(book).Show()
 	}
 	updateBtn := widget.NewButton("Edit", OnUpdate)

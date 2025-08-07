@@ -8,8 +8,6 @@ import (
 	_"fyne.io/fyne/v2/data/binding"
 	_"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
-
-	_"github.com/dubbersthehoser/mayble/internal/controler"
 )
 
 func (u *UI) NewBookTableComp() fyne.CanvasObject {
@@ -26,16 +24,15 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 		)
 		button.Importance = widget.LowImportance
 		button.OnTapped = func() {
-			u.VM.ChangeOrderBy(label)
 			if button.Text == labelNormal {
 				u.Emiter.Emit(SelectedBookSorting, label)
 			}
 			if button.Text != labelDesc {
 				button.SetText(labelDesc)
-				u.VM.SetOrderingDESC()
+				u.VM.SetSorting(label, DESC)
 			} else {
 				button.SetText(labelAsc)
-				u.VM.SetOrderingASC()
+				u.VM.SetSorting(label, ASC)
 			}
 			button.Refresh()
 		}
@@ -61,9 +58,10 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 	Heading := container.New(layout.NewGridLayout(len(fields)), fields...)
 
 	OnListLength := func() int {
-		return u.VM.ViewListSize()
+		return u.VM.ListedCount()
 	}
 	OnCanvasCreation := func() fyne.CanvasObject {
+
 		titleLabel := widget.NewLabel("")
 		authorLabel := widget.NewLabel("")
 		genreLabel := widget.NewLabel("")
@@ -106,12 +104,12 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 	}   
 	OnCanvasInit := func(index int, o fyne.CanvasObject) {
 		book := u.VM.GetBook(index)
-		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title())
-		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author())
-		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre())
-		o.(*fyne.Container).Objects[3].(*widget.Label).SetText(book.Ratting())
-		o.(*fyne.Container).Objects[4].(*widget.Label).SetText(book.LoanName())
-		o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.LoanDate())
+		o.(*fyne.Container).Objects[0].(*widget.Label).Bind(book.Label.Title)
+		o.(*fyne.Container).Objects[1].(*widget.Label).Bind(book.Label.Author)
+		o.(*fyne.Container).Objects[2].(*widget.Label).Bind(book.Label.Genre)
+		o.(*fyne.Container).Objects[3].(*widget.Label).Bind(book.Label.Ratting)
+		o.(*fyne.Container).Objects[4].(*widget.Label).Bind(book.Label.LoanName)
+		o.(*fyne.Container).Objects[5].(*widget.Label).Bind(book.Label.LoanDate)
 	} 
 
 	// The List of Books
@@ -126,16 +124,21 @@ func (u *UI) NewBookTableComp() fyne.CanvasObject {
 	}
 
 	OnNewBookToTabel := func(book any) {
-		u.VM.UpdateAndSortBookView()
+		u.VM.Sort()
 		List.Refresh()
 	}
 	OnRemoveBookFromTabel := func(book any) {
-		u.VM.UpdateAndSortBookView()
+		u.VM.Sort()
+		List.Refresh()
+	}
+	OnUpdatedBookToTabel := func(book any) {
+		u.VM.Sort()
 		List.Refresh()
 	}
 
 	u.Emiter.On(AddedNewBookToList, OnNewBookToTabel)
 	u.Emiter.On(RemovedBookFromList, OnRemoveBookFromTabel)
+	u.Emiter.On(UpdatedBookToList, OnUpdatedBookToTabel)
 
 	table := container.New(layout.NewBorderLayout(Heading, nil, nil, nil), Heading, List)
 	return table

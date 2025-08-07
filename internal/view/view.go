@@ -18,17 +18,16 @@ import (
 	_"fyne.io/fyne/v2/dialog"
 	_"fyne.io/fyne/v2/canvas"
 
-	"github.com/dubbersthehoser/mayble/internal/controler"
 	"github.com/dubbersthehoser/mayble/internal/event"
 )
 
 type UI struct {
 	Window    fyne.Window
 	Emiter    *event.EventEmiter
-	VM        *controler.VM
+	VM        *FyneVM
 }
 
-func NewUI(window fyne.Window, vm *controler.VM) *UI {
+func NewUI(window fyne.Window, vm *FyneVM) *UI {
 	u := &UI{
 		Emiter: event.NewEventEmiter(),
 		Window: window,
@@ -39,7 +38,7 @@ func NewUI(window fyne.Window, vm *controler.VM) *UI {
 
 func Run() {
 	a := app.New()
-	vm := controler.NewVM()
+	vm := NewFyneVM()
 	window := a.NewWindow("alpha")
 	window.Resize(fyne.NewSize(800, 500))
 	UI := NewUI(window, vm)
