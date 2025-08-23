@@ -12,8 +12,8 @@ import (
 const createBook = `-- name: CreateBook :one
 INSERT INTO books(created_at, updated_at, title, author, genre, ratting)
 VALUES (
-	?,
-	?,
+	unixepoch(),
+	unixepoch(),
 	?,
 	?,
 	?,
@@ -23,18 +23,14 @@ RETURNING id, created_at, updated_at, title, author, genre, ratting
 `
 
 type CreateBookParams struct {
-	CreatedAt int64
-	UpdatedAt int64
-	Title     string
-	Author    string
-	Genre     string
-	Ratting   int64
+	Title   string
+	Author  string
+	Genre   string
+	Ratting int64
 }
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
 	row := q.db.QueryRowContext(ctx, createBook,
-		arg.CreatedAt,
-		arg.UpdatedAt,
 		arg.Title,
 		arg.Author,
 		arg.Genre,
@@ -53,12 +49,12 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 	return i, err
 }
 
-const destroyBook = `-- name: DestroyBook :exec
+const deleteBook = `-- name: DeleteBook :exec
 DELETE FROM books WHERE id = ?
 `
 
-func (q *Queries) DestroyBook(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, destroyBook, id)
+func (q *Queries) DeleteBook(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteBook, id)
 	return err
 }
 
@@ -103,36 +99,44 @@ func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
 	return items, nil
 }
 
-const updateBookAuthor = `-- name: UpdateBookAuthor :exec
-UPDATE books 
-SET updated_at = ?, author = ?
-WHERE id = ?
-`
-
-type UpdateBookAuthorParams struct {
-	UpdatedAt int64
-	Author    string
-	ID        int64
-}
-
-func (q *Queries) UpdateBookAuthor(ctx context.Context, arg UpdateBookAuthorParams) error {
-	_, err := q.db.ExecContext(ctx, updateBookAuthor, arg.UpdatedAt, arg.Author, arg.ID)
-	return err
-}
-
-const updateBookRatting = `-- name: UpdateBookRatting :exec
+const updateBook = `-- name: UpdateBook :one
 UPDATE books
-SET updated_at = ?, ratting = ?
+SET 
+	updated_at = unixepoch(),
+	title  = ?,
+	author = ?,
+	genre  = ?,
+	ratting = ?
+
 WHERE id = ?
+RETURNING id, created_at, updated_at, title, author, genre, ratting
 `
 
-type UpdateBookRattingParams struct {
-	UpdatedAt int64
-	Ratting   int64
-	ID        int64
+type UpdateBookParams struct {
+	Title   string
+	Author  string
+	Genre   string
+	Ratting int64
+	ID      int64
 }
 
-func (q *Queries) UpdateBookRatting(ctx context.Context, arg UpdateBookRattingParams) error {
-	_, err := q.db.ExecContext(ctx, updateBookRatting, arg.UpdatedAt, arg.Ratting, arg.ID)
-	return err
+func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, error) {
+	row := q.db.QueryRowContext(ctx, updateBook,
+		arg.Title,
+		arg.Author,
+		arg.Genre,
+		arg.Ratting,
+		arg.ID,
+	)
+	var i Book
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Title,
+		&i.Author,
+		&i.Genre,
+		&i.Ratting,
+	)
+	return i, err
 }

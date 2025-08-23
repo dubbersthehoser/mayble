@@ -6,7 +6,7 @@ CREATE TABLE books (
 	title      TEXT NOT NULL,
 	author     TEXT NOT NULL,
 	genre      TEXT NOT NULL,
-	ratting    INTEGER NOT NULL
+	ratting    INTEGER NOT NULL CHECK(ratting >= 0 AND ratting <= 5)
 );
 
 -- +goose Down

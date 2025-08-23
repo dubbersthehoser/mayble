@@ -14,10 +14,22 @@ import (
 var SchemaDir string
 var SchemaFS embed.FS
 
+var schemaFS *embed.FS
+
+func SetSchemaFiles(fs embed.FS, dir string) {
+	schemaFS = &fs
+	schemaDir = dir
+}
+
 type Database struct {
 	Queries *database.Queries
 	DB      *sql.DB
+
+	schemaDir string
+	scemaFS   embed.FS
 }
+
+
 
 func OpenDatabase(path string) (*Database, error) {
 	db, err := sql.Open("sqlite3", path)
@@ -46,7 +58,6 @@ func DatabaseMigrateUp(db *Database) error {
 	}
 	return nil
 }
-
 
 
 
