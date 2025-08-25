@@ -4,24 +4,13 @@ import (
 	"os"
 	"time"
 	"testing"
-	"path/filepath"
-
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
-
 func TestDatabase(t *testing.T) {
 	
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("could not get current working directory: %s", err)
-	}
-
-	projectRoot := filepath.Join(cwd, "..", "..")
-	
-	schemaPath := filepath.Join(projectRoot, "sql/schemas/")
-	db := NewDatabase(nil, schemaPath)
+	db := NewDatabase()
 	t.Log("creating temp file...")
 	tempDir := os.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "*.sqlite")

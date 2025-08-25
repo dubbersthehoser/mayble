@@ -3,14 +3,18 @@ package sqlitedb
 import (
 	"fmt"
 	"io/fs"
+	"embed"
 	"database/sql"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 	
 	"github.com/dubbersthehoser/mayble/internal/database"
-
 )
+
+//go:embed schemas
+var embedFS  embed.FS
+var schemaDir string = "schemas"
 
 // Schema contains schemas for migrations. Primary use is for embed file system and testing.
 type Schema struct {
@@ -18,7 +22,7 @@ type Schema struct {
 	FS   fs.FS // root filesystem location of the schema directory.
 }
 
-// Database contains queries, schema, and db connection
+// Database contains queries, Schema, and db connection
 type Database struct {
 	Queries *database.Queries // sqlc queries
 	DB      *sql.DB           // database connection
@@ -26,16 +30,14 @@ type Database struct {
 }
 
 // NewDatabase create a new database. 
-func NewDatabase(schemaFS fs.FS, schemaDir string) *Database {
+func NewDatabase() *Database {
 	goose.SetVerbose(false)
 	goose.SetLogger(goose.NopLogger())
-	if schemaFS != nil {
-		goose.SetBaseFS(schemaFS)
-	}
+	goose.SetBaseFS(embedFS)
 	return &Database{
 		Schema: Schema{
 			Dir: schemaDir,
-			FS:  schemaFS,
+			FS:  embedFS,
 		},
 	}
 }

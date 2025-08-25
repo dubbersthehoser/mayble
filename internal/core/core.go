@@ -4,7 +4,7 @@ import (
 	"time"
 	"sync"
 
-	"github.com/dubbersthehoser/mayble/internal/tables"
+	"github.com/dubbersthehoser/mayble/internal/core/tables"
 )
 
 type BookID tables.BookID
