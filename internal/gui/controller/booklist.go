@@ -4,38 +4,66 @@ import (
 	"errors"
 	
 	"github.com/dubbersthehoser/mayble/internal/core"
+	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
-const nonIndex int = -127
+func GetTitle(b *storage.BookLoan) string {
+	return b.BookData.Title
+}
+func GetAuthor(b *stroage.BookLoan) string {
+	return b.BookData.Author
+}
+func GetGenre(b *storage.BookLoan) string {
+	return b.BookData.Genre
+}
+func GetRatting(b *storage.BookLoan) string {
+	return RattingToString(b.Ratting)
+}
+func GetLoanDate(b *storage.BookLoan) string {
+	if b.IsOnLoan() {
+		return DateToString(b.LoanDate)
+	} else {
+		return "n/a"
+	}
+}
+func GetLoanName(b *storage.BookLoan) string {
+	if b.IsOnLoan() {
+		return b.LoanName
+	} else {
+		return "n/a"
+	}
+}
+
+const UnselectIndex int = -1
 
 type BookList struct {
-	list     []core.BookID
-	selected int
-	core     *core.Core
+	core           *core.Core
+	list           []int64
+	selectedIndex  int
 }
-func NewBookList(core *core.Core) *BookList {
+func NewBookList(c *core.Core) *BookList {
 	b := &BookList{
-		list: []core.BookID{},
-		selected: nonIndex,
-		core: core,
+		list:          make([]int64),
+		selectedIndex: UnselectIndex,
+		core:          c,
 	}
 	return b
 }
 
 func (l *BookList) Len() int {
-	return len(l.list)
+	return len(l.List)
 }
 
 func (l *BookList) Select(index int) error {
 	if err := l.ValidateIndex(index); err != nil {
 		return err
 	}
-	l.selected = index
+	l.SelectedIndex = index
 	return nil
 }
 
 func (l *BookList) Unselect() {
-	l.seleted = nonIndex
+	l.selected = UnselectIndex
 }
 
 func (l *BookList) ValidateIndex(index int) error {
@@ -45,37 +73,24 @@ func (l *BookList) ValidateIndex(index int) error {
 	return nil
 }
 
-func (l *BookList) Selected() *BookLoanData, error {
-	if l.selected == nonIndex {
-		return nil, errors.New("booklist: there was no selected")
+func (l *BookList) Selected() (*storage.BookLoan, error) {
+	if l.selected == UnselectIndex {
+		return nil, errors.New("booklist: no selected book")
 	}
-	if err := l.ValidateIndex(l.Selected); err != nil {
+	if err := l.ValidateIndex(l.selected); err != nil {
 		return nil, err
 	}
 	return l.Get(l.selected)
 }
 
-func (l *BookList) Get(index int) *BookLoanData, error {
+func (l *BookList) Get(index int) (*storage.BookLoan, error) {
 	if err := l.ValidateIndex(index); err != nil {
 		return nil, err
 	}
 	bookID := l.list[index]
-	book, err := l.core.GetBook(bookID)
+	bookLoan, err := l.core.GetBookLoan(bookID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	result := &BookLoanData{
-		Title: book.Title,
-		Author: book.Author,
-		Genre: book.Genre,
-		Ratting: book.Ratting,
-	}
-
-	loan, err := l.core.GetBookLoan(bookID)
-	if err == nil {
-		result.LoanName = loan.Name
-		result.LoanDate = loan.Date
-		result.isOnLoan = true
-	}
-	return result
+	return &bookLoan, nil
 }

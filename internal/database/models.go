@@ -18,7 +18,7 @@ type LoanedBook struct {
 	ID        int64
 	CreatedAt int64
 	UpdatedAt int64
-	Date      int64
+	Date      string
 	Name      string
 	BookID    int64
 }

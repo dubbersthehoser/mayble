@@ -1,13 +1,63 @@
 package controller
 
-type BookData struct {
-	Title string
-	Author string
-	Genre string
-	Ratting string
+import (
+	"fmt"
+	"time"
+	"errors"
+
+	"github.com/dubbersthehoser/mayble/internal/core"
+)
+
+func GetRattingStrings() []string {
+	return []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
 }
 
-type LoanData struct {
-	Name string
-	Date time.Time
+func RattingToInt(ratting string) int {
+	for i, str := range GetRattingStrings() {
+		if str == ratting {
+			return i
+		}
+	}
+	panic("invalid ratting string was passed")
 }
+
+func RattingToString(i int) string {
+	str := GetRattingStrings()[i]
+	return str
+}
+
+func DateToString(date *time.Time) string {
+	return fmt.Sprintf("%d/%d/%d", date.Day(), date.Month(), date.Year())
+}
+
+func ValidateTitle(title string) error {
+	if title == "" {
+		return errors.New("must have an title")
+	}
+	return nil
+}
+func ValidateAuthor(author string) error {
+	if author == "" {
+		return errors.New("must have an author")
+	}
+	return nil
+}
+func ValidateGenre(genre string) error {
+	if genre == "" {
+		return errors.New("must have an genre")
+	}
+	return nil
+}
+func ValidateLoanName(name string) error {
+	if name == "" {
+		return errors.New("must have loan name")
+	}
+	return nil
+}
+func ValidateLoanDate(date *time.Time) error {
+	if date == nil {
+		return errors.New("must have loan date")
+	}
+	return nil
+}
+

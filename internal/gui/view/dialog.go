@@ -1,233 +1,205 @@
-package gui
+package view
 
 import (
-	"fmt"
+	_"fmt"
 	"time"
 	"errors"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/dialog"
+	_"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	_"fyne.io/fyne/v2/data/binding"
 	_"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
+
+	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
 const DialogWidth float32 = 400
+func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
+	
+	rattings := controller.GetRattingStrings()
 
-func BasicStringValidator(s string) error {
-	if len(s) == 0 {
-		return errors.New("empty string")
+	type EntryField struct { // container for entry form items
+		Entry fyne.CanvasObject
+		Label fyne.CanvasObject
 	}
-	return nil
-}
 
-type EntryControl struct {
-	Label      string
-	Binding   binding.String
-	Validator func(string) error
-}
-func (t *EntryControl) GetValidator() func(string) error {
-	baseValidator := func(s string) error {
-		err := BasicStringValidator(s)
-		if err != nil {
-			errors.New(t.Label + "is an" + err)
+	ValidationInfo := widget.NewLabel("")
+
+	titleField := EntryField{
+		Entry: widget.NewEntry(),
+		Label: widget.NewLabel("Title"),
+	}
+	authorField := EntryField{
+		Entry: widget.NewEntry(),
+		Label: widget.NewLabel("Author"),
+	}
+	genreField := EntryField{
+		Entry: widget.NewSelectEntry([]string{"placeholder_1", "placeholder_2", "placeholder_2"}),
+		Label: widget.NewLabel("Genre"),
+	}
+	rattingField := EntryField{
+		Entry: widget.NewSelect(rattings, nil),
+		Label: widget.NewLabel("Ratting"),
+	}
+	onLoanField := EntryField{
+		Entry: widget.NewCheck("", nil),
+		Label: widget.NewLabel("On Loan"),
+	}
+	loanNameField := EntryField{
+		Entry: widget.NewEntry(),
+		Label: widget.NewLabel("Name"),
+	}
+	loanDateField := EntryField{
+		Entry: widget.NewDateEntry(),
+		Label: widget.NewLabel("Date"),
+	}
+
+	{ // Set data in the entries for the current edit status of the form
+	var (
+		isBeingUpdated  bool  = form.Status == controller.StatusUpdate
+		isBeingCreated bool = form.Status == controller.StatusCreate
+		isBeingLoaned   bool = form.IsOnLoan
+	)
+
+	if isBeingCreated {
+		rattingField.Entry.(*widget.Select).SetSelectedIndex(0) 
+	}
+	
+	if isBeingUpdated {
+		titleField.Entry.(*widget.Entry).Text = form.Title
+		authorField.Entry.(*widget.Entry).Text = form.Author
+		genreField.Entry.(*widget.SelectEntry).Text = form.Genre
+		rattingField.Entry.(*widget.Select).Selected = rattings[form.Ratting]
+	}
+	if isBeingLoaned && isBeingUpdated {
+		loanNameField.Entry.(*widget.Entry).Text = form.LoanName
+		loanDateField.Entry.(*widget.DateEntry).Date = form.LoanDate
+	}
+	}
+
+	onCancel := func() {}
+
+	onSubmit := func() {
+		f.SubmitForm(form)
+		f.Update()
+	}
+
+	submitBtn := widget.NewButton("Submit", onSubmit)
+	cancelBtn := widget.NewButton("Cancel", onCancel)
+
+	validateData := func() error { // validate book form
+		if err := controller.ValidateTitle(form.Title); err != nil {
+			return errors.New("Book: must have an title.")
+		}
+		if err := controller.ValidateAuthor(form.Author); err != nil {
+			return errors.New("Book: must have an author.")
+		}
+		if err := controller.ValidateGenre(form.Genre); err != nil {
+			return errors.New("Book: must have an genre.")
+		}
+		if !form.IsOnLoan {
+			return nil
+		}
+		if err := controller.ValidateLoanName(form.LoanName); err != nil {
+			return errors.New("Book: must have loanee name.")
+		}
+		if err := controller.ValidateLoanDate(form.LoanDate); err != nil {
+			return errors.New("Book: must have loan date.")
 		}
 		return nil
 	}
-	if t.Validator == nil {
-		return baseValidator
-	}
-	return t.Validator
-}
 
-type SelectControl struct {
-	Label     string
-	Binding   binding.String
-	Selection func() []string
-}
-func (s *SelectControl) GetSelection() []string {
-	return s.Selection()
-}
-
-type EntrySelectControl struct {
-	EntryControl
-	Selection func() []string
-}
-func (e *EntrySelectControl) GetSelection() []string {
-	return e.Selection()
-}
-
-func NewSelectControl(selection func() []string) *EntrySelectControl {
-	
-}
-
-
-func GetDialogSize(size fyne.Size) fyne.Size {
-	height := size.Height
-	s := fyne.NewSize(DialogWidth, 0)
-	s.Height = height
-	return s
-}
-
-type BookFormControl struct {
-	Title    binding.String
-	Author   binding.String
-	Genre    binding.String
-	Ratting  binding.String
-	LoanName binding.String
-	LoanDate *time.Time
-
-	TitleEntry    widget.Entry
-	AuthorEntry   widget.Entry
-	GenreEntry    widget.SelectEntry
-	RattingSelect widget.Select
-
-	OnLoanCheck   widget.Check
-	LoanNameEntry widget.Entry
-	LoanDateEntry widget.DateEntry
-}
-
-func (b *BookFormControl) OnDateChanged(t *time.Time) {  // for widget.DateEntry
-	*b.LoanDate = *t
-}
-
-func (u *UI) GetBookFormDialog(form *BookFormControl) *dialog.CustomDialog {
-
-	rattings := GetRattingLabels()
-
-	form.TitleEntry := widget.NewEntry()
-	form.AuthorEntry := widget.NewEntry()
-	form.GenreEntry := widget.NewSelectEntry(u.VM.UniqueGenres())
-	form.RattingSelect := widget.NewSelect(rattings, nil)
-	form.LoanNameEntry := widget.NewEntry()
-	from.LoanDateEntry := widget.NewDateEntry()
-
-	titleEntry.Bind(form.Title)
-	authorEntry.Bind(form.Author)
-	genreEntry.Bind(form.Genre)
-	rattingSelect.Bind(form.Ratting)
-	loanNameEntry.Bind(form.LoanName)
-	loanDateEntry.OnChanged = form.OnDateChanged
-
-	authorEntry.Validator = nil
-	titleEntry.Validator = nil
-	loanNameEntry.Validator = nil
-
-	items := []*widget.FormItem{
-		widget.NewFormItem("Title*", titleEntry),
-		widget.NewFormItem("Author*", authorEntry),
-		widget.NewFormItem("Genre", genreEntry),
-		widget.NewFormItem("Ratting", rattingSelect),
-		widget.NewFormItem("On Loan", onLoanCheck),
-		widget.NewFormItem("Name*", loanNameEntry),
-		widget.NewFormItem("Date*", loanDateEntry),
-	}
-
-	form.OnLoanCheck.OnChanged = func(isChecked bool) {
-		if isChecked {
-			loanNameEntry.Validator = listed.Entry.LoanNameValidator
-			loanNameEntry.Enable()
-			loanDateEntry.Enable()
+	onDataChange := func() {
+		err := validateData()
+		if err != nil {
+			submitBtn.Disable()
+			ValidationInfo.SetText(err.Error())
+			ValidationInfo.Importance = widget.DangerImportance
+			ValidationInfo.Refresh()
 		} else {
-			loanNameEntry.Validator = func(s string) error {return nil}
-			loanNameEntry.Disable()
-			loanDateEntry.Disable()
-		}
-		onLoanCheck.Refresh()
-		form.Validate()
-		d.Refresh()
-	}
-	obj := container.New(layout.NewVBoxLayout(), form)
-	d := dialog.NewCustomWithoutButtons(label, obj, u.Window)
-	return d
-}
-
-func (u *UI) BookDialog(label string, book *EmitBookEntry) dialog.Dialog {
-
-	ctrl := BookFormContol{}
-	if book != nil {
-		ctrl.Title = book.Title
-		ctrl.Author = book.Author
-		ctrl.Genre = book.Genre
-		ctrl.Ratting = book.Ratting
-
-		if book.IsOnLoan {
-			
+			submitBtn.Enable()
+			ValidationInfo.SetText("")
+			ValidationInfo.Importance = widget.MediumImportance
+			ValidationInfo.Refresh()
 		}
 	}
-	d := u.GetBookFormDialog(&ctrl, book)
+
+	titleField.Entry.(*widget.Entry).OnChanged = func(s string) {
+		form.SetTitle(s)
+		onDataChange()
+	}
+	authorField.Entry.(*widget.Entry).OnChanged = func(s string) {
+		form.SetAuthor(s)
+		onDataChange()
+	}
+	genreField.Entry.(*widget.SelectEntry).OnChanged = func(s string) {
+		form.SetGenre(s)
+		onDataChange()
+	}
+	rattingField.Entry.(*widget.Select).OnChanged = func(s string) {
+		form.SetRatting(s)
+		onDataChange()
+	}
+	loanNameField.Entry.(*widget.Entry).OnChanged = func(s string) {
+		form.SetLoanName(s)
+		onDataChange()
+	}
+	loanDateField.Entry.(*widget.DateEntry).OnChanged = func(d *time.Time) {
+		form.SetLoanDate(d)
+		onDataChange()
+	}
+
+	authorField.Entry.(*widget.Entry).Validator = nil
+	titleField.Entry.(*widget.Entry).Validator = nil
+	loanNameField.Entry.(*widget.Entry).Validator = nil
+
+	onLoanCheck := onLoanField.Entry.(*widget.Check)
+
+	formItems := []fyne.CanvasObject{
+		titleField.Label,    titleField.Entry,
+		authorField.Label,   authorField.Entry,
+		genreField.Label,    genreField.Entry,
+		rattingField.Label,  rattingField.Entry,
+		onLoanField.Label,   onLoanField.Entry,
+		loanNameField.Label, loanNameField.Entry,
+		loanDateField.Label, loanDateField.Entry,
+	}
+
+	formlayout := container.New(layout.NewFormLayout(), formItems...)
 
 	onLoanCheck.OnChanged = func(isChecked bool) {
+		NameEntry := loanNameField.Entry.(*widget.Entry)
+		NameLabel := loanNameField.Label.(*widget.Label)
+		DateEntry := loanDateField.Entry.(*widget.DateEntry)
+		DateLabel := loanDateField.Label.(*widget.Label)
 		if isChecked {
-			loanNameEntry.Validator = listed.Entry.LoanNameValidator
-			loanNameEntry.Enable()
-			loanDateEntry.Enable()
+			NameEntry.Enable()
+			DateEntry.Enable()
+			
+			NameLabel.Importance = widget.MediumImportance
+			NameLabel.Refresh()
+			DateLabel.Importance = widget.MediumImportance
+			DateLabel.Refresh()
 		} else {
-			loanNameEntry.Validator = func(s string) error {return nil}
-			loanNameEntry.Disable()
-			loanDateEntry.Disable()
+			NameEntry.Disable()
+			DateEntry.Disable()
+
+			NameLabel.Importance = widget.LowImportance
+			NameLabel.Refresh()
+			DateLabel.Importance = widget.LowImportance
+			DateLabel.Refresh()
 		}
+		form.IsOnLoan = isChecked
+		onDataChange()
 		onLoanCheck.Refresh()
-		form.Validate()
-		d.Refresh()
 	}
+	onLoanCheck.OnChanged(form.IsOnLoan)
 
-	submitValidation := func() error {
-		var (
-			LoanDateInvalid bool = *loanDateEntry.Date == *new(time.Time)
-		)
-		if onLoanCheck.Checked && LoanDateInvalid {
-			return errors.New("Invalid Loan Date")
-		}
-		return nil
-	}
+	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
 
-	
-	// Buttons
-	OnSubmit := func() {
-		if err := submitValidation(); err != nil {
-			dialog.ShowError(err, u.Window)
-			return 
-		}
-		book := &EventBookEntry{
-			Title: titleEntry.Text,
-			Author: authorEntry.Text,
-			Genre: genreEntry.Text,
-			Ratting: GenreEntry.Text,
-			IsOnLoan: onLoanCheck.Checked,
-		}
-		u.Emiter.Emit(BookCreated, book)
-		d.Dismiss()
-	}
-
-	OnCancel := func() {
-		d.Dismiss()
-	}
-
-	SubmitBtn := widget.NewButton("Submit", OnSubmit)
-	CancelBtn := widget.NewButton("Cancel", OnCancel)
-
-	SubmitBtn.Importance = widget.HighImportance
-
-	OnValidationChanged := func(err error) {
-		if err != nil {
-			SubmitBtn.Disable()
-		} else {
-			SubmitBtn.Enable()
-		}
-	}
-
-	form.SetOnValidationChanged(OnValidationChanged)
-
-	btns := []fyne.CanvasObject{
-		SubmitBtn,
-		CancelBtn,
-	}
-
-	d.SetButtons(btns)
-	d.Resize(GetDialogSize(d.MinSize()))
-	return d
+	return obj
 }

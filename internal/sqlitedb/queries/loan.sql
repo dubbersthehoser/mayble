@@ -22,6 +22,9 @@ SET
 WHERE id = ?
 RETURNING *;
 
+-- name: GetLoanByBookID :one
+SELECT id, name, date, book_id FROM loaned_books WHERE book_id = ?;
+
 -- name: GetAllLoans :many
 SELECT id, name, date, book_id FROM loaned_books;
 

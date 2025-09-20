@@ -23,7 +23,7 @@ RETURNING id, created_at, updated_at, date, name, book_id
 
 type CreateLoanParams struct {
 	Name   string
-	Date   int64
+	Date   string
 	BookID int64
 }
 
@@ -57,7 +57,7 @@ SELECT id, name, date, book_id FROM loaned_books
 type GetAllLoansRow struct {
 	ID     int64
 	Name   string
-	Date   int64
+	Date   string
 	BookID int64
 }
 
@@ -89,6 +89,29 @@ func (q *Queries) GetAllLoans(ctx context.Context) ([]GetAllLoansRow, error) {
 	return items, nil
 }
 
+const getLoanByBookID = `-- name: GetLoanByBookID :one
+SELECT id, name, date, book_id FROM loaned_books WHERE book_id = ?
+`
+
+type GetLoanByBookIDRow struct {
+	ID     int64
+	Name   string
+	Date   string
+	BookID int64
+}
+
+func (q *Queries) GetLoanByBookID(ctx context.Context, bookID int64) (GetLoanByBookIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getLoanByBookID, bookID)
+	var i GetLoanByBookIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Date,
+		&i.BookID,
+	)
+	return i, err
+}
+
 const updateLoan = `-- name: UpdateLoan :one
 UPDATE loaned_books
 SET
@@ -101,7 +124,7 @@ RETURNING id, created_at, updated_at, date, name, book_id
 
 type UpdateLoanParams struct {
 	Name string
-	Date int64
+	Date string
 	ID   int64
 }
 
