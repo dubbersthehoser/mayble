@@ -10,6 +10,6 @@ type CommandBookLoanCreate struct {}
 
 type CommandBookLoanUpdate struct {}
 
-type CommandUndo struct {}
-
-type CommandRedo struct {}
+func (c *Controller) GetCommand(driver string) Command {
+	
+}

@@ -21,12 +21,12 @@ func RattingToInt(ratting string) int {
 	panic("invalid ratting string was passed")
 }
 
-func RattingToString(i int) string {
+func rattingToString(i int) string {
 	str := GetRattingStrings()[i]
 	return str
 }
 
-func DateToString(date *time.Time) string {
+func dateToString(date *time.Time) string {
 	return fmt.Sprintf("%d/%d/%d", date.Day(), date.Month(), date.Year())
 }
 

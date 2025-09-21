@@ -7,34 +7,35 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
-func GetTitle(b *storage.BookLoan) string {
-	return b.BookData.Title
-}
-func GetAuthor(b *stroage.BookLoan) string {
-	return b.BookData.Author
-}
-func GetGenre(b *storage.BookLoan) string {
-	return b.BookData.Genre
-}
-func GetRatting(b *storage.BookLoan) string {
-	return RattingToString(b.Ratting)
-}
-func GetLoanDate(b *storage.BookLoan) string {
-	if b.IsOnLoan() {
-		return DateToString(b.LoanDate)
-	} else {
-		return "n/a"
-	}
-}
-func GetLoanName(b *storage.BookLoan) string {
-	if b.IsOnLoan() {
-		return b.LoanName
-	} else {
-		return "n/a"
-	}
+type BookLoanListed struct {
+	Title    string
+	Author   string
+	Gerne    string
+	Ratting  string
+	Borrower string
+	Date     string
 }
 
+
+func toBookLoanView(bookLoan *storage.BookLoan) *BookLoanView {
+	view := GetBookLoanView{
+		Title:   bookLoan.Title,
+		Author:  bookLoan.Author,
+		Genre:   bookLoan.Genre,
+		Ratting: rattingToString(bookLoan.Ratting),
+		Borrower: "n/a",
+		Date:     "n/a",
+	}
+	if bookLoan.IsOnLoan() {
+		Borrower: bookLoan.Loan.Name,
+		Date:     dateToString(bookLoan.Loan.Date)
+	}
+	return &view
+}
+
+
 const UnselectIndex int = -1
+
 
 type BookList struct {
 	core           *core.Core
@@ -83,7 +84,7 @@ func (l *BookList) Selected() (*storage.BookLoan, error) {
 	return l.Get(l.selected)
 }
 
-func (l *BookList) Get(index int) (*storage.BookLoan, error) {
+func (l *BookList) Get(index int) (*BookLoanListed, error) {
 	if err := l.ValidateIndex(index); err != nil {
 		return nil, err
 	}
@@ -92,5 +93,20 @@ func (l *BookList) Get(index int) (*storage.BookLoan, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &bookLoan, nil
+	bookView := toBookLoanView(bookLoan)
+	return &bookView, nil
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

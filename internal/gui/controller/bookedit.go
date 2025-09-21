@@ -37,7 +37,7 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) {
 
 func NewBookLoanBuilder(editType EditType) *BookLoanBuilder {
 	return &BookLoanbuilder{
-		Type: editType
+		Type: editType,
 	}
 } 
 
