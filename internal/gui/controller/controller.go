@@ -10,7 +10,6 @@ type Controller struct {
 	Core        *core.Core
 	BookList    *BookList
 	BookEditor  *BookEditor
-	Selector    *Selector
 }
 
 func NewContorller(core *core.Core) *Controller {

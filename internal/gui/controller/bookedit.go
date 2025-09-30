@@ -17,8 +17,6 @@ const (
 
 type BookEditor struct {
 	controller Controller
-	undo builderStack
-	redo builderStack
 }
 func NewBookEditor(c *Controller) *BookEditor {
 	return &BookEditor{

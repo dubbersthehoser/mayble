@@ -1,8 +1,10 @@
 package core
 
 import (
+	"strings"
+	"slices"
 	"fmt"
-	"errors"
+	_"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
@@ -29,7 +31,7 @@ func (c *Core) load() error {
 		return fmt.Errorf("core: %w", err)
 	}
 	for _, book := range bookLoans {
-		err = c.memMgr.store.CreateBookLoan(book)
+		err = c.memMgr.store.CreateBookLoan(&book)
 		if err != nil {
 			return err
 		}
@@ -37,12 +39,19 @@ func (c *Core) load() error {
 	return nil
 }
 
+
+
+
 /***********************
 	Core API
 ************************/
 
 func (c *Core) Save() error {
-	for cmd := c.storeMgr.dequeue(); cmd != nil {
+	for {
+		cmd := c.storeMgr.dequeue()
+		if cmd != nil {
+			break
+		}
 		err := c.storeMgr.execute(cmd)
 		if err != nil {
 			return err
@@ -64,8 +73,17 @@ const (
 	ByDate          = "Date"
 )
 
-func (c *Core) ListBookLoan(by OrderBy, desending bool) []storage.BookLoan {
-	bookLoans, _ := c.memMgr.store.GetAllBookLoans()
+type Order int
+const (
+	ASC Order = iota
+	DEC
+)
+
+func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error) {
+	bookLoans, err := c.memMgr.store.GetAllBookLoans()
+	if err != nil {
+		return nil, err
+	}
 	compare := func(x, y storage.BookLoan) int {
 		const (
 			GreaterX int = 1
@@ -89,22 +107,22 @@ func (c *Core) ListBookLoan(by OrderBy, desending bool) []storage.BookLoan {
 			case x.Ratting < y.Ratting:
 				result = LesserX
 			}
-		case Borrower:
+		case ByBorrower:
 			result = strings.Compare(x.Loan.Name, y.Loan.Name)
 		case ByDate:
 			result = x.Loan.Date.Compare(y.Loan.Date)
 		}
-		if desending {
+		if order == DEC {
 			result = result * -1
 		}
 		return result
 	}
 	slices.SortFunc(bookLoans, compare)
-	return bookLoans
+	return bookLoans, nil
 }
 
 func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
-	cmd := commandCreateBookLoan{
+	cmd := &commandCreateBookLoan{
 		bookLoan: book,
 	}
 	err := c.memMgr.execute(cmd)
@@ -116,7 +134,7 @@ func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
 }
 
 func (c *Core) UpdateBookLoan(book *storage.BookLoan) error {
-	cmd := commandUpdateBookLoan{
+	cmd := &commandUpdateBookLoan{
 		bookLoan: book,
 	}
 	err := c.memMgr.execute(cmd)
@@ -128,7 +146,7 @@ func (c *Core) UpdateBookLoan(book *storage.BookLoan) error {
 }
 
 func (c *Core) DeleteBookLoan(book *storage.BookLoan) error {
-	cmd := commandDeleteBookLoan{
+	cmd := &commandDeleteBookLoan{
 		bookLoan: book,
 	}
 	err := c.memMgr.execute(cmd)
@@ -151,7 +169,7 @@ type commandStack struct {
 }
 func newCommandStack() *commandStack {
 	c := commandStack{
-		items: make([]command),
+		items: make([]command, 0),
 	}
 	return &c
 }
@@ -172,8 +190,11 @@ func (cs *commandStack) length() int {
 }
 
 func (cs *commandStack) clear() {
-	cs.items = make([]command)
+	cs.items = make([]command, 0)
 }
+
+
+
 
 
 /*******************************
@@ -187,7 +208,7 @@ type manager struct {
 	queue []command
 }
 
-func newManager(store storage.Storage) {
+func newManager(store storage.Storage) *manager{
 	m := manager{
 		undos: newCommandStack(),
 		redos: newCommandStack(),
@@ -206,12 +227,12 @@ func (m *manager) execute(cmd command) error {
 }
 
 func (m *manager) unExecute() error {
-	cmd := undo.pop()
+	cmd := m.undos.pop()
 	err := cmd.undo(m.store)
 	if err != nil {
 		return err
 	}
-	m.redo.push(cmd)
+	m.redos.push(cmd)
 	return nil
 } 
 
@@ -229,7 +250,7 @@ func (m *manager) reExecute() error {
 }
 
 func (m *manager) enqueue(cmd command) {
-	m.store = append(m.store, cmd)
+	m.queue = append(m.queue, cmd)
 }
 
 func (m *manager) dequeue() command {
@@ -240,6 +261,10 @@ func (m *manager) dequeue() command {
 	m.queue = m.queue[1:]
 	return cmd
 }
+
+
+
+
 
 
 /**********************
@@ -257,7 +282,7 @@ type commandCreateBookLoan struct {
 	bookLoan *storage.BookLoan
 }
 
-func (c *commandCreateBookLoan) do(s stroage.Storage) error {
+func (c *commandCreateBookLoan) do(s storage.Storage) error {
 	return s.CreateBookLoan(c.bookLoan)
 }
 
@@ -293,7 +318,7 @@ func (c *commandUpdateBookLoan) do(s storage.Storage) error {
 	if err != nil {
 		return err
 	}
-	c.prevBookLoan = book
+	c.prevBookLoan = &book
 	return s.UpdateBookLoan(c.bookLoan)
 }
 
@@ -301,5 +326,5 @@ func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
 	book := c.prevBookLoan
 	c.prevBookLoan = c.bookLoan
 	c.bookLoan = book
-	s.UpdateBookLoan(book)
+	return s.UpdateBookLoan(book)
 }
