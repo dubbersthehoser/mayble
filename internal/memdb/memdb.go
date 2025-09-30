@@ -61,7 +61,9 @@ func (m *MemStorage) GetBookLoanByID(id int64) (storage.BookLoan, error) {
 }
 
 func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) error {
-	bookID := m.GetNewBookID()
+	if book.ID == storage.ZeroID {
+		bookID := m.GetNewBookID()
+	}
 	book.ID = bookID
 	m.Books[bookID] = book.Book
 	if book.IsOnLoan() {

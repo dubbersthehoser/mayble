@@ -5,133 +5,301 @@ import (
 	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/memdb"
 )
-
-type condition int
-const (
-	Untouched  condition = iota
-	Deleted 
-	Updated 
-	Created
-)
-func (c condition) String() string {
-	switch c {
-	case Untouched:
-		return "Untouched"
-	case Deleted:
-		return "Deleted"
-	case Updated:
-		return "Update"
-	case Created:
-		return "Created"
-	}
-	panic("core: condition to string was not found!")
-}
 type Core struct {
-	storage       storage.Storage
-	bookLoanTable map[int64]storage.BookLoan
-	conditions    map[int64]condition
+	storage  storage.Storage
+	storeMgr *manager 
+	memMgr   *manager 
 }
 func New(store storage.Storage) (*Core, error) {
 	var c Core
-	c.storage       = store
-	c.bookLoanTable = make(map[int64]storage.BookLoan)
-	c.conditions    = make(map[int64]condition)
-	if err := c.loadTable(); err != nil {
+	c.storeMgr = newManager(store)
+	memStore := memdb.NewMemStorage()
+	c.memMgr = newManager(memStore)
+	if err := c.load(); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (c *Core) getNewID() int64 {
-	return int64(len(c.bookLoanTable)) + 1
-}
-
-func (c *Core) loadTable() error {
-	bookLoans, err := c.storage.GetAllBookLoans()
+func (c *Core) load() error {
+	bookLoans, err := c.storeMgr.store.GetAllBookLoans()
 	if err != nil {
 		return fmt.Errorf("core: %w", err)
 	}
 	for _, book := range bookLoans {
-		id := c.getNewID()
-		c.bookLoanTable[id] = book
-	}
-	return nil
-}
-
-func (c *Core) saveTable() error {
-	for id, book := range c.bookLoanTable {
-		condition := c.conditions[id]
-		switch condition {
-		case Created:
-			if err := c.storage.CreateBookLoan(&book); err != nil {
-				return err
-			}
-		case Deleted:
-			if err := c.storage.DeleteBookLoan(&book); err != nil {
-				return err
-			}
-		case Updated:
-			if err := c.storage.UpdateBookLoan(&book); err != nil {
-				return err
-			}
-		case Untouched:
-			continue
+		err = c.memMgr.store.CreateBookLoan(book)
+		if err != nil {
+			return err
 		}
 	}
-	c.bookLoanTable = make(map[int64]storage.BookLoan)
-	return c.loadTable()
+	return nil
 }
+
+/***********************
+	Core API
+************************/
 
 func (c *Core) Save() error {
-	return c.saveTable()
+	for cmd := c.storeMgr.dequeue(); cmd != nil {
+		err := c.storeMgr.execute(cmd)
+		if err != nil {
+			return err
+		}
+	}
+	return c.load()
 }
 
-func (c *Core) ListBookLoanIDs() []int64 {
-	ids := make([]int64, len(c.bookLoanTable))
-	i := 0
-	for id := range c.bookLoanTable {
-		ids[i] = id
-		i++
+/* Listing and Ordering */
+
+type OrderBy string
+
+const (
+	ByTitle OrderBy = "Title"
+	ByAuthor        = "Author"
+	ByGenre         = "Genre"
+	ByRatting       = "Ratting"
+	ByBorrower      = "Borrower"
+	ByDate          = "Date"
+)
+
+func (c *Core) ListBookLoan(by OrderBy, desending bool) []storage.BookLoan {
+	bookLoans, _ := c.memMgr.store.GetAllBookLoans()
+	compare := func(x, y storage.BookLoan) int {
+		const (
+			GreaterX int = 1
+			Equal    int = 0
+			LesserX  int = -1
+		)
+		result := Equal
+		switch by {
+		case ByTitle:
+			result = strings.Compare(x.Title, y.Title)
+		case ByAuthor:
+			result = strings.Compare(x.Author, y.Author)
+		case ByGenre:
+			result = strings.Compare(x.Genre, y.Genre)
+		case ByRatting:
+			switch {
+			case x.Ratting == y.Ratting:
+				result = Equal
+			case x.Ratting > y.Ratting:
+				result = GreaterX
+			case x.Ratting < y.Ratting:
+				result = LesserX
+			}
+		case Borrower:
+			result = strings.Compare(x.Loan.Name, y.Loan.Name)
+		case ByDate:
+			result = x.Loan.Date.Compare(y.Loan.Date)
+		}
+		if desending {
+			result = result * -1
+		}
+		return result
 	}
-	return ids
+	slices.SortFunc(bookLoans, compare)
+	return bookLoans
 }
-func (c *Core) GetBookLoanByID(id int64) (storage.BookLoan, error) {
-	book, ok := c.bookLoanTable[id]
-	if !ok {
-		return book, errors.New("core: couldn't get book: id not found")
+
+func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
+	cmd := commandCreateBookLoan{
+		bookLoan: book,
 	}
-	return book, nil
-}
-func (c *Core) CreateBookLoan(book storage.BookLoan) (int64, error) {
-	id := c.getNewID()
-	c.bookLoanTable[id] = book
-	c.conditions[id] = Created
-	return id, nil
-}
-func (c *Core) UpdateBookLoan(id int64, book storage.BookLoan) error {
-	_, ok := c.bookLoanTable[id]
-	if !ok {
-		return errors.New("core: couldn't update book id not found")
+	err := c.memMgr.execute(cmd)
+	if err != nil {
+		return err
 	}
-	c.bookLoanTable[id] = book
-	condition := c.conditions[id]
-	if condition == Deleted {
-		return errors.New("core: couldn't update book is deleted")
-	}
-	if condition != Created {
-		c.conditions[id] = Updated
-	}
+	c.storeMgr.enqueue(cmd)
 	return nil
 }
-func (c *Core) DeleteBookLoan(id int64) error {
-	_, ok := c.bookLoanTable[id]
-	if !ok {
-		return errors.New("core: couldn't delete book id not found")
+
+func (c *Core) UpdateBookLoan(book *storage.BookLoan) error {
+	cmd := commandUpdateBookLoan{
+		bookLoan: book,
 	}
-	c.conditions[id] = Deleted
+	err := c.memMgr.execute(cmd)
+	if err != nil {
+		return err
+	}
+	c.storeMgr.enqueue(cmd)
+	return nil
+}
+
+func (c *Core) DeleteBookLoan(book *storage.BookLoan) error {
+	cmd := commandDeleteBookLoan{
+		bookLoan: book,
+	}
+	err := c.memMgr.execute(cmd)
+	if err != nil {
+		return err
+	}
+	c.storeMgr.enqueue(cmd)
 	return nil
 }
 
 
 
+
+/********************************
+	Command Stack
+*********************************/
+
+type commandStack struct {
+	items []command
+}
+func newCommandStack() *commandStack {
+	c := commandStack{
+		items: make([]command),
+	}
+	return &c
+}
+
+func (cs *commandStack) pop() command {
+	length := len(cs.items)
+	cmd := cs.items[length-1]
+	cs.items = cs.items[:length]
+	return cmd
+}
+
+func (cs *commandStack) push(cmd command) {
+	cs.items = append(cs.items, cmd)
+}
+
+func (cs *commandStack) length() int {
+	return len(cs.items)
+}
+
+func (cs *commandStack) clear() {
+	cs.items = make([]command)
+}
+
+
+/*******************************
+	Command Manager
+********************************/
+
+type manager struct {
+	store storage.Storage
+	undos *commandStack
+	redos *commandStack
+	queue []command
+}
+
+func newManager(store storage.Storage) {
+	m := manager{
+		undos: newCommandStack(),
+		redos: newCommandStack(),
+		store: store,
+	}
+	return &m
+}
+
+func (m *manager) execute(cmd command) error {
+	if err := cmd.do(m.store); err != nil {
+		return err
+	}
+	m.undos.push(cmd)
+	m.redos.clear()
+	return nil
+}
+
+func (m *manager) unExecute() error {
+	cmd := undo.pop()
+	err := cmd.undo(m.store)
+	if err != nil {
+		return err
+	}
+	m.redo.push(cmd)
+	return nil
+} 
+
+func (m *manager) reExecute() error {
+	cmd := m.redos.pop()
+	if cmd == nil {
+		return nil
+	}
+	err := cmd.do(m.store)
+	if err != nil {
+		return err
+	}
+	m.undos.push(cmd)
+	return nil
+}
+
+func (m *manager) enqueue(cmd command) {
+	m.store = append(m.store, cmd)
+}
+
+func (m *manager) dequeue() command {
+	if len(m.queue) == 0 {
+		return nil
+	}
+	cmd := m.queue[0]
+	m.queue = m.queue[1:]
+	return cmd
+}
+
+
+/**********************
+	Commands
+***********************/
+
+type command interface {
+	do(storage.Storage)   error
+	undo(storage.Storage) error
+}
+
+/* Create Book Loan */
+
+type commandCreateBookLoan struct {
+	bookLoan *storage.BookLoan
+}
+
+func (c *commandCreateBookLoan) do(s stroage.Storage) error {
+	return s.CreateBookLoan(c.bookLoan)
+}
+
+func (c *commandCreateBookLoan) undo(s storage.Storage) error {
+	return s.DeleteBookLoan(c.bookLoan)
+}
+
+
+/* Delete Book Loan */
+
+type commandDeleteBookLoan struct {
+	bookLoan *storage.BookLoan
+}
+
+func (c *commandDeleteBookLoan) do(s storage.Storage) error {
+	return s.DeleteBookLoan(c.bookLoan)
+}
+
+func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
+	return s.CreateBookLoan(c.bookLoan)
+}
+
+
+/* Update Book Loan */
+
+type commandUpdateBookLoan struct {
+	bookLoan *storage.BookLoan
+	prevBookLoan *storage.BookLoan
+}
+
+func (c *commandUpdateBookLoan) do(s storage.Storage) error {
+	book, err := s.GetBookLoanByID(c.bookLoan.ID)
+	if err != nil {
+		return err
+	}
+	c.prevBookLoan = book
+	return s.UpdateBookLoan(c.bookLoan)
+}
+
+func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
+	book := c.prevBookLoan
+	c.prevBookLoan = c.bookLoan
+	c.bookLoan = book
+	s.UpdateBookLoan(book)
+}

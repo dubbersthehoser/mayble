@@ -14,7 +14,7 @@ var (
 	ErrInvalidValue  = errors.New("invalid value")   // return if one of the values is invalid.
 	ErrEntryExists   = errors.New("entry exists")    // return when creating a new entry and the id exists.
 	ErrEntryNotFound = errors.New("entry not found") // return when id could not be found in storage.
-	//ErrStorageFull   = errors.New("hit storage cap") // return when the BookCap is hit.
+	ErrStorageFull   = errors.New("hit storage cap") // return when the BookCap is hit.
 )
 
 type Book struct {
