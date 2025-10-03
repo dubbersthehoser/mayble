@@ -35,6 +35,7 @@ type BookLoan struct {
 	Book
 	Loan *Loan
 }
+
 func NewBookLoan() *BookLoan {
 	b := &BookLoan{
 		Book: Book{
@@ -46,13 +47,17 @@ func NewBookLoan() *BookLoan {
 	}
 	return b
 }
+
 // IsOnLoan
 func (bl *BookLoan) IsOnLoan() bool {
 	return bl.Loan != nil
 }
-func (bl *BookLoan) SetUnLoan() {
+func (bl *BookLoan) UnsetLoan() {
 	bl.Loan = nil
 }
+
+
+
 
 /***********************
 	Validation

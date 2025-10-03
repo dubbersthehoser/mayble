@@ -2,9 +2,9 @@ package controller
 
 import (
 	"time"
-	"fmt"
+	_"fmt"
 
-	"github.com/dubbersthehoser/mayble/internal/core"
+	_"github.com/dubbersthehoser/mayble/internal/core"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 type BookEditor struct {
-	controller Controller
+	controller *Controller
 }
 func NewBookEditor(c *Controller) *BookEditor {
 	return &BookEditor{
@@ -34,7 +34,7 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) {
 }
 
 func NewBookLoanBuilder(editType EditType) *BookLoanBuilder {
-	return &BookLoanbuilder{
+	return &BookLoanBuilder{
 		Type: editType,
 	}
 } 
@@ -57,13 +57,16 @@ func (b *BookLoanBuilder) SetTitle(title string) {
 	b.title = title
 }
 func (b *BookLoanBuilder) SetAuthor(author string) {
-	b.Author = author
+	b.author = author
 }
 func (b *BookLoanBuilder) SetGenre(genre string) {
-	b.Genre = genre
+	b.genre = genre
 }
-func (b *BookLoanBuilder) SetRatting(ratting int){
-	b.Ratting = ratting
+func (b *BookLoanBuilder) SetRattingWithString(ratting string){
+	b.ratting = RattingToInt(ratting)
+}
+func (b *BookLoanBuilder) SetRattingWithInt(ratting int){
+	b.ratting = ratting
 }
 func (b *BookLoanBuilder) SetLoanName(name string) {
 	b.loanName = name
@@ -76,14 +79,14 @@ func (b *BookLoanBuilder) Build() *storage.BookLoan {
 	bl.Title = b.title
 	bl.Author = b.author
 	bl.Genre = b.genre
-	bl.Ratting = RattingToInt(b.Ratting)
+	bl.Ratting = b.ratting
 	if b.isOnLoan {
 		bl.Loan.Name = b.loanName
 		bl.Loan.Date = b.loanDate
 	} else {
-		bl.SetUnloan()
+		bl.UnsetLoan()
 	}
-	return &bl
+	return bl
 }
 
 type builderStack struct {
@@ -102,13 +105,12 @@ func (b *builderStack) Pop() *BookLoanBuilder {
 	}
 	bl := b.Peek()
 	b.stack = b.stack[:len(b.stack)-1]
-	return &bl
+	return bl
 }
 func (b *builderStack) Peek() *BookLoanBuilder {
 	bl := b.stack[len(b.stack)-1]
 	return &bl
 }
-
 
 
 

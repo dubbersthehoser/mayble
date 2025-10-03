@@ -9,13 +9,16 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
-func TestCore(t *testing.T) {
+func newTestCore() (*Core, error) {
 	myStore := memdb.NewMemStorage()
-	myCore, err := New(myStore)
+	return New(myStore)
+}
+
+func TestCore(t *testing.T) {
+	myCore, err := newTestCore()
 	if err != nil {
 		t.Fatal(err)
 	}
-
 
 	t.Log("Creating")
 
@@ -93,6 +96,43 @@ func TestCore(t *testing.T) {
 
 	t.Log("Done")
 
+}
+
+func TestListBookLoan(t *testing.T) {
+	core, err := newTestCore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bookAmount := 10
+	for i:=0; i<bookAmount; i++ {
+		bookLoan := storage.BookLoan{
+			Book: storage.Book{
+				ID: storage.ZeroID,
+				Title: fmt.Sprintf("title_%d", i),
+				Author: fmt.Sprintf("author_%d", i),
+				Genre: fmt.Sprintf("genre_%d", i),
+				Ratting: i % 6,
+			},
+			Loan: &storage.Loan{
+				ID: storage.ZeroID,
+				Name: fmt.Sprintf("name_%d", i),
+				Date: time.Now().Add(time.Hour * time.Duration(24 * (i+1))),
+			},
+		}
+		err := core.CreateBookLoan(&bookLoan)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	bookList, err := core.ListBookLoans(ByTitle, ASC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	if len(bookList) != bookAmount {
+		t.Fatalf("list size got '%d', got '%d'", len(bookList), bookAmount)
+	}
 }
 
 func compareBookLoan(a, b storage.BookLoan) error {

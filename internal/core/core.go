@@ -74,6 +74,7 @@ const (
 )
 
 type Order int
+
 const (
 	ASC Order = iota
 	DEC
@@ -81,6 +82,7 @@ const (
 
 func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error) {
 	bookLoans, err := c.memMgr.store.GetAllBookLoans()
+	fmt.Printf("%d\n", len(bookLoans))
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +285,7 @@ type commandCreateBookLoan struct {
 }
 
 func (c *commandCreateBookLoan) do(s storage.Storage) error {
+	fmt.Printf("%#v\n", s)
 	return s.CreateBookLoan(c.bookLoan)
 }
 

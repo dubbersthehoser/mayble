@@ -1,8 +1,6 @@
 package memdb
 
 import (
-	//"errors"
-	
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
@@ -63,6 +61,10 @@ func (m *MemStorage) GetBookLoanByID(id int64) (storage.BookLoan, error) {
 func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) error {
 	if book.ID == storage.ZeroID {
 		book.ID = m.GetNewBookID()
+	}
+	_, ok := m.Books[book.ID]
+	if ok {
+		return storage.ErrEntryExists
 	}
 	m.Books[book.ID] = book.Book
 	if book.IsOnLoan() {

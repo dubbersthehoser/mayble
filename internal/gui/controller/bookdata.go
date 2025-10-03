@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 	"errors"
-
-	"github.com/dubbersthehoser/mayble/internal/core"
 )
 
 func GetRattingStrings() []string {

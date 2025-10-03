@@ -1,9 +1,7 @@
 package controller
 
 import (
-
 	"github.com/dubbersthehoser/mayble/internal/core"
-	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
 type Controller struct {
@@ -13,11 +11,10 @@ type Controller struct {
 }
 
 func NewContorller(core *core.Core) *Controller {
-	var c Contorller
+	var c Controller
 	c.Core = core
-	c.BookList = NewBookList(&c)
+	c.BookList = NewBookList(core)
 	c.BookEditor = NewBookEditor(&c)
-	c.Selector = NewSelector(&c)
 	return &c
 }
 

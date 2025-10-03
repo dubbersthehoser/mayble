@@ -7,6 +7,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
+
 type BookLoanListed struct {
 	Title    string
 	Author   string
@@ -33,6 +34,10 @@ func toBookLoanView(bookLoan *storage.BookLoan) *BookLoanListed {
 	return &view
 }
 
+
+/*************************
+	Book List
+**************************/
 
 const UnselectIndex int = -1
 

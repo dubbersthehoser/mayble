@@ -3,64 +3,33 @@ package memdb
 import (
 	"testing"
 	"strings"
+	"fmt"
+	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
 
 func TestMemStorageBasic(t *testing.T) {
-
 	memStore := NewMemStorage()
-
-	tests := []*storage.BookLoan{
-		&storage.BookLoan{
+	bookAmount := 12
+	tests := make([]*storage.BookLoan, bookAmount)
+	for i:=0; i<bookAmount; i++ {
+		bookLoan := storage.BookLoan{
 			Book: storage.Book{
-				Title: "title_1",
-				Author: "author_1",
-				Genre: "genre_1",
-				Ratting: 0,
+				ID: int64(i),
+				Title: fmt.Sprintf("title_%d", i),
+				Author: fmt.Sprintf("author_%d", i),
+				Genre: fmt.Sprintf("genre_%d", i),
+				Ratting: i % 6,
 			},
-		},
-		&storage.BookLoan{
-			Book: storage.Book{
-				Title: "title_2",
-				Author: "author_2",
-				Genre: "genre_2",
-				Ratting: 1,
+			Loan: &storage.Loan{
+				ID: int64(i),
+				Name: fmt.Sprintf("name_%d", i),
+				Date: time.Now().Add(time.Hour * time.Duration(24 * (i+1))),
 			},
-		},
-		&storage.BookLoan{
-			Book: storage.Book{
-				Title: "title_3",
-				Author: "author_3",
-				Genre: "genre_3",
-				Ratting: 2,
-			},
-		},
-		&storage.BookLoan{
-			Book: storage.Book{
-				Title: "title_4",
-				Author: "author_4",
-				Genre: "genre_4",
-				Ratting: 3,
-			},
-		},
-		&storage.BookLoan{
-			Book: storage.Book{
-				Title: "title_5",
-				Author: "author_5",
-				Genre: "genre_5",
-				Ratting: 4,
-			},
-		},
-		&storage.BookLoan{
-			Book: storage.Book{
-				Title: "title_6",
-				Author: "author_6",
-				Genre: "genre_6",
-				Ratting: 5,
-			},
-		},
+		}
+		tests[i] = &bookLoan
 	}
 	
 	t.Run("CreateBookLoan", func(t *testing.T) {
@@ -142,7 +111,7 @@ func TestMemStorageBasic(t *testing.T) {
 		for _, bookLoan := range tests{
 			err := memStore.DeleteBookLoan(bookLoan)
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("%s: %#v\n",err, bookLoan)
 			}
 		}
 
