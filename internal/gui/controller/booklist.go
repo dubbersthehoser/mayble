@@ -18,7 +18,7 @@ type BookLoanListed struct {
 }
 
 
-func toBookLoanView(bookLoan *storage.BookLoan) *BookLoanListed {
+func toBookLoanListed(bookLoan *storage.BookLoan) *BookLoanListed {
 	view := BookLoanListed{
 		Title:   bookLoan.Title,
 		Author:  bookLoan.Author,
@@ -57,7 +57,7 @@ func NewBookList(c *core.Core) *BookList {
 	return b
 }
 
-func (l *BookList) List() error {
+func (l *BookList) Update() error {
 	bookLoans, err := l.core.ListBookLoans(core.ByTitle, core.ASC)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func (l *BookList) Get(index int) (*BookLoanListed, error) {
 		return nil, err
 	}
 	bookLoan := l.list[index]
-	bookView := toBookLoanView(&bookLoan)
+	bookView := toBookLoanListed(&bookLoan)
 	return bookView, nil
 }
 
