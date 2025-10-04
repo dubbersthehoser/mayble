@@ -9,6 +9,11 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
 )
+
+/*******************
+	Core
+********************/
+
 type Core struct {
 	storage  storage.Storage
 	storeMgr *manager 
@@ -59,6 +64,7 @@ func (c *Core) Save() error {
 	}
 	return c.load()
 }
+
 
 /* Listing and Ordering */
 

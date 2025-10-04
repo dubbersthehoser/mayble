@@ -17,7 +17,6 @@ type BookLoanListed struct {
 	Date     string
 }
 
-
 func toBookLoanListed(bookLoan *storage.BookLoan) *BookLoanListed {
 	view := BookLoanListed{
 		Title:   bookLoan.Title,
@@ -33,6 +32,8 @@ func toBookLoanListed(bookLoan *storage.BookLoan) *BookLoanListed {
 	}
 	return &view
 }
+
+
 
 
 /*************************
@@ -112,17 +113,3 @@ func (l *BookList) Get(index int) (*BookLoanListed, error) {
 	bookView := toBookLoanListed(&bookLoan)
 	return bookView, nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
