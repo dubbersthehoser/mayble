@@ -98,6 +98,48 @@ func TestCore(t *testing.T) {
 
 }
 
+func TestSave(t *testing.T) {
+	myStore := memdb.NewMemStorage()
+	core, err := New(myStore)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bookAmount := 0
+	for i:= 0; i<bookAmount; i++ {
+		bookLoan := storage.BookLoan{
+			Book: storage.Book{
+				ID: storage.ZeroID,
+				Title: fmt.Sprintf("title_%d", i),
+				Author: fmt.Sprintf("author_%d", i),
+				Genre: fmt.Sprintf("genre_%d", i),
+				Ratting: i % 6,
+			},
+			Loan: &storage.Loan{
+				ID: storage.ZeroID,
+				Name: fmt.Sprintf("name_%d", i),
+				Date: time.Now().Add(time.Hour * time.Duration(24 * (i+1))),
+			},
+		}
+		err := core.CreateBookLoan(&bookLoan)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	err = core.Save()
+	if err != nil{
+		t.Fatal(err)
+	}
+
+	bookLoanList, err := myStore.GetAllBookLoans()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bookLoanList) != bookAmount {
+		t.Errorf("bookLoanList length should be '%d', got '%d'", len(bookLoanList), bookAmount)
+	}
+}
+
+
 func TestListBookLoan(t *testing.T) {
 	core, err := newTestCore()
 	if err != nil {

@@ -14,7 +14,7 @@ func NewContorller(core *core.Core) *Controller {
 	var c Controller
 	c.Core = core
 	c.BookList = NewBookList(core)
-	c.BookEditor = NewBookEditor(&c)
+	c.BookEditor = NewBookEditor(core)
 	return &c
 }
 

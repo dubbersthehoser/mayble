@@ -54,7 +54,7 @@ func (c *Core) load() error {
 func (c *Core) Save() error {
 	for {
 		cmd := c.storeMgr.dequeue()
-		if cmd != nil {
+		if cmd == nil {
 			break
 		}
 		err := c.storeMgr.execute(cmd)

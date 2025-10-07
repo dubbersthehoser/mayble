@@ -11,10 +11,10 @@ import (
 const ZeroID int64 = -127 
 
 var (
-	ErrInvalidValue  = errors.New("invalid value")   // return if one of the values is invalid.
-	ErrEntryExists   = errors.New("entry exists")    // return when creating a new entry and the id exists.
-	ErrEntryNotFound = errors.New("entry not found") // return when id could not be found in storage.
-	ErrStorageFull   = errors.New("hit storage cap") // return when the BookCap is hit.
+	ErrInvalidValue  = errors.New("storage: invalid value")   // return if one of the values is invalid.
+	ErrEntryExists   = errors.New("storage: entry exists")    // return when creating a new entry and the id exists.
+	ErrEntryNotFound = errors.New("storage: entry not found") // return when id could not be found in storage.
+	ErrStorageFull   = errors.New("storage: hit storage cap") // return when the BookCap is hit.
 )
 
 type Book struct {
@@ -126,11 +126,25 @@ func ValidRatting(ratting int) bool {
 *********************************/
 
 type Storage interface {
+	// GetAllBookLoans returns a list of stored book loans.
 	GetAllBookLoans() ([]BookLoan, error)
+
+	// GetBookLoanByID returns stored book by its id.
 	GetBookLoanByID(id int64) (BookLoan, error)
+
+	// CreateBookLoan adds book loan to storage.
+	// returns ErrEntryExists when book id is in storage. Use ZeroID for id or NewBookLoan().
 	CreateBookLoan(*BookLoan) error
+
+	// UpdateBookLoan update book loan in storage.
+	// returns ErrEntryNotFound when book id is not in storage.
 	UpdateBookLoan(*BookLoan) error
+
+	// DeleteBookLoan remove book loan from storage.
+	// returns ErrEntryNotFound when book id is not in storage.
 	DeleteBookLoan(*BookLoan) error
+
+	// Close whatever implementation. Can be nop.
 	Close() error
 }
 

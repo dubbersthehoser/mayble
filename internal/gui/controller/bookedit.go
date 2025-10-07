@@ -2,9 +2,9 @@ package controller
 
 import (
 	"time"
-	_"fmt"
+	"fmt"
 
-	_"github.com/dubbersthehoser/mayble/internal/core"
+	"github.com/dubbersthehoser/mayble/internal/core"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
@@ -14,23 +14,43 @@ const (
 	Creating 
 	Deleting
 )
+func (t EditType) String() string {
+	switch t {
+	case Updating:
+		return "Updating"
+	case Creating:
+		return "Creating"
+	case Deleting:
+		return "Deleting"
+	default:
+		panic("invalid builder build type")
+	}
+	return ""
+}
 
 type BookEditor struct {
-	controller *Controller
+	core *core.Core
 }
-func NewBookEditor(c *Controller) *BookEditor {
+
+func NewBookEditor(c *core.Core) *BookEditor {
 	return &BookEditor{
-		controller: c,
+		core: c,
 	}
 }
 
-func (be *BookEditor) Submit(builder *BookLoanBuilder) {
+func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
+	bookLoan := builder.Build()
 	switch builder.Type {
 	case Updating:
-		
+		return be.core.UpdateBookLoan(bookLoan)
 	case Creating:
-		
+		return be.core.CreateBookLoan(bookLoan)
+	case Deleting:
+		return be.core.DeleteBookLoan(bookLoan)
+	default:
+		return fmt.Errorf("submit type not found: %s", builder.Type)
 	}
+	return nil
 }
 
 func NewBookLoanBuilder(editType EditType) *BookLoanBuilder {
@@ -39,18 +59,21 @@ func NewBookLoanBuilder(editType EditType) *BookLoanBuilder {
 	}
 } 
 
-
 type BookLoanBuilder struct {
 	Type     EditType
+	id       int64
 	title    string
 	author   string
 	genre    string
 	ratting  int 
 	isOnLoan bool
-	loanName string
-	loanDate time.Time
+	borrower string
+	date     time.Time
 }
-func (b *BookLoanBuilder) SetIsLoan(onLoan bool) {
+
+// TODO add validate function that returns an error
+
+func (b *BookLoanBuilder) SetIsOnLoan(onLoan bool) {
 	b.isOnLoan = onLoan
 }
 func (b *BookLoanBuilder) SetTitle(title string) {
@@ -62,17 +85,25 @@ func (b *BookLoanBuilder) SetAuthor(author string) {
 func (b *BookLoanBuilder) SetGenre(genre string) {
 	b.genre = genre
 }
-func (b *BookLoanBuilder) SetRattingWithString(ratting string){
-	b.ratting = RattingToInt(ratting)
-}
-func (b *BookLoanBuilder) SetRattingWithInt(ratting int){
+func (b *BookLoanBuilder) SetRatting(ratting int){
 	b.ratting = ratting
 }
-func (b *BookLoanBuilder) SetLoanName(name string) {
-	b.loanName = name
+// SetRattingAsString sets ratting from string value returned by RattingToStirng
+func (b *BookLoanBuilder) SetRattingAsString(ratting string){
+	b.ratting = RattingToInt(ratting)
 }
-func (b *BookLoanBuilder) SetLoanDate(date *time.Time) {
-	b.loanDate = *date
+func (b *BookLoanBuilder) SetBorrower(name string) {
+	b.borrower = name
+}
+func (b *BookLoanBuilder) SetDate(date *time.Time) {
+	b.date = *date
+}
+func (b *BookLoanBuilder) SetDateAsString(date string) {
+	t, err := time.Parse(time.DateOnly, date)
+	if err != nil {
+		panic("SetDateAsString() invalid date string")
+	}
+	b.date = t
 }
 func (b *BookLoanBuilder) Build() *storage.BookLoan {
 	bl := storage.NewBookLoan()
@@ -81,39 +112,13 @@ func (b *BookLoanBuilder) Build() *storage.BookLoan {
 	bl.Genre = b.genre
 	bl.Ratting = b.ratting
 	if b.isOnLoan {
-		bl.Loan.Name = b.loanName
-		bl.Loan.Date = b.loanDate
+		bl.Loan.Name = b.borrower
+		bl.Loan.Date = b.date
 	} else {
 		bl.UnsetLoan()
 	}
 	return bl
 }
-
-type builderStack struct {
-	stack []BookLoanBuilder
-}
-
-func (b *builderStack) Push(bl *BookLoanBuilder) {
-	if bl == nil {
-		panic("stack can't push a nil value")
-	}
-	b.stack = append(b.stack, *bl)
-}
-func (b *builderStack) Pop() *BookLoanBuilder {
-	if len(b.stack) == 0 {
-		return nil
-	}
-	bl := b.Peek()
-	b.stack = b.stack[:len(b.stack)-1]
-	return bl
-}
-func (b *builderStack) Peek() *BookLoanBuilder {
-	bl := b.stack[len(b.stack)-1]
-	return &bl
-}
-
-
-
 
 
 
