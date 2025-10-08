@@ -60,7 +60,6 @@ func (c *Core) Save() error {
 		if cmd == nil {
 			break
 		}
-		fmt.Printf("%#v\n", cmd)
 		err := c.storeMgr.execute(cmd)
 		if err != nil {
 			return err

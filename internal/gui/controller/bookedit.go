@@ -44,7 +44,6 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 	case Updating:
 		return be.core.UpdateBookLoan(bookLoan)
 	case Creating:
-		fmt.Printf("%#v\n", bookLoan)
 		return be.core.CreateBookLoan(bookLoan)
 	case Deleting:
 		return be.core.DeleteBookLoan(bookLoan)

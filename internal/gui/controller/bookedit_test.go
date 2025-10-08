@@ -3,6 +3,7 @@ package controller
 import (
 	"testing"
 	"time"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/core"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
@@ -150,9 +151,10 @@ func TestBookEditor(t *testing.T) {
 	for i, _case := range cases {
 		expect := _case.expect
 		input := _case.input
-		input.Type = Creating
 		expect.ID = int64(i)
 		input.id = expect.ID
+
+		input.Type = Creating
 
 		err := bookEditor.Submit(&input)
 		if err != nil {
@@ -168,6 +170,54 @@ func TestBookEditor(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("case %d, errored: %s", i,  err)
+			continue
+		}
+
+
+		input.Type = Updating
+		input.SetTitle("New Title")
+		
+		err = bookEditor.Submit(&input)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = core.Save()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		book, err := store.GetBookLoanByID(expect.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		
+		if book.Title != input.title {
+			t.Errorf("case %d, title did not update", i)
+			continue
+		}
+
+		input.Type = Deleting
+
+		err = bookEditor.Submit(&input)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = core.Save()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = store.GetBookLoanByID(expect.ID)
+		if err == nil {
+			t.Errorf("case %d, entry was found after deletion submission", i)
+			continue
+		}
+		if !errors.Is(err, storage.ErrEntryNotFound) {
+			t.Errorf("case %d, unexpected error after deletion submission", i)
+			continue
 		}
 	}
 }
