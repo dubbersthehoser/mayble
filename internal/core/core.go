@@ -4,7 +4,7 @@ import (
 	"strings"
 	"slices"
 	"fmt"
-	_"errors"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
@@ -37,6 +37,9 @@ func (c *Core) load() error {
 	}
 	for _, book := range bookLoans {
 		err = c.memMgr.store.CreateBookLoan(&book)
+		if errors.Is(err, storage.ErrEntryExists) {
+			err = c.memMgr.store.UpdateBookLoan(&book)
+		}
 		if err != nil {
 			return err
 		}
@@ -57,6 +60,7 @@ func (c *Core) Save() error {
 		if cmd == nil {
 			break
 		}
+		fmt.Printf("%#v\n", cmd)
 		err := c.storeMgr.execute(cmd)
 		if err != nil {
 			return err

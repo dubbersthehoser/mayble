@@ -163,6 +163,7 @@ func TestBookEditor(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		_, err = store.GetBookLoanByID(expect.ID)
 
 		if err != nil {

@@ -44,6 +44,7 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 	case Updating:
 		return be.core.UpdateBookLoan(bookLoan)
 	case Creating:
+		fmt.Printf("%#v\n", bookLoan)
 		return be.core.CreateBookLoan(bookLoan)
 	case Deleting:
 		return be.core.DeleteBookLoan(bookLoan)
@@ -111,6 +112,7 @@ func (b *BookLoanBuilder) Build() *storage.BookLoan {
 	bl.Author = b.author
 	bl.Genre = b.genre
 	bl.Ratting = b.ratting
+	bl.ID = b.id
 	if b.isOnLoan {
 		bl.Loan.Name = b.borrower
 		bl.Loan.Date = b.date
