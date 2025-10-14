@@ -10,7 +10,7 @@ type Controller struct {
 	BookEditor  *BookEditor
 }
 
-func NewContorller(core *core.Core) *Controller {
+func New(core *core.Core) *Controller {
 	var c Controller
 	c.Core = core
 	c.BookList = NewBookList(core)

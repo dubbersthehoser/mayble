@@ -53,7 +53,7 @@ func ValidateLoanName(name string) error {
 	return nil
 }
 func ValidateLoanDate(date *time.Time) error {
-	if date == nil {
+	if date == nil || date.IsZero() {
 		return errors.New("must have loan date")
 	}
 	return nil

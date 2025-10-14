@@ -3,7 +3,6 @@ package view
 import (
 	_"fmt"
 	"time"
-	"errors"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -17,9 +16,26 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
+
+
 const DialogWidth float32 = 400
-func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
-	
+
+func (f *FunkView) BookEdit() (fyne.CanvasObject, error) {
+
+
+	var builder *controller.BookLoanBuilder
+
+	if f.controller.BookList.IsSelected() {
+		bookLoan, err := f.controller.BookList.Selected()
+		println(err)
+		if err != nil {
+			return nil, err
+		}
+		builder = controller.NewBuilderWithBookLoan(bookLoan)
+	} else {
+		builder = controller.NewBookLoanBuilder()
+	}
+
 	rattings := controller.GetRattingStrings()
 
 	type EntryField struct { // container for entry form items
@@ -51,7 +67,7 @@ func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
 	}
 	loanNameField := EntryField{
 		Entry: widget.NewEntry(),
-		Label: widget.NewLabel("Name"),
+		Label: widget.NewLabel("Borrower"),
 	}
 	loanDateField := EntryField{
 		Entry: widget.NewDateEntry(),
@@ -59,59 +75,39 @@ func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
 	}
 
 	{ // Set data in the entries for the current edit status of the form
-	var (
-		isBeingUpdated  bool  = form.Status == controller.StatusUpdate
-		isBeingCreated bool = form.Status == controller.StatusCreate
-		isBeingLoaned   bool = form.IsOnLoan
-	)
+		var (
+			isBeingUpdated  bool  = builder.Type == controller.Updating
+			isBeingCreated  bool  = builder.Type == controller.Creating
+			isBeingLoaned   bool  = builder.IsOnLoan
+		)
 
-	if isBeingCreated {
-		rattingField.Entry.(*widget.Select).SetSelectedIndex(0) 
-	}
-	
-	if isBeingUpdated {
-		titleField.Entry.(*widget.Entry).Text = form.Title
-		authorField.Entry.(*widget.Entry).Text = form.Author
-		genreField.Entry.(*widget.SelectEntry).Text = form.Genre
-		rattingField.Entry.(*widget.Select).Selected = rattings[form.Ratting]
-	}
-	if isBeingLoaned && isBeingUpdated {
-		loanNameField.Entry.(*widget.Entry).Text = form.LoanName
-		loanDateField.Entry.(*widget.DateEntry).Date = form.LoanDate
-	}
+		if isBeingCreated {
+			rattingField.Entry.(*widget.Select).SetSelectedIndex(0) 
+		}
+		
+		if isBeingUpdated {
+			titleField.Entry.(*widget.Entry).Text = builder.Title
+			authorField.Entry.(*widget.Entry).Text = builder.Author
+			genreField.Entry.(*widget.SelectEntry).Text = builder.Genre
+			rattingField.Entry.(*widget.Select).Selected = rattings[builder.Ratting]
+		}
+		if isBeingLoaned && isBeingUpdated {
+			loanNameField.Entry.(*widget.Entry).Text = builder.Borrower
+			loanDateField.Entry.(*widget.DateEntry).Date = &builder.Date
+		}
 	}
 
 	onCancel := func() {}
 
 	onSubmit := func() {
-		f.SubmitForm(form)
+		f.controller.BookEditor.Submit(builder)
 		f.Update()
 	}
 
 	submitBtn := widget.NewButton("Submit", onSubmit)
 	cancelBtn := widget.NewButton("Cancel", onCancel)
 
-	validateData := func() error { // validate book form
-		if err := controller.ValidateTitle(form.Title); err != nil {
-			return errors.New("Book: must have an title.")
-		}
-		if err := controller.ValidateAuthor(form.Author); err != nil {
-			return errors.New("Book: must have an author.")
-		}
-		if err := controller.ValidateGenre(form.Genre); err != nil {
-			return errors.New("Book: must have an genre.")
-		}
-		if !form.IsOnLoan {
-			return nil
-		}
-		if err := controller.ValidateLoanName(form.LoanName); err != nil {
-			return errors.New("Book: must have loanee name.")
-		}
-		if err := controller.ValidateLoanDate(form.LoanDate); err != nil {
-			return errors.New("Book: must have loan date.")
-		}
-		return nil
-	}
+	validateData := builder.Validate
 
 	onDataChange := func() {
 		err := validateData()
@@ -129,27 +125,27 @@ func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
 	}
 
 	titleField.Entry.(*widget.Entry).OnChanged = func(s string) {
-		form.SetTitle(s)
+		builder.SetTitle(s)
 		onDataChange()
 	}
 	authorField.Entry.(*widget.Entry).OnChanged = func(s string) {
-		form.SetAuthor(s)
+		builder.SetAuthor(s)
 		onDataChange()
 	}
 	genreField.Entry.(*widget.SelectEntry).OnChanged = func(s string) {
-		form.SetGenre(s)
+		builder.SetGenre(s)
 		onDataChange()
 	}
 	rattingField.Entry.(*widget.Select).OnChanged = func(s string) {
-		form.SetRatting(s)
+		builder.SetRattingAsString(s)
 		onDataChange()
 	}
 	loanNameField.Entry.(*widget.Entry).OnChanged = func(s string) {
-		form.SetLoanName(s)
+		builder.SetBorrower(s)
 		onDataChange()
 	}
 	loanDateField.Entry.(*widget.DateEntry).OnChanged = func(d *time.Time) {
-		form.SetLoanDate(d)
+		builder.SetDate(d)
 		onDataChange()
 	}
 
@@ -193,13 +189,13 @@ func (f *FunkView) BookEdit(form controller.BookForm) fyne.CanvasObject {
 			DateLabel.Importance = widget.LowImportance
 			DateLabel.Refresh()
 		}
-		form.IsOnLoan = isChecked
+		builder.SetIsOnLoan(isChecked)
 		onDataChange()
 		onLoanCheck.Refresh()
 	}
-	onLoanCheck.OnChanged(form.IsOnLoan)
+	onLoanCheck.OnChanged(builder.IsOnLoan)
 
 	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
 
-	return obj
+	return obj, nil
 }

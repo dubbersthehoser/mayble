@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	
 	"github.com/dubbersthehoser/mayble/internal/core"
+	"github.com/dubbersthehoser/mayble/internal/storage"
 	//_"github.com/dubbersthehoser/mayble/internal/sqlitedb"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
 	"github.com/dubbersthehoser/mayble/pkg/config"
@@ -34,12 +35,14 @@ func loadMemDatabase(s *Settings) (*memdb.MemStorage, error) {
 	return store, nil
 } 
 
-func loadDatabase(s *Settings, dirver string) (storage.Storage, error) {
+func loadDatabase(s *Settings, driver string) (storage.Storage, error) {
 	switch driver {
 	case "memory":
 		return loadMemDatabase(s)
 	//case "sqlite":
 	//	return loadSqliteDatabase(s)
+	default:
+		return nil, fmt.Errorf("driver '%s', not found", driver)
 	}
 }
 
@@ -105,11 +108,15 @@ func Run(options ...Option) {
 		logGrid.Append("- core: success")
 	}
 
-	master := controller.NewMaster(core)
-	funkView := view.NewFunkView(master)
+	master := controller.New(core)
+	funkView, err := view.NewFunkView(master)
+	if err != nil {
+		logGrid.Append(fmt.Sprintf("- view: failed: %s", err.Error()))
+		Errored = true
+	}
 	mainView := funkView.View
 
-	if Errored {
+	if Errored  {
 		mainView = logGrid
 	}
 

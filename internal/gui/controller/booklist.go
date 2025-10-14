@@ -91,18 +91,19 @@ func (l *BookList) ValidateIndex(index int) error {
 	return nil
 }
 
-func (l *BookList) Selected() (*BookLoanListed, error) {
+func (l *BookList) IsSelected() bool {
+	return l.selectedIndex != UnselectIndex
+}
+
+func (l *BookList) Selected() (*storage.BookLoan, error) {
 	if l.selectedIndex == UnselectIndex {
 		return nil, errors.New("booklist: no book selected")
 	}
 	if err := l.ValidateIndex(l.selectedIndex); err != nil {
 		return nil, err
 	}
-	bookListed, err := l.Get(l.selectedIndex)
-	if err != nil {
-		return nil, err
-	}
-	return bookListed, nil
+	bookLoan := l.list[l.selectedIndex]
+	return &bookLoan, nil
 }
 
 func (l *BookList) Get(index int) (*BookLoanListed, error) {

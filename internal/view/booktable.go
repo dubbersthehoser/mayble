@@ -10,9 +10,11 @@ import (
 	_ "fyne.io/fyne/v2/canvas"
 )
 
+
 func (u *UI) NewBookTableComp() fyne.CanvasObject {
 
 	// Top Labels
+
 	newSortByButtonAndLabel := func(label string) fyne.CanvasObject {
 		labelAsc := "↑ " + label
 		labelDesc := "↓ " + label
