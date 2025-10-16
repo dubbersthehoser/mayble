@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	_"fyne.io/fyne/v2/data/binding"
-	_"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
 	_"github.com/dubbersthehoser/mayble/internal/gui/controller"
@@ -16,27 +16,112 @@ import (
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
 
+	// Save
+	//------
+	OnSaveItem := func() {
+		f.emiter.Emit(OnSave)
+	}
 
-	// Save Button
-	saveBtn := widget.NewButton(
-		"Save",
-		func() {
-			f.emiter.Emit(OnSave)
-			//f.Save()
-		},
-	)
-	saveBtn.Importance = widget.HighImportance
+	saveItem := &widget.ToolbarAction{
+		Icon: theme.DocumentSaveIcon(),
+		OnActivated: OnSaveItem,
+	}
 
-	f.emiter.On(OnSave, 
-		func() {
-			saveBtn.Importance = widget.MediumImportance
-			saveBtn.Refresh()
-		},
-	)
+	saveItem.Disable()
 
-	// TODO Need logic for search.
+	// Events
+	EnableSaveItem := func() {
+		saveItem.Enable()
+	}
+	DisableSaveItem := func() {
+		saveItem.Disable()
+	}
 
-	// SearchBy Select
+	f.emiter.On(OnModification, EnableSaveItem)
+	f.emiter.On(OnSave, DisableSaveItem)
+
+
+	// Menu
+	//------
+	OnMenuItem := func() {
+		fmt.Println("Menu button pressed")
+		f.emiter.Emit(OnMenuOpen)
+	}
+	menuItem := &widget.ToolbarAction{
+		Icon: theme.MenuIcon(),
+		OnActivated: OnMenuItem,
+	}
+
+
+
+	// Create 
+	//--------
+	OnCreateItem := func() {
+		fmt.Println("Create button pressed")
+		f.emiter.Emit(OnCreate)
+	}
+	createItem := &widget.ToolbarAction{
+		Icon: theme.ContentAddIcon(),
+		OnActivated: OnCreateItem,
+	}
+
+
+	// Update
+	//--------
+	OnUpdateItem := func() {
+		fmt.Println("Update button pressed")
+		f.emiter.Emit(OnUpdate)
+	}
+	updateItem := &widget.ToolbarAction{
+		Icon: theme.DocumentCreateIcon(),
+		OnActivated: OnUpdateItem,
+	}
+
+	// Events
+	DisableUpdateItem := func() {
+		updateItem.Disable()
+	}
+	EnableUpdateItem := func() {
+		updateItem.Enable()
+	}
+	updateItem.Disable()
+	
+	f.emiter.On(OnSelected, EnableUpdateItem)
+	f.emiter.On(OnUnselected, DisableUpdateItem)
+
+
+	// Undo Redo
+	//-----------
+	//
+	// TODO How to sync undo and redo buttons with core?
+	//
+	// Undo
+	//------
+	OnUndoItem := func() {
+		fmt.Println("Undo button pressed")
+	}
+	undoItem := &widget.ToolbarAction{
+		Icon: theme.ContentUndoIcon(),
+		OnActivated: OnUndoItem,
+	}
+
+	// Redo
+	//------
+	OnRedoItem := func() {
+		fmt.Println("Redo button pressed")
+	}
+	redoItem := &widget.ToolbarAction{
+		Icon: theme.ContentRedoIcon(),
+		OnActivated: OnRedoItem,
+	}
+
+	// Search
+	//---------
+	//
+	// TODO Add search logic
+	//
+	// Search By
+	//-----------
 	selectSearchBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre"},
 		func(s string) {
@@ -46,6 +131,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	selectSearchBy.PlaceHolder = "Search By"
 
 	// Search Entry
+	//--------------
 	searchEnt := widget.NewEntry()
 	searchEnt.PlaceHolder = "Search"
 	searchEnt.OnChanged = func(s string) {
@@ -53,53 +139,28 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	}
 
 
-
-	// Add Book Button
-	bookBtn := widget.NewButton(
-		"New",
-		func() {
-			fmt.Println("Create button pressed")
-		},
-	)
-
-	// Delete Book Button
-	OnDelete := func() {
-		fmt.Println("Delete button pressed")
+	// Toolbar Items
+	//---------------
+	items := []widget.ToolbarItem{
+		menuItem,
+		widget.NewToolbarSeparator(),
+		createItem,
+		updateItem,
+		saveItem,
+		widget.NewToolbarSeparator(),
+		undoItem,
+		redoItem,
+		widget.NewToolbarSeparator(),
 	}
-	deleteBtn := widget.NewButton("Delete", OnDelete)
-	deleteBtn.Disable()
-
-	// Update Book Button
-	OnUpdate := func() {
-		fmt.Println("Update button pressed")
-	}
-	updateBtn := widget.NewButton("Edit", OnUpdate)
-	updateBtn.Disable()
-
-
-	// On Book Selection
-	OnBookSelected := func() {
-		updateBtn.Enable()
-		//deleteBtn.Enable()
-	}
-	OnBookUnselected := func() {
-		updateBtn.Disable()
-		//deleteBtn.Disable()
-	}
+	toolBar := widget.NewToolbar(items...)
 	
-	f.emiter.On(OnSelected, OnBookSelected)
-	f.emiter.On(OnUnselected, OnBookUnselected)
-	
-	// Box
+
+	// Canvas
+	//--------
 	boxes := []fyne.CanvasObject{
-		saveBtn,
-		bookBtn,
-		updateBtn,
+		toolBar,
 		selectSearchBy,
-		//container.New(layout.NewStackLayout(), searchEnt),
-		//selectOrderBy,
 	}
-
 	o := container.New(layout.NewGridLayout(len(boxes)), boxes...)
 	right := widget.NewSeparator()
 	right.Hide()

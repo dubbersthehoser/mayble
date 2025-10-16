@@ -109,11 +109,12 @@ func Run(options ...Option) {
 	}
 
 	master := controller.New(core)
-	funkView, err := view.NewFunkView(master)
+	funkView, err := view.NewFunkView(master, window)
 	if err != nil {
 		logGrid.Append(fmt.Sprintf("- view: failed: %s", err.Error()))
 		Errored = true
 	}
+
 	mainView := funkView.View
 
 	if Errored  {

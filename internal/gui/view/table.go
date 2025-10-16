@@ -73,7 +73,8 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		List's Methods
 	****************************/
 	OnListLength := func() int {
-		return f.controller.BookList.Len()
+		n := f.controller.BookList.Len()
+		return n
 	}
 
 	OnCanvasCreation := func() fyne.CanvasObject {
@@ -120,25 +121,31 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	}   
 	OnCanvasInit := func(index int, o fyne.CanvasObject) {
 		book, err := f.controller.BookList.Get(index)
-		if err != nil { // TODO create error pop-up for main window
-			panic("unexpected error")
+		if err != nil {
+			f.displayError(err)
+			return
 		}
-		o.(*fyne.Container).Objects[0].(*widget.Label).Text = book.Title
-		o.(*fyne.Container).Objects[1].(*widget.Label).Text = book.Author
-		o.(*fyne.Container).Objects[2].(*widget.Label).Text = book.Genre
-		o.(*fyne.Container).Objects[3].(*widget.Label).Text = book.Ratting
-		o.(*fyne.Container).Objects[4].(*widget.Label).Text = book.Borrower
-		o.(*fyne.Container).Objects[5].(*widget.Label).Text = book.Date
+		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
+		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
+		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
+		o.(*fyne.Container).Objects[3].(*widget.Label).SetText(book.Ratting)
+		o.(*fyne.Container).Objects[4].(*widget.Label).SetText(book.Borrower)
+		o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.Date)
 	} 
 
 	OnSelect := func(index int) {
+		fmt.Println("Selected book")
 		err := f.controller.BookList.Select(index)
-		if err != nil { // TODO create error pop-up for main window
-			panic("unexpected error")
+		if err != nil {
+			f.displayError(err)
+			return
 		}
+		f.emiter.Emit(OnSelected)
 	}
 	OnUnselect := func(index int) {
+		fmt.Println("Unselected book")
 		f.controller.BookList.Unselect()
+		f.emiter.Emit(OnUnselected)
 	}
 
 	/*******************
@@ -148,6 +155,12 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	List.HideSeparators = false
 	List.OnSelected = OnSelect
 	List.OnUnselected = OnUnselect
+
+	listOnModification := func() {
+		List.UnselectAll()
+	}
+	f.emiter.On(OnModification, listOnModification)
+
 
 	// Table
 	table := container.New(layout.NewBorderLayout(Heading, nil, nil, nil), Heading, List)

@@ -1,12 +1,12 @@
 package view
 
 import (
-	_"fmt"
+	"fmt"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	_"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	_"fyne.io/fyne/v2/data/binding"
@@ -20,21 +20,7 @@ import (
 
 const DialogWidth float32 = 400
 
-func (f *FunkView) BookEdit() (fyne.CanvasObject, error) {
-
-
-	var builder *controller.BookLoanBuilder
-
-	if f.controller.BookList.IsSelected() {
-		bookLoan, err := f.controller.BookList.Selected()
-		println(err)
-		if err != nil {
-			return nil, err
-		}
-		builder = controller.NewBuilderWithBookLoan(bookLoan)
-	} else {
-		builder = controller.NewBookLoanBuilder()
-	}
+func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
 
 	rattings := controller.GetRattingStrings()
 
@@ -97,15 +83,9 @@ func (f *FunkView) BookEdit() (fyne.CanvasObject, error) {
 		}
 	}
 
-	onCancel := func() {}
 
-	onSubmit := func() {
-		f.controller.BookEditor.Submit(builder)
-		f.Update()
-	}
 
-	submitBtn := widget.NewButton("Submit", onSubmit)
-	cancelBtn := widget.NewButton("Cancel", onCancel)
+	submitBtn := widget.NewButton("Submit", nil)
 
 	validateData := builder.Validate
 
@@ -195,7 +175,22 @@ func (f *FunkView) BookEdit() (fyne.CanvasObject, error) {
 	}
 	onLoanCheck.OnChanged(builder.IsOnLoan)
 
-	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
+	cancelBtn := widget.NewButton("Cancel", nil)
 
-	return obj, nil
+	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
+	d := dialog.NewCustomWithoutButtons("Create", obj, f.window)
+
+	cancelBtn.OnTapped = func() {
+		d.Dismiss()
+	}
+	submitBtn.OnTapped = func() {
+		fmt.Printf("Button: %#v\n", builder)
+		err := f.controller.BookEditor.Submit(builder)
+		if err != nil {
+			f.displayError(err)
+		}
+		f.refresh()
+		d.Dismiss()
+	}
+	d.Show()
 }
