@@ -80,6 +80,7 @@ const (
 	ByRatting       = "Ratting"
 	ByBorrower      = "Borrower"
 	ByDate          = "Date"
+	ByID            = "ID"
 )
 
 type Order int
@@ -102,6 +103,15 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 		)
 		result := Equal
 		switch by {
+		case ByID: // TODO Add Tests
+			switch {
+			case x.Ratting == y.Ratting:
+				result = Equal
+			case x.Ratting > y.Ratting:
+				result = GreaterX
+			case x.Ratting < y.Ratting:
+				result = LesserX
+			}
 		case ByTitle:
 			result = strings.Compare(x.Title, y.Title)
 		case ByAuthor:
@@ -122,6 +132,7 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 		case ByDate:
 			result = x.Loan.Date.Compare(y.Loan.Date)
 		}
+			
 		if order == DEC {
 			result = result * -1
 		}

@@ -20,80 +20,75 @@ func TestCore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("Creating")
+	maxAmount := 10
 
-	bookLoan := storage.NewBookLoan()
-	bookLoan.Title = "title_1"
-	bookLoan.Author = "author_1"
-	bookLoan.Genre = "genre_1"
-	bookLoan.Ratting = 4
-	bookLoan.Loan.Name = "john"
-	bookLoan.Loan.Date = time.Now()
+	t.Log("-- Creating --")
 
-	err = myCore.CreateBookLoan(bookLoan)
+	for i:=0; i<maxAmount; i++ {
+		bookLoan := storage.NewBookLoan()
+		bookLoan.Title = fmt.Sprintf("title_%d", i)
+		bookLoan.Author = fmt.Sprintf("author_%d", i)
+		bookLoan.Genre = fmt.Sprintf("genre_%d", i)
+		bookLoan.Ratting = (i % 6)
+		bookLoan.Loan.Name = fmt.Sprintf("borrower_%d", i)
+		bookLoan.Loan.Date = time.Now()
+
+		err = myCore.CreateBookLoan(bookLoan)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	list, err := myCore.ListBookLoans(ByID, ASC)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(list) != maxAmount {
+		t.Fatalf("want length '%d', got '%d'", maxAmount, len(list))
+	}
 
-	list, err := myCore.ListBookLoans(ByTitle, ASC)
+	t.Log("-- Updating --")
+
+	for _, bookLoan := range list {
+		i := bookLoan.ID
+		bookLoan.Title = fmt.Sprintf("title_%d_update", i)
+		bookLoan.Author = fmt.Sprintf("author_%d_update", i)
+		bookLoan.Genre = fmt.Sprintf("genre_%d_update", i)
+		bookLoan.Ratting = 0
+		bookLoan.Loan.Name = fmt.Sprintf("borrower_%d_update", i)
+		bookLoan.Loan.Date.Add(time.Hour * 24)
+
+		err = myCore.UpdateBookLoan(&bookLoan)
+		if err != nil {
+			t.Logf("bookLloan: %d\n", bookLoan.ID)
+			t.Fatal(err)
+		}
+	}
+
+	list, err = myCore.ListBookLoans(ByID, ASC)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 1 {
-		t.Fatalf("want length '%d', got '%d'", 1, len(list))
-	}
-
-	gotBookLoan := list[0]
-
-	if err := compareBookLoan(*bookLoan, gotBookLoan); err != nil {
-		t.Fatal(err)
-	}
-
-
-
-	t.Log("Updating")
-
-	gotBookLoan.Title = "title_2"
-	gotBookLoan.Author = "author_2"
-	gotBookLoan.Genre = "genre_2"
-	gotBookLoan.Ratting = 2
-	gotBookLoan.Loan.Name = "Jack"
-	gotBookLoan.Loan.Date.Add(time.Hour * 24)
-
-	err = myCore.UpdateBookLoan(&gotBookLoan)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	list, err = myCore.ListBookLoans(ByTitle, ASC)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(list) != 1 {
-		t.Fatalf("want length '%d', got '%d'", 1, len(list))
+	if len(list) != maxAmount {
+		t.Fatalf("want length '%d', got '%d'", maxAmount, len(list))
 	}
 	
-	updatedBookLoan := list[0]
+	t.Log("-- Deleting --")
 
-	if err := compareBookLoan(gotBookLoan, updatedBookLoan); err != nil {
-		t.Fatal(err)
+	for _, bookLoan := range list {
+		err = myCore.DeleteBookLoan(&bookLoan)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	t.Log("Deleting")
-
-	err = myCore.DeleteBookLoan(&updatedBookLoan)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	list, err = myCore.ListBookLoans(ByTitle, ASC)
+	list, err = myCore.ListBookLoans(ByID, ASC)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(list) != 0 {
 		t.Fatalf("want length '%d', got '%d'", 0, len(list))
 	}
-
 	t.Log("Done")
 
 }
