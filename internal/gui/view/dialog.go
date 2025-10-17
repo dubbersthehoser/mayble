@@ -1,7 +1,6 @@
 package view
 
 import (
-	"fmt"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -19,6 +18,13 @@ import (
 
 
 const DialogWidth float32 = 400
+
+func getDialogSize(size fyne.Size) fyne.Size {
+	height := size.Height
+	s := fyne.NewSize(DialogWidth, 0)
+	s.Height = height
+	return s
+}
 
 func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
 
@@ -177,18 +183,31 @@ func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
 
 	cancelBtn := widget.NewButton("Cancel", nil)
 
+	var dialogLabel string
+	switch builder.Type {
+	case controller.Creating:
+		dialogLabel = "Create"
+	case controller.Updating:
+		dialogLabel = "Update"
+	default:
+		panic("edit dialog was given an invalid builder type")
+	}
+
 	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
-	d := dialog.NewCustomWithoutButtons("Create", obj, f.window)
+
+	d := dialog.NewCustomWithoutButtons(dialogLabel, obj, f.window)
+
+	d.Resize(getDialogSize(d.MinSize()))
 
 	cancelBtn.OnTapped = func() {
 		d.Dismiss()
 	}
 	submitBtn.OnTapped = func() {
-		fmt.Printf("Button: %#v\n", builder)
 		err := f.controller.BookEditor.Submit(builder)
 		if err != nil {
 			f.displayError(err)
 		}
+		f.emiter.Emit(OnModification)
 		f.refresh()
 		d.Dismiss()
 	}

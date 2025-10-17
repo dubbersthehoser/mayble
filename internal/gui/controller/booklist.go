@@ -34,8 +34,6 @@ func toBookLoanListed(bookLoan *storage.BookLoan) *BookLoanListed {
 }
 
 
-
-
 /*************************
 	Book List
 **************************/

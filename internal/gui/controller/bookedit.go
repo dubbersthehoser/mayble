@@ -57,6 +57,7 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 func NewBookLoanBuilder() *BookLoanBuilder {
 	return &BookLoanBuilder{
 		Type: Creating,
+		id: storage.ZeroID,
 	}
 } 
 

@@ -77,18 +77,32 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		OnActivated: OnUpdateItem,
 	}
 
-	// Events
-	DisableUpdateItem := func() {
-		updateItem.Disable()
+	// Delete
+	//--------
+	OnDeleteItem := func() {
+		fmt.Println("Delete button pressed")
+		f.emiter.Emit(OnDelete)
 	}
-	EnableUpdateItem := func() {
+	deleteItem := &widget.ToolbarAction{
+		Icon: theme.DeleteIcon(),
+		OnActivated: OnDeleteItem, 
+	}
+
+
+	// Events
+	DisableItemOnMod := func() {
+		updateItem.Disable()
+		deleteItem.Disable()
+	}
+	EnableItemOnMod := func() {
 		updateItem.Enable()
+		deleteItem.Enable()
 	}
 	updateItem.Disable()
+	deleteItem.Disable()
 	
-	f.emiter.On(OnSelected, EnableUpdateItem)
-	f.emiter.On(OnUnselected, DisableUpdateItem)
-
+	f.emiter.On(OnSelected, EnableItemOnMod)
+	f.emiter.On(OnUnselected, DisableItemOnMod)
 
 	// Undo Redo
 	//-----------
@@ -99,6 +113,8 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	//------
 	OnUndoItem := func() {
 		fmt.Println("Undo button pressed")
+		f.emiter.Emit(OnUndo)
+		f.emiter.Emit(OnModification)
 	}
 	undoItem := &widget.ToolbarAction{
 		Icon: theme.ContentUndoIcon(),
@@ -109,11 +125,15 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	//------
 	OnRedoItem := func() {
 		fmt.Println("Redo button pressed")
+		f.emiter.Emit(OnRedo)
+		f.emiter.Emit(OnModification)
 	}
 	redoItem := &widget.ToolbarAction{
 		Icon: theme.ContentRedoIcon(),
 		OnActivated: OnRedoItem,
 	}
+
+	// Events
 
 	// Search
 	//---------
@@ -123,7 +143,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Search By
 	//-----------
 	selectSearchBy := widget.NewSelect(
-		[]string{"Title", "Author", "Genre"},
+		[]string{"Title", "Author", "Genre", "Borrower"},
 		func(s string) {
 			fmt.Println("search by not implemeted")
 		},
@@ -143,10 +163,11 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	//---------------
 	items := []widget.ToolbarItem{
 		menuItem,
+		saveItem,
 		widget.NewToolbarSeparator(),
 		createItem,
 		updateItem,
-		saveItem,
+		deleteItem,
 		widget.NewToolbarSeparator(),
 		undoItem,
 		redoItem,
@@ -159,10 +180,10 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	//--------
 	boxes := []fyne.CanvasObject{
 		toolBar,
-		selectSearchBy,
+		searchEnt,
 	}
 	o := container.New(layout.NewGridLayout(len(boxes)), boxes...)
 	right := widget.NewSeparator()
 	right.Hide()
-	return container.New(layout.NewBorderLayout(nil, nil, o, right), o, searchEnt, right)
+	return container.New(layout.NewBorderLayout(nil, nil, o, nil), o, selectSearchBy)
 }

@@ -15,6 +15,10 @@ const (
 
 	OnCreate       = "ON_CREATE"
 	OnUpdate       = "ON_UPDATE"
+	OnDelete       = "ON_DELETE"
+
+	OnUndo         = "ON_UNDO"
+	OnRedo         = "ON_REDO"
 
 	OnSort         = "ON_SORT"
 
@@ -98,7 +102,6 @@ func (f *FunkView) displayError(err error) {
 }
 
 func (f *FunkView) refresh() {
-	f.controller.BookList.Update()
 	f.View.Refresh()
 }
 
@@ -107,10 +110,54 @@ func (f *FunkView) refresh() {
 	Events
 ********************/
 
-
 func (f *FunkView) loadEvents() {
 	f.emiter.On(OnUpdate, f.EventUpdate)
 	f.emiter.On(OnCreate, f.EventCreate)
+	f.emiter.On(OnModification, f.EventModification)
+	f.emiter.On(OnDelete, f.EventDelete)
+	f.emiter.On(OnRedo, f.EventRedo)
+	f.emiter.On(OnUndo, f.EventUndo)
+}
+
+func (f *FunkView) EventModification() {
+	err := f.controller.BookList.Update()
+	if err != nil {
+		f.displayError(err)
+		return
+	}
+	f.refresh()
+}
+
+func (f *FunkView) EventRedo() {
+	err := f.controller.Core.Redo()
+	if err != nil {
+		f.displayError(err)
+		return
+	}
+	f.emiter.Emit(OnModification)
+
+}
+
+func (f *FunkView) EventUndo() {
+	err := f.controller.Core.Undo()
+	if err != nil {
+		f.displayError(err)
+		return
+	}
+	f.emiter.Emit(OnModification)
+	
+}
+
+func (f *FunkView) EventDelete() {
+	bookLoan, err := f.controller.BookList.Selected()
+	if err != nil {
+		f.displayError(err)
+		return
+	}
+	builder := controller.NewBuilderWithBookLoan(bookLoan)
+	builder.Type = controller.Deleting
+	f.controller.BookEditor.Submit(builder)
+	f.emiter.Emit(OnModification)
 }
 
 func (f *FunkView) EventUpdate() {

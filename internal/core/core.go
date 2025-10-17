@@ -91,10 +91,12 @@ const (
 )
 
 func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error) {
+	
 	bookLoans, err := c.memMgr.store.GetAllBookLoans()
 	if err != nil {
 		return nil, err
 	}
+
 	compare := func(x, y storage.BookLoan) int {
 		const (
 			GreaterX int = 1
@@ -103,7 +105,7 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 		)
 		result := Equal
 		switch by {
-		case ByID: // TODO Add Tests
+		case ByID:
 			switch {
 			case x.Ratting == y.Ratting:
 				result = Equal
@@ -176,6 +178,13 @@ func (c *Core) DeleteBookLoan(book *storage.BookLoan) error {
 	}
 	c.storeMgr.enqueue(cmd)
 	return nil
+}
+
+func (c *Core) Undo() error {
+	return c.memMgr.unExecute()
+}
+func (c *Core) Redo() error {
+	return c.memMgr.reExecute()
 }
 
 
