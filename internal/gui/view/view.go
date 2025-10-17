@@ -135,7 +135,6 @@ func (f *FunkView) EventRedo() {
 		return
 	}
 	f.emiter.Emit(OnModification)
-
 }
 
 func (f *FunkView) EventUndo() {
@@ -145,7 +144,6 @@ func (f *FunkView) EventUndo() {
 		return
 	}
 	f.emiter.Emit(OnModification)
-	
 }
 
 func (f *FunkView) EventDelete() {

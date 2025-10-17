@@ -183,8 +183,22 @@ func (c *Core) DeleteBookLoan(book *storage.BookLoan) error {
 func (c *Core) Undo() error {
 	return c.memMgr.unExecute()
 }
+func (c *Core) IsUndo() bool {
+	if c.memMgr.undos.length() == 0 {
+		return false
+	}
+	return true
+}
+
 func (c *Core) Redo() error {
 	return c.memMgr.reExecute()
+}
+func (c *Core) IsRedo() bool {
+	if c.memMgr.redos.length() == 0 {
+		return false
+	}
+	return true
+	
 }
 
 
@@ -206,8 +220,11 @@ func newCommandStack() *commandStack {
 
 func (cs *commandStack) pop() command {
 	length := len(cs.items)
+	if length == 0 {
+		return nil
+	}
 	cmd := cs.items[length-1]
-	cs.items = cs.items[:length]
+	cs.items = cs.items[:length-1]
 	return cmd
 }
 
@@ -258,6 +275,9 @@ func (m *manager) execute(cmd command) error {
 
 func (m *manager) unExecute() error {
 	cmd := m.undos.pop()
+	if cmd == nil {
+		return nil
+	}
 	err := cmd.undo(m.store)
 	if err != nil {
 		return err
@@ -348,7 +368,13 @@ func (c *commandUpdateBookLoan) do(s storage.Storage) error {
 	if err != nil {
 		return err
 	}
-	c.prevBookLoan = &book
+	if c.prevBookLoan == nil {
+		c.prevBookLoan = &book
+	} else {
+		book = *c.prevBookLoan
+		c.prevBookLoan = c.bookLoan
+		c.bookLoan = &book
+	}
 	return s.UpdateBookLoan(c.bookLoan)
 }
 
@@ -356,5 +382,5 @@ func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
 	book := c.prevBookLoan
 	c.prevBookLoan = c.bookLoan
 	c.bookLoan = book
-	return s.UpdateBookLoan(book)
+	return s.UpdateBookLoan(c.bookLoan)
 }
