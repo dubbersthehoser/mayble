@@ -129,12 +129,19 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 			case x.Ratting < y.Ratting:
 				result = LesserX
 			}
-		case ByBorrower:
-			result = strings.Compare(x.Loan.Name, y.Loan.Name)
-		case ByDate:
-			result = x.Loan.Date.Compare(y.Loan.Date)
+		case ByBorrower, ByDate:
+			if x.Loan == nil && y.Loan == nil {
+				result = Equal
+			} else if x.Loan == nil {
+				result = LesserX
+			} else if y.Loan == nil {
+				result = GreaterX
+			} else if by == ByBorrower {
+				result = strings.Compare(x.Loan.Name, y.Loan.Name)
+			} else if by == ByDate {
+				result = x.Loan.Date.Compare(y.Loan.Date)
+			}
 		}
-			
 		if order == DEC {
 			result = result * -1
 		}

@@ -10,6 +10,8 @@ import (
 	_"fyne.io/fyne/v2/data/binding"
 	_"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
+
+	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
 func (f *FunkView) Table() fyne.CanvasObject {
@@ -47,16 +49,20 @@ func (f *FunkView) Table() fyne.CanvasObject {
 			}
 			if button.Text != labelDesc {
 				button.SetText(labelDesc)
+				f.controller.BookList.SetOrdering(controller.DEC)
 			} else {
 				button.SetText(labelAsc)
+				f.controller.BookList.SetOrdering(controller.ASC)
 			}
 			button.Refresh()
 			fmt.Println("sort not implemeted")
+			f.controller.BookList.SetOrderBy(label)
+			f.emiter.Emit(OnSort)
 		}
 		return button
 	}
 	fields := make([]fyne.CanvasObject, 0)
-	labels := []string{"Title", "Author", "Genre", "Ratting", "Borrower", "Date"}
+	labels := controller.SortByList()
 	for _, label := range labels {
 		obj := newSortByButtonAndLabel(label)
 		labelResets = append(labelResets, newLabelReset(obj.(*widget.Button), label))
@@ -64,7 +70,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	}
 
 	// setting the the title feild to be sorted
-	fields[0].(*widget.Button).OnTapped() /* COULD CAUSE UNWANTED STATE CHANGE */
+	//fields[0].(*widget.Button).OnTapped() /* COULD CAUSE UNWANTED STATE CHANGE */
 
 	Heading := container.New(layout.NewGridLayout(len(fields)), fields...)
 

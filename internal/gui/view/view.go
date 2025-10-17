@@ -117,9 +117,19 @@ func (f *FunkView) loadEvents() {
 	f.emiter.On(OnDelete, f.EventDelete)
 	f.emiter.On(OnRedo, f.EventRedo)
 	f.emiter.On(OnUndo, f.EventUndo)
+	f.emiter.On(OnSort, f.EventSort)
 }
 
 func (f *FunkView) EventModification() {
+	err := f.controller.BookList.Update()
+	if err != nil {
+		f.displayError(err)
+		return
+	}
+	f.refresh()
+}
+
+func (f *FunkView) EventSort() {
 	err := f.controller.BookList.Update()
 	if err != nil {
 		f.displayError(err)
@@ -172,6 +182,3 @@ func (f *FunkView) EventCreate() {
 	builder := controller.NewBookLoanBuilder()
 	f.ShowEdit(builder)
 }
-
-
-

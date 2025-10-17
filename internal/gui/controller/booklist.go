@@ -40,8 +40,12 @@ func toBookLoanListed(bookLoan *storage.BookLoan) *BookLoanListed {
 
 const UnselectIndex int = -1
 
+type Ordering core.Order
+const DEC Ordering = Ordering(core.DEC)
+const ASC Ordering = Ordering(core.ASC)
+
 type BookList struct {
-	order          core.Order
+	ordering       Ordering
 	orderBy        core.OrderBy
 	core           *core.Core
 	list           []storage.BookLoan
@@ -56,8 +60,35 @@ func NewBookList(c *core.Core) *BookList {
 	return b
 }
 
+func SortByList() []string {
+	return []string{"Title", "Author", "Genre", "Ratting", "Borrower", "Date"}
+}
+
+func (l *BookList) SetOrderBy(by string) {
+	switch by {
+	case "Title":
+		l.orderBy = core.ByTitle
+	case "Author":
+		l.orderBy = core.ByAuthor
+	case "Genre":
+		l.orderBy = core.ByGenre
+	case "Ratting":
+		l.orderBy = core.ByRatting
+	case "Borrower":
+		l.orderBy = core.ByBorrower
+	case "Date":
+		l.orderBy = core.ByDate
+	default:
+		panic("invalid order by value")
+	}
+}
+func (l *BookList) SetOrdering(o Ordering) {
+	l.ordering = o
+}
+
+
 func (l *BookList) Update() error {
-	bookLoans, err := l.core.ListBookLoans(core.ByTitle, core.ASC)
+	bookLoans, err := l.core.ListBookLoans(l.orderBy, core.Order(l.ordering))
 	if err != nil {
 		return err
 	}
