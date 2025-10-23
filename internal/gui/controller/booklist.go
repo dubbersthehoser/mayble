@@ -143,3 +143,20 @@ func (l *BookList) Get(index int) (*BookLoanListed, error) {
 	bookView := toBookLoanListed(&bookLoan)
 	return bookView, nil
 }
+
+type Searcher struct {
+	searchBy string
+}
+func (s *Searcher) search(by, s string) int64 {
+	
+}
+func (s *Searcher) refresh() {
+	
+}
+
+func (s *Searcher) add(s
+
+
+
+
+
