@@ -50,13 +50,16 @@ type BookList struct {
 	core           *core.Core
 	list           []storage.BookLoan
 	selectedIndex  int
+	searcher       *Searcher
 }
 func NewBookList(c *core.Core) *BookList {
 	b := &BookList{
 		list:          make([]storage.BookLoan, 0),
 		selectedIndex: UnselectIndex,
 		core:          c,
+		searcher:      NewSearcher(),
 	}
+	b.searcher.Refresh(b.list)
 	return b
 }
 
@@ -94,6 +97,7 @@ func (l *BookList) Update() error {
 	}
 	l.Unselect()
 	l.list = bookLoans
+	l.searcher.Refresh(l.list)
 	return nil
 }
 
@@ -144,19 +148,70 @@ func (l *BookList) Get(index int) (*BookLoanListed, error) {
 	return bookView, nil
 }
 
-type Searcher struct {
-	searchBy string
+func (l *BookList) Search(pattern string) {
+	l.searcher.Search(pattern)
+	result := l.searcher.selection
+	if len(result) != 0 {
+		l.Select(result[0])
+	}
+} 
+
+func (l *BookList) SearchUndo() {
+	l.searcher.Refresh(l.list)
 }
-func (s *Searcher) search(by, s string) int64 {
-	
+
+func (l *BookList) SelectNext() {
+	if !l.IsSelected() {
+		err := l.Select(0)
+		if err != nil {
+			return 
+		}
+	}
+
+	if (l.searcher.selection != nil) && (len(l.searcher.selection) > 0) {
+		idx := (l.searcher.selected + 1) % len(l.searcher.selection)
+		idx = l.searcher.selection[idx]
+		err := l.Select(idx)
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	idx := (l.selectedIndex + 1) % len(l.list)
+	err := l.Select(idx)
+	if err != nil {
+		return
+	}
+	return
+
+
 }
-func (s *Searcher) refresh() {
-	
+
+func (l *BookList) SelectPrev() {
+	if !l.IsSelected() {
+		err := l.Select(len(l.list)-1)
+		if err != nil {
+			return
+		}
+	}
+
+	if (l.searcher.selection != nil) || (len(l.searcher.selection) > 0) {
+		idx := (l.searcher.selected - 1) % len(l.searcher.selection)
+		idx = l.searcher.selection[idx]
+		err := l.Select(idx)
+		if err != nil {
+			return
+		}
+		return
+	}
+
+	idx := (l.selectedIndex - 1) % len(l.list)
+	err := l.Select(idx)
+	if err != nil {
+		return
+	}
+	return
+
+
 }
-
-func (s *Searcher) add(s
-
-
-
-
-

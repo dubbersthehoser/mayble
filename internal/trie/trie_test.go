@@ -6,9 +6,75 @@ import (
 	"cmp"
 )
 
+func TestWordSearch(t *testing.T) {
+	type input struct {
+		text   string
+		handle int64
+	}
+	words := []input{
+		input{
+			text: "hello",
+			handle: 1,
+		},
+		input{
+			text: "hello",
+			handle: 2,
+		},
+		input{
+			text: "world",
+			handle: 3,
+		},
+		input{
+			text: "world",
+			handle: 4,
+		},
+		input{
+			text: "world",
+			handle: 5,
+		},
+	}
+	trie := Trie{}
+	for _, word := range words{
+		trie.InsertWord(word.text, word.handle)
+	}
+
+	type testCase struct {
+		search string
+		handles []int64
+	}
+	cases := []testCase{
+		testCase{
+			search: "hello",
+			handles: []int64{1, 2},
+		},
+		testCase{
+			search: "world",
+			handles: []int64{3, 4, 5},
+		},
+	}
+
+	for i, _case := range cases {
+		ok, handles := trie.SearchWord(_case.search)
+		if !ok {
+			t.Fatalf("case %d, search '%s', not found", i, _case.search)
+		}
+		if len(handles) != len(_case.handles) {
+			t.Fatalf("case %d, expected length handles '%d', got '%d'", i, len(_case.handles), len(handles))
+		}
+		slices.SortFunc(handles, cmp.Compare)
+		slices.SortFunc(_case.handles, cmp.Compare)
+
+		for index:=0; index<len(handles); index++ {
+			if handles[index] != _case.handles[index] {
+				t.Fatalf("case %d, expect handle '%d', got '%d'", i, _case.handles[index], handles[index] )
+			}
+		}
+	}
+}
+
 func TestPrefixSearch(t *testing.T) {
 	type input struct {
-		text string
+		text   string
 		handle int64
 	}
 	prefixes := []input{
@@ -42,9 +108,9 @@ func TestPrefixSearch(t *testing.T) {
 		},
 	}
 
-	tri := Tri{}
+	trie := Trie{}
 	for _, prefix := range prefixes {
-		tri.InsertPrefix(prefix.text, prefix.handle)
+		trie.InsertPrefix(prefix.text, prefix.handle)
 	}
 
 	type testCase struct {
@@ -93,7 +159,7 @@ func TestPrefixSearch(t *testing.T) {
 
 
 	for i, _case := range cases {
-		ok, handles := tri.SearchPrefix(_case.search)
+		ok, handles := trie.SearchPrefix(_case.search)
 		if !ok {
 			t.Fatalf("case %d, search found nothing", i)
 		}
@@ -111,3 +177,5 @@ func TestPrefixSearch(t *testing.T) {
 		}
 	}
 }
+
+
