@@ -21,6 +21,11 @@ const (
 	OnRedo         = "ON_REDO"
 
 	OnSort         = "ON_SORT"
+	OnSearch       = "ON_SEARCH"
+	OnSearchBy     = "ON_SEARCH_BY"
+
+	OnNextSelect   = "ON_NEXT_SELECT"
+	OnPrevSelect   = "ON_PREV_SELECT"
 
 	OnSelected     = "ON_SELECTED"
 	OnUnselected   = "ON_UNSELECTED"
@@ -118,6 +123,10 @@ func (f *FunkView) loadEvents() {
 	f.emiter.On(OnRedo, f.EventRedo)
 	f.emiter.On(OnUndo, f.EventUndo)
 	f.emiter.On(OnSort, f.EventSort)
+	f.emiter.On(OnNextSelect, f.EventNextSelect)
+	f.emiter.On(OnPrevSelect, f.EventPrevSelect)
+	f.emiter.On(OnSearch, f.EventSearch)
+	f.emiter.On(OnSearchBy, f.EventSearchBy)
 }
 
 func (f *FunkView) EventModification() {
@@ -136,6 +145,19 @@ func (f *FunkView) EventSort() {
 		return
 	}
 	f.refresh()
+}
+
+func (f *FunkView) EventSearchBy() {
+}
+
+func (f *FunkView) EventSearch() {
+	
+}
+
+func (f *FunkView) EventNextSelect() {
+}
+func (f *FunkView) EventPrevSelect() {
+	
 }
 
 func (f *FunkView) EventRedo() {

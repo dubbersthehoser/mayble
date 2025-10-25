@@ -49,13 +49,13 @@ type BookList struct {
 	orderBy        core.OrderBy
 	core           *core.Core
 	list           []storage.BookLoan
-	selectedIndex  int
+	SelectedIndex  int
 	searcher       *Searcher
 }
 func NewBookList(c *core.Core) *BookList {
 	b := &BookList{
 		list:          make([]storage.BookLoan, 0),
-		selectedIndex: UnselectIndex,
+		SelectedIndex: UnselectIndex,
 		core:          c,
 		searcher:      NewSearcher(),
 	}
@@ -109,12 +109,12 @@ func (l *BookList) Select(index int) error {
 	if err := l.ValidateIndex(index); err != nil {
 		return err
 	}
-	l.selectedIndex = index
+	l.SelectedIndex = index
 	return nil
 }
 
 func (l *BookList) Unselect() {
-	l.selectedIndex = UnselectIndex
+	l.SelectedIndex = UnselectIndex
 }
 
 func (l *BookList) ValidateIndex(index int) error {
@@ -125,17 +125,17 @@ func (l *BookList) ValidateIndex(index int) error {
 }
 
 func (l *BookList) IsSelected() bool {
-	return l.selectedIndex != UnselectIndex
+	return l.SelectedIndex != UnselectIndex
 }
 
 func (l *BookList) Selected() (*storage.BookLoan, error) {
-	if l.selectedIndex == UnselectIndex {
+	if l.SelectedIndex == UnselectIndex {
 		return nil, errors.New("booklist: no book selected")
 	}
-	if err := l.ValidateIndex(l.selectedIndex); err != nil {
+	if err := l.ValidateIndex(l.SelectedIndex); err != nil {
 		return nil, err
 	}
-	bookLoan := l.list[l.selectedIndex]
+	bookLoan := l.list[l.SelectedIndex]
 	return &bookLoan, nil
 }
 
@@ -155,6 +155,11 @@ func (l *BookList) Search(pattern string) {
 		l.Select(result[0])
 	}
 } 
+
+func (l *BookList) SetSearchBy(by Field) {
+	l.searcher.SetByField(by)
+	l.searcher.Refresh(l.list)
+}
 
 func (l *BookList) SearchUndo() {
 	l.searcher.Refresh(l.list)
@@ -178,7 +183,7 @@ func (l *BookList) SelectNext() {
 		return
 	}
 
-	idx := (l.selectedIndex + 1) % len(l.list)
+	idx := (l.SelectedIndex + 1) % len(l.list)
 	err := l.Select(idx)
 	if err != nil {
 		return
@@ -206,7 +211,7 @@ func (l *BookList) SelectPrev() {
 		return
 	}
 
-	idx := (l.selectedIndex - 1) % len(l.list)
+	idx := (l.SelectedIndex - 1) % len(l.list)
 	err := l.Select(idx)
 	if err != nil {
 		return

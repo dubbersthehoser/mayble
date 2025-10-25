@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
-	_"github.com/dubbersthehoser/mayble/internal/gui/controller"
+	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
@@ -158,7 +158,19 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	selectSearchBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre", "Borrower"},
 		func(s string) {
-			fmt.Println("search by not implemeted")
+			switch s {
+			case "Title":
+				f.controller.BookList.SetSearchBy(controller.ByTitle)
+			case "Author":
+				f.controller.BookList.SetSearchBy(controller.ByAuthor)
+			case "Genre":
+				f.controller.BookList.SetSearchBy(controller.ByGenre)
+			case "Borrower":
+				f.controller.BookList.SetSearchBy(controller.ByBorrower)
+			default:
+				panic("search by not found")
+			}
+		f.emiter.Emit(OnSearchBy)
 		},
 	)
 	selectSearchBy.PlaceHolder = "Search By"
@@ -168,7 +180,8 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	searchEnt := widget.NewEntry()
 	searchEnt.PlaceHolder = "Search"
 	searchEnt.OnChanged = func(s string) {
-		fmt.Println("search not implemeted")
+		f.controller.BookList.Search(s)
+		f.emiter.Emit(OnSearch)
 	}
 
 

@@ -165,7 +165,12 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	listOnModification := func() {
 		List.UnselectAll()
 	}
+	listOnSearch := func() {
+		idx := f.controller.BookList.SelectedIndex
+		List.Select(widget.ListItemID(idx))
+	}
 	f.emiter.On(OnModification, listOnModification)
+	f.emiter.On(OnSearch, listOnSearch)
 
 
 	// Table
