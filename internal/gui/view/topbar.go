@@ -107,8 +107,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Undo Redo
 	//-----------
 	//
-	// TODO How to sync undo and redo buttons with core?
-	//
 	// Undo
 	//------
 	OnUndoItem := func() {
@@ -150,8 +148,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 
 	// Search
 	//---------
-	//
-	// TODO Add search logic
 	//
 	// Search By
 	//-----------
