@@ -2,8 +2,11 @@ package csv
 
 import (
 	"io"
-	"csv"
+	"encoding/csv"
 	"time"
+	"strconv"
+	"errors"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
@@ -29,7 +32,7 @@ func ToFields(book storage.BookLoan) ([]string, error) {
 	fields[AuthorIndex] = book.Author
 	fields[GenreIndex] = book.Genre
 
-	ratting, := strconv.Itoa(book.Ratting)
+	ratting := strconv.Itoa(book.Ratting)
 	fields[RattingIndex] = ratting
 
 	if book.Loan != nil {
@@ -55,7 +58,7 @@ func FromFields(fields []string) (*storage.BookLoan, error) {
 	}
 	book.Ratting = ratting
 
-	if field[BorrowerIndex] != "" && field[DateIndex] != "" {
+	if fields[BorrowerIndex] != "" && fields[DateIndex] != "" {
 		book.Loan.Name = fields[BorrowerIndex]
 		date, err := time.Parse(time.DateOnly, fields[DateIndex])
 		if err != nil {
@@ -66,12 +69,10 @@ func FromFields(fields []string) (*storage.BookLoan, error) {
 	return book, nil
 }
 
-type BookLoanCSV struct {
-	FilePath string
-}
+type BookLoanCSV struct {}
 
 func (c BookLoanCSV) ImportBooks(r io.Reader) ([]storage.BookLoan, error) {
-	reader := NewReader(r)
+	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = NumberOfFields
 	books := make([]storage.BookLoan, 0)
 	recordCount := 0
@@ -96,18 +97,20 @@ func (c BookLoanCSV) ImportBooks(r io.Reader) ([]storage.BookLoan, error) {
 
 }
 
-func (c bookLoanCSV) ExportBooks(w io.Writer, books []storage.BookLoans) error {
+func (c BookLoanCSV) ExportBooks(w io.Writer, books []storage.BookLoan) error {
 	writer := csv.NewWriter(w)
-	for i, book := range books {
+	for _, book := range books {
 		fields, err := ToFields(book)
 		if err != nil {
 			return fmt.Errorf("book id '%d': %w", book.ID, err)
 		}
+		fmt.Printf("%#v\n", fields)
 		err = writer.Write(fields)
 		if err != nil {
 			return fmt.Errorf("book id '%d': %w", book.ID, err)
 		}
 	}
+	writer.Flush()
 	return nil
 }
 
