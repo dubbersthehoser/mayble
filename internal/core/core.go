@@ -68,6 +68,20 @@ func (c *Core) Save() error {
 	return c.load()
 }
 
+func (c *Core) GetAllBookLoans() ([]storage.BookLoan, error) {
+	bookLoans, err := c.memMgr.store.GetAllBookLoans()
+	if err != nil {
+		return nil, err
+	}
+	return bookLoans, nil
+}
+
+/* Importing */
+
+func (c *Core) Import(books []storage.BookLoan) {
+	
+}
+
 
 /* Listing and Ordering */
 
@@ -89,6 +103,7 @@ const (
 	ASC Order = iota
 	DEC
 )
+
 
 func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error) {
 	
@@ -331,6 +346,37 @@ func (m *manager) dequeue() command {
 type command interface {
 	do(storage.Storage)   error
 	undo(storage.Storage) error
+}
+
+/* Import Book Loans */
+type commandImportBooks struct {
+	addedIDs []int64
+	bookLoans []storage.BookLoan
+}
+func (c *commandImportBooks) do(s storage.Storage) error {
+	c.addedIDs := make([]int64, len(bookLoans))
+	for i, BookLoan := range c.bookLoans {
+		id, err := s.CreateBookLoan(BookLoan)
+		if err != nil {
+			return fmt.Errorf("core: import: %w", err)
+		}
+		c.addedIDs[i] = id
+	}
+	return nil
+	
+}
+func (c *commandImportBooks) undo(s storage.Storage) error {
+	for _, id := range c.addedIDs {
+		book, err :=s.GetBookLoanByID(id)
+		if err != nil {
+			return err
+		}
+		err = s.RemoveBookLoan(book)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 /* Create Book Loan */

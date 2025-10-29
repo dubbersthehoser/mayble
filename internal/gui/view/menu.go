@@ -57,10 +57,43 @@ func (f *FunkView) ShowMenu() {
 	/*
 		Export Button
 	*/
-	exportBtn := widget.NewButton("Export CSV", nil)
+	saveImportFile := func(uri fyne.URIWriteCloser, err error) {
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		if uri == nil {
+			return
+		}
+		path := uri.URI().Path()
+		fmt.Println("saving import:", path)
+		exporter, err := porting.GetExporterByFilePath(path)
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		books, err := f.controller.Core.GetAllBookLoans()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		
+		err = exporter.ExportBooks(uri, books)
+		if err != nil {
+			f.displayError(err)
+			return 
+		}
+	}
+	exportBtn := widget.NewButton("Export CSV", func() {
+		d := dialog.NewFileSave(saveImportFile, f.window)
+		d.SetFileName("book-and-loans.csv")
+		filter := storage.NewExtensionFileFilter([]string{".csv"})
+		d.SetFilter(filter)
 
-	_ = importBtn
-	_ = exportBtn
+		size := fyne.NewSize(800, 800)
+		d.Resize(size)
+		d.Show()
+	})
 
 	obj := container.New(layout.NewVBoxLayout(), importBtn, exportBtn)
 
