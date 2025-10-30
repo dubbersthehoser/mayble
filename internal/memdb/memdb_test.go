@@ -34,7 +34,7 @@ func TestMemStorageBasic(t *testing.T) {
 	
 	t.Run("CreateBookLoan", func(t *testing.T) {
 		for _, bookLoan := range tests {
-			err := memStore.CreateBookLoan(bookLoan)
+			_, err := memStore.CreateBookLoan(bookLoan)
 			if err != nil {
 				t.Fatal(err)
 			}

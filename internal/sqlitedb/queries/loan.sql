@@ -18,12 +18,14 @@ UPDATE loaned_books
 SET
 	updated_at = unixepoch(),
 	name = ?,
-	date = ?
+	date = ?,
+	book_id = ?
 WHERE id = ?
 RETURNING *;
 
 -- name: GetLoanByBookID :one
-SELECT id, name, date, book_id FROM loaned_books WHERE book_id = ?;
+SELECT id, name, date, book_id FROM loaned_books
+WHERE book_id = ?;
 
 -- name: GetAllLoans :many
 SELECT id, name, date, book_id FROM loaned_books;

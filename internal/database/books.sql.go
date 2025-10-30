@@ -99,6 +99,32 @@ func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
 	return items, nil
 }
 
+const getBookByID = `-- name: GetBookByID :one
+SELECT id, title, author, genre, ratting FROM books
+WHERE id = ?
+`
+
+type GetBookByIDRow struct {
+	ID      int64
+	Title   string
+	Author  string
+	Genre   string
+	Ratting int64
+}
+
+func (q *Queries) GetBookByID(ctx context.Context, id int64) (GetBookByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getBookByID, id)
+	var i GetBookByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Author,
+		&i.Genre,
+		&i.Ratting,
+	)
+	return i, err
+}
+
 const updateBook = `-- name: UpdateBook :one
 UPDATE books
 SET 

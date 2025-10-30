@@ -36,7 +36,7 @@ func (c *Core) load() error {
 		return fmt.Errorf("core: %w", err)
 	}
 	for _, book := range bookLoans {
-		err = c.memMgr.store.CreateBookLoan(&book)
+		_, err = c.memMgr.store.CreateBookLoan(&book)
 		if errors.Is(err, storage.ErrEntryExists) {
 			err = c.memMgr.store.UpdateBookLoan(&book)
 		}
@@ -354,9 +354,9 @@ type commandImportBooks struct {
 	bookLoans []storage.BookLoan
 }
 func (c *commandImportBooks) do(s storage.Storage) error {
-	c.addedIDs := make([]int64, len(bookLoans))
+	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
-		id, err := s.CreateBookLoan(BookLoan)
+		id, err := s.CreateBookLoan(&BookLoan)
 		if err != nil {
 			return fmt.Errorf("core: import: %w", err)
 		}
@@ -371,7 +371,7 @@ func (c *commandImportBooks) undo(s storage.Storage) error {
 		if err != nil {
 			return err
 		}
-		err = s.RemoveBookLoan(book)
+		err = s.DeleteBookLoan(&book)
 		if err != nil {
 			return err
 		}
@@ -386,7 +386,8 @@ type commandCreateBookLoan struct {
 }
 
 func (c *commandCreateBookLoan) do(s storage.Storage) error {
-	return s.CreateBookLoan(c.bookLoan)
+	_, err := s.CreateBookLoan(c.bookLoan)
+	return err
 }
 
 func (c *commandCreateBookLoan) undo(s storage.Storage) error {
@@ -405,7 +406,8 @@ func (c *commandDeleteBookLoan) do(s storage.Storage) error {
 }
 
 func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
-	return s.CreateBookLoan(c.bookLoan)
+	_, err := s.CreateBookLoan(c.bookLoan)
+	return err
 }
 
 

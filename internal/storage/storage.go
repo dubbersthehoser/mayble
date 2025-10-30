@@ -103,7 +103,7 @@ func ValidateBook(book Book) error {
 	case RattingIsInvalid:
 		return fmt.Errorf("book ratting is invalid: %d", book.Ratting)
 	case IDIsZero:
-		return fmt.Errorf("book ratting is zero value", book.ID)
+		return fmt.Errorf("book ratting is zero value")
 	case IDIsInvalid:
 		return fmt.Errorf("book id is invalid: %d", book.ID)
 	default:
@@ -134,7 +134,7 @@ type Storage interface {
 
 	// CreateBookLoan adds book loan to storage.
 	// returns ErrEntryExists when book id is in storage. Use ZeroID for id or NewBookLoan().
-	CreateBookLoan(*BookLoan) error
+	CreateBookLoan(*BookLoan) (int64, error)
 
 	// UpdateBookLoan update book loan in storage.
 	// returns ErrEntryNotFound when book id is not in storage.

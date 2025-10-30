@@ -90,7 +90,8 @@ func (q *Queries) GetAllLoans(ctx context.Context) ([]GetAllLoansRow, error) {
 }
 
 const getLoanByBookID = `-- name: GetLoanByBookID :one
-SELECT id, name, date, book_id FROM loaned_books WHERE book_id = ?
+SELECT id, name, date, book_id FROM loaned_books
+WHERE book_id = ?
 `
 
 type GetLoanByBookIDRow struct {
@@ -117,19 +118,26 @@ UPDATE loaned_books
 SET
 	updated_at = unixepoch(),
 	name = ?,
-	date = ?
+	date = ?,
+	book_id = ?
 WHERE id = ?
 RETURNING id, created_at, updated_at, date, name, book_id
 `
 
 type UpdateLoanParams struct {
-	Name string
-	Date string
-	ID   int64
+	Name   string
+	Date   string
+	BookID int64
+	ID     int64
 }
 
 func (q *Queries) UpdateLoan(ctx context.Context, arg UpdateLoanParams) (LoanedBook, error) {
-	row := q.db.QueryRowContext(ctx, updateLoan, arg.Name, arg.Date, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateLoan,
+		arg.Name,
+		arg.Date,
+		arg.BookID,
+		arg.ID,
+	)
 	var i LoanedBook
 	err := row.Scan(
 		&i.ID,

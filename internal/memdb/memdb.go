@@ -58,13 +58,13 @@ func (m *MemStorage) GetBookLoanByID(id int64) (storage.BookLoan, error) {
 	return bookLoan, nil
 }
 
-func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) error {
+func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) (int64, error) {
 	if book.ID == storage.ZeroID {
 		book.ID = m.GetNewBookID()
 	}
 	_, ok := m.Books[book.ID]
 	if ok {
-		return storage.ErrEntryExists
+		return 0, storage.ErrEntryExists
 	}
 	m.Books[book.ID] = book.Book
 	if book.IsOnLoan() {
@@ -72,7 +72,7 @@ func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) error {
 		book.Loan.ID = loanID
 		m.Loans[book.ID] = *book.Loan
 	}
-	return nil
+	return book.ID, nil
 }
 
 func (m *MemStorage) UpdateBookLoan(book *storage.BookLoan) error {

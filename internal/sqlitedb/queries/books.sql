@@ -27,3 +27,7 @@ RETURNING *;
 
 -- name: GetAllBooks :many
 SELECT id, title, author, genre, ratting FROM books;
+
+-- name: GetBookByID :one
+SELECT id, title, author, genre, ratting FROM books
+WHERE id = ?;

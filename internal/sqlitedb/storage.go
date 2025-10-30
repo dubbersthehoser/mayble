@@ -5,6 +5,7 @@ package sqlitedb
 ***********************************************/
 
 import (
+	"fmt"
 	"context"
 	"time"
 	"errors"
@@ -15,36 +16,40 @@ import (
 )
 
 func (d *Database) getBookLoanAsStorage(bookID int64) (storage.BookLoan, error) {
-	book, err := d.Queries.GetBookByID(bookID)
+	book, err := d.Queries.GetBookByID(context.Background(), bookID)
 	var (
 		unknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
 		notFound   bool = err != nil && errors.Is(err, sql.ErrNoRows)
 	)
 	if unknownErr {
-		return nil, err
+		return storage.BookLoan{}, err
 	}
 	if notFound {
-		return nil, storage.ErrEntryNotFound
+		return storage.BookLoan{}, storage.ErrEntryNotFound
 	}
 	bookLoan := storage.BookLoan{
-		ID:      book.ID,
-		Title:   book.Title,
-		Author:  book.Author,
-		Genre:   book.Genre,
-		Ratting: int(book.Ratting),
+		Book: storage.Book{
+			ID:      book.ID,
+			Title:   book.Title,
+			Author:  book.Author,
+			Genre:   book.Genre,
+			Ratting: int(book.Ratting),
+		},
 	}
-	dbLoan, err := b.Queries.GetLoanByBookID(b.Ratting)
+	dbLoan, err := d.Queries.GetLoanByBookID(context.Background(), bookLoan.ID)
 	if err == nil {
-		date := time.Parse(time.DateOnly, dbLoan.Date)
+		date, err := time.Parse(time.DateOnly, dbLoan.Date)
+		if err != nil {
+			return storage.BookLoan{}, err
+		}
 		loan := storage.Loan{
 			ID:   dbLoan.ID,
 			Name: dbLoan.Name,
 			Date: date,
-			BookID: dbLoan.BookID,
 		}
 		bookLoan.Loan = &loan
 	}
-	return *bookLoan, nil
+	return bookLoan, nil
 }
 
 // GetBookLoanByID
@@ -67,7 +72,7 @@ func (d *Database) GetAllBookLoans() ([]storage.BookLoan, error) {
 	for i, b := range books {
 		bookLoan, err := d.getBookLoanAsStorage(b.ID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		storeBooks[i] = bookLoan
 	}
@@ -93,7 +98,7 @@ func (d *Database) CreateBookLoan(book *storage.BookLoan) (error) {
 		return err
 	}
 	if book.IsOnLoan() {
-		_, err := d.Queries.GetLoanByBookID(book.ID)
+		_, err = d.Queries.GetLoanByBookID(ctx, book.ID)
 		if err != nil {
 			return err
 		}
@@ -133,7 +138,7 @@ func (d *Database) UpdateBookLoan(book *storage.BookLoan) (error) {
 		return storage.ErrEntryNotFound
 	}
 
-	_, err := d.Queries.GetLoanByBookID(book.ID)
+	_, err = d.Queries.GetLoanByBookID(ctx, book.ID)
 	var (
 		loanNotFound bool = errors.Is(err, sql.ErrNoRows)
 		unknownErr   bool = err != nil && !errors.Is(err, sql.ErrNoRows)
@@ -183,11 +188,11 @@ func (d *Database) DeleteBookLoan(bookID int64) (error) {
 	if bookUnknownErr {
 		return err
 	}
-	if bookUnknownErr {
+	if bookNotFound {
 		return storage.ErrEntryNotFound
 	}
 
-	loan, err := d.Queries.GetLoanByBookID(bookID)
+	loan, err := d.Queries.GetLoanByBookID(ctx, bookID)
 	var (
 		loanNotFound bool = errors.Is(err, sql.ErrNoRows)
 		loanUnknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
@@ -198,7 +203,7 @@ func (d *Database) DeleteBookLoan(bookID int64) (error) {
 	if loanNotFound {
 		return nil
 	}
-	err := d.Queries.DeleteLoan(ctx, loan.ID)
+	err = d.Queries.DeleteLoan(ctx, loan.ID)
 	return err
 }
 
