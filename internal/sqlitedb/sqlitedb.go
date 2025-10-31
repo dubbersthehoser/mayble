@@ -9,7 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 	
-	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/sqlitedb/database"
 )
 
 //go:embed schemas

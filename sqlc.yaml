@@ -5,5 +5,5 @@ sql:
     schema: "internal/sqlitedb/schemas"
     gen:
       go:
-        out: "internal/database"
+        out: "internal/sqlitedb/database"
 

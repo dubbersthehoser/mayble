@@ -12,7 +12,7 @@ import (
 	"database/sql"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/sqlitedb/database"
 )
 
 func (d *Database) getBookLoanAsStorage(bookID int64) (storage.BookLoan, error) {

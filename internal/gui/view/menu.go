@@ -42,6 +42,13 @@ func (f *FunkView) ShowMenu() {
 		}
 		_ = books
 
+		err = f.controller.Core.ImportBookLoans(books)
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.emiter.Emit(OnModification)
+
 	}
 	
 	importBtn := widget.NewButton("Import CSV", func() {

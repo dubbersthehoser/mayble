@@ -56,8 +56,8 @@ func FromFields(fields []string) (*storage.BookLoan, error) {
 	if err != nil {
 		return nil, errors.New("failed to parse ratting field")
 	}
-	book.Ratting = ratting
 
+	book.Ratting = ratting
 	if fields[BorrowerIndex] != "" && fields[DateIndex] != "" {
 		book.Loan.Name = fields[BorrowerIndex]
 		date, err := time.Parse(time.DateOnly, fields[DateIndex])
@@ -65,6 +65,8 @@ func FromFields(fields []string) (*storage.BookLoan, error) {
 			return nil, errors.New("failed to parse date field")
 		}
 		book.Loan.Date = date
+	} else {
+		book.Loan = nil
 	}
 	return book, nil
 }

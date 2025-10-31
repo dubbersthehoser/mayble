@@ -76,12 +76,6 @@ func (c *Core) GetAllBookLoans() ([]storage.BookLoan, error) {
 	return bookLoans, nil
 }
 
-/* Importing */
-
-func (c *Core) Import(books []storage.BookLoan) {
-	
-}
-
 
 /* Listing and Ordering */
 
@@ -165,6 +159,20 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 	slices.SortFunc(bookLoans, compare)
 	return bookLoans, nil
 }
+
+
+func (c *Core) ImportBookLoans(bookLoans []storage.BookLoan) error {
+	cmd := &commandImportBookLoans{
+		bookLoans: bookLoans,
+	}
+	err := c.memMgr.execute(cmd)
+	if err != nil {
+		return err
+	}
+	c.storeMgr.enqueue(cmd)
+	return nil
+}
+
 
 func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
 	cmd := &commandCreateBookLoan{
@@ -349,11 +357,11 @@ type command interface {
 }
 
 /* Import Book Loans */
-type commandImportBooks struct {
+type commandImportBookLoans struct {
 	addedIDs []int64
 	bookLoans []storage.BookLoan
 }
-func (c *commandImportBooks) do(s storage.Storage) error {
+func (c *commandImportBookLoans) do(s storage.Storage) error {
 	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
 		id, err := s.CreateBookLoan(&BookLoan)
@@ -365,7 +373,7 @@ func (c *commandImportBooks) do(s storage.Storage) error {
 	return nil
 	
 }
-func (c *commandImportBooks) undo(s storage.Storage) error {
+func (c *commandImportBookLoans) undo(s storage.Storage) error {
 	for _, id := range c.addedIDs {
 		book, err :=s.GetBookLoanByID(id)
 		if err != nil {

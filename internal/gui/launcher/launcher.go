@@ -70,9 +70,10 @@ func Run(options ...Option) {
 	defaultConfigPath(&s)
 	defaultDBPath(&s)
 	
-	App := app.New()
+	App := app.NewWithID("app.dubbersthehoser.mayble")
 	window := App.NewWindow("Mayble Launcher")
 	window.Resize(fyne.NewSize(800, 500))
+	window.CenterOnScreen()
 
 	logGrid := SetupTextGrid()
 
