@@ -1,7 +1,7 @@
 package view
 
 import (
-	"fmt"
+	//"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/storage"
 
-	_"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller/porting"
 )
 
@@ -29,7 +28,6 @@ func (f *FunkView) ShowMenu() {
 		if uri == nil {
 			return
 		}	
-		fmt.Println("opening import:", uri.URI().Path())
 		impoter, err := porting.GetImporterByFilePath(uri.URI().Path())
 		if err != nil {
 			f.displayError(err)
@@ -73,7 +71,6 @@ func (f *FunkView) ShowMenu() {
 			return
 		}
 		path := uri.URI().Path()
-		fmt.Println("saving import:", path)
 		exporter, err := porting.GetExporterByFilePath(path)
 		if err != nil {
 			f.displayError(err)
@@ -105,5 +102,7 @@ func (f *FunkView) ShowMenu() {
 	obj := container.New(layout.NewVBoxLayout(), importBtn, exportBtn)
 
 	d := dialog.NewCustom("Menu", "Close", obj, f.window)
+	size := getDialogSize(d.MinSize())
+	d.Resize(size)
 	d.Show()
 }
