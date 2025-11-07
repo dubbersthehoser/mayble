@@ -176,8 +176,30 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	searchEnt := widget.NewEntry()
 	searchEnt.PlaceHolder = "Search"
 	searchEnt.OnChanged = func(s string) {
-		f.controller.BookList.Search(s)
+		f.controller.BookList.SetSearch(s)
 		f.emiter.Emit(OnSearch)
+	}
+
+	// Next Item
+	//-----------
+	onNextItem := func() {
+		f.emiter.Emit(OnSelectNext)
+	}
+
+	nextItemItem := &widget.ToolbarAction{
+		Icon: theme.MoveDownIcon() ,
+		OnActivated: onNextItem,
+	}
+
+	// Previous Item
+	// --------------
+	onPrevItem := func() {
+		f.emiter.Emit(OnSelectPrev)
+	}
+
+	prevItemItem := &widget.ToolbarAction{
+		Icon: theme.MoveUpIcon(),
+		OnActivated: onPrevItem,
 	}
 
 
@@ -194,6 +216,8 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		undoItem,
 		redoItem,
 		widget.NewToolbarSeparator(),
+		nextItemItem,
+		prevItemItem,
 	}
 	toolBar := widget.NewToolbar(items...)
 	

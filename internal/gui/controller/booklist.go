@@ -1,6 +1,7 @@
 package controller
 
 import (
+	//"fmt"
 	"errors"
 	
 	"github.com/dubbersthehoser/mayble/internal/core"
@@ -84,6 +85,7 @@ func (l *BookList) SetOrderBy(by string) {
 	default:
 		panic("invalid order by value")
 	}
+	l.Search()
 }
 func (l *BookList) SetOrdering(o Ordering) {
 	l.ordering = o
@@ -148,11 +150,22 @@ func (l *BookList) Get(index int) (*BookLoanListed, error) {
 	return bookView, nil
 }
 
-func (l *BookList) Search(pattern string) {
-	l.searcher.Search(pattern)
-	result := l.searcher.selection
-	if len(result) != 0 {
-		l.Select(result[0])
+func (l *BookList) SetSearch(pattern string) {
+	if pattern == "" {
+		l.SearchUndo()
+		return 
+	}
+	l.searcher.SetSearch(pattern)
+}
+
+func (l *BookList) Search() bool {
+	l.searcher.Search()
+	if l.searcher.IsSelection() {
+		l.Select(l.searcher.Selected())
+		return true
+	} else {
+		l.Unselect()
+		return false
 	}
 } 
 
@@ -172,51 +185,17 @@ func (l *BookList) SelectNext() {
 			return 
 		}
 	}
-
-	if (l.searcher.selection != nil) && (len(l.searcher.selection) > 0) {
-		idx := (l.searcher.selected + 1) % len(l.searcher.selection)
-		idx = l.searcher.selection[idx]
-		err := l.Select(idx)
-		if err != nil {
-			return
-		}
-		return
-	}
-
-	idx := (l.SelectedIndex + 1) % len(l.list)
-	err := l.Select(idx)
-	if err != nil {
-		return
-	}
-	return
-
-
+	l.searcher.SelectedNext()
+	l.Select(l.searcher.Selected())
 }
 
 func (l *BookList) SelectPrev() {
 	if !l.IsSelected() {
-		err := l.Select(len(l.list)-1)
+		err := l.Select(0)
 		if err != nil {
 			return
 		}
 	}
-
-	if (l.searcher.selection != nil) || (len(l.searcher.selection) > 0) {
-		idx := (l.searcher.selected - 1) % len(l.searcher.selection)
-		idx = l.searcher.selection[idx]
-		err := l.Select(idx)
-		if err != nil {
-			return
-		}
-		return
-	}
-
-	idx := (l.SelectedIndex - 1) % len(l.list)
-	err := l.Select(idx)
-	if err != nil {
-		return
-	}
-	return
-
-
+	l.searcher.SelectedPrev()
+	l.Select(l.searcher.Selected())
 }

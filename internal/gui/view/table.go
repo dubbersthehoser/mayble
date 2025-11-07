@@ -166,11 +166,17 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		List.UnselectAll()
 	}
 	listOnSearch := func() {
+		fmt.Println("list on search")
 		idx := f.controller.BookList.SelectedIndex
 		List.Select(widget.ListItemID(idx))
 	}
+	listOnSelectNext := listOnSearch
+	listOnSelectPrev := listOnSearch
+
 	f.emiter.On(OnModification, listOnModification)
 	f.emiter.On(OnSearch, listOnSearch)
+	f.emiter.On(OnSelectNext, listOnSelectNext)
+	f.emiter.On(OnSelectPrev, listOnSelectPrev)
 
 
 	// Table

@@ -1,6 +1,8 @@
 package view
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
@@ -24,8 +26,8 @@ const (
 	OnSearch       = "ON_SEARCH"
 	OnSearchBy     = "ON_SEARCH_BY"
 
-	OnNextSelect   = "ON_NEXT_SELECT"
-	OnPrevSelect   = "ON_PREV_SELECT"
+	OnSelectNext   = "ON_SELECT_NEXT"
+	OnSelectPrev   = "ON_SELECT_PREV"
 
 	OnSelected     = "ON_SELECTED"
 	OnUnselected   = "ON_UNSELECTED"
@@ -123,16 +125,36 @@ func (f *FunkView) loadEvents() {
 	f.emiter.On(OnRedo, f.EventRedo)
 	f.emiter.On(OnUndo, f.EventUndo)
 	f.emiter.On(OnSort, f.EventSort)
-	f.emiter.On(OnNextSelect, f.EventNextSelect)
-	f.emiter.On(OnPrevSelect, f.EventPrevSelect)
 	f.emiter.On(OnSearch, f.EventSearch)
 	f.emiter.On(OnSearchBy, f.EventSearchBy)
 	f.emiter.On(OnMenuOpen, f.EventMenuOpen)
+	f.emiter.On(OnSelectNext, f.EventSelectNext)
+	f.emiter.On(OnSelectPrev, f.EventSelectPrev)
+}
+
+func (f *FunkView) EventSelectNext() {
+	f.controller.BookList.SelectNext()
+}
+
+func (f *FunkView) EventSelectPrev() {
+	f.controller.BookList.SelectPrev()
+}
+
+func (f *FunkView) EventSearchBy() {
+	fmt.Println("event search by")
+	f.refresh()
+}
+func (f *FunkView) EventSearch() {
+	fmt.Println("event search")
+	f.controller.BookList.Search()
+	f.refresh()
 }
 
 func (f *FunkView) EventMenuOpen() {
 	f.ShowMenu()
 }
+
+
 
 func (f *FunkView) EventModification() {
 	err := f.controller.BookList.Update()
@@ -152,18 +174,7 @@ func (f *FunkView) EventSort() {
 	f.refresh()
 }
 
-func (f *FunkView) EventSearchBy() {
-}
 
-func (f *FunkView) EventSearch() {
-	
-}
-
-func (f *FunkView) EventNextSelect() {
-}
-func (f *FunkView) EventPrevSelect() {
-	
-}
 
 func (f *FunkView) EventRedo() {
 	err := f.controller.Core.Redo()
