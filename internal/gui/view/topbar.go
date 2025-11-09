@@ -1,7 +1,7 @@
 package view
 
 import (
-	"fmt"
+	//"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -44,7 +44,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Menu
 	//------
 	OnMenuItem := func() {
-		fmt.Println("Menu button pressed")
 		f.emiter.Emit(OnMenuOpen)
 	}
 	menuItem := &widget.ToolbarAction{
@@ -57,7 +56,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Create 
 	//--------
 	OnCreateItem := func() {
-		fmt.Println("Create button pressed")
 		f.emiter.Emit(OnCreate)
 	}
 	createItem := &widget.ToolbarAction{
@@ -69,7 +67,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Update
 	//--------
 	OnUpdateItem := func() {
-		fmt.Println("Update button pressed")
 		f.emiter.Emit(OnUpdate)
 	}
 	updateItem := &widget.ToolbarAction{
@@ -80,7 +77,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Delete
 	//--------
 	OnDeleteItem := func() {
-		fmt.Println("Delete button pressed")
 		f.emiter.Emit(OnDelete)
 	}
 	deleteItem := &widget.ToolbarAction{
@@ -110,7 +106,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Undo
 	//------
 	OnUndoItem := func() {
-		fmt.Println("Undo button pressed")
 		f.emiter.Emit(OnUndo)
 	}
 	undoItem := &widget.ToolbarAction{
@@ -121,7 +116,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Redo
 	//------
 	OnRedoItem := func() {
-		fmt.Println("Redo button pressed")
 		f.emiter.Emit(OnRedo)
 	}
 	redoItem := &widget.ToolbarAction{
@@ -179,6 +173,18 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		f.controller.BookList.SetSearch(s)
 		f.emiter.Emit(OnSearch)
 	}
+
+	searchEnt.OnSubmitted = func (s string) {
+		f.emiter.Emit(OnSelectNext)
+	}
+
+	f.emiter.On(OnSort, func() {
+		searchEnt.SetText("")
+	})
+
+	f.emiter.On(OnSearchBy, func() {
+		searchEnt.SetText("")
+	})
 
 	// Next Item
 	//-----------

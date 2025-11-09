@@ -55,10 +55,12 @@ func (f *FunkView) Table() fyne.CanvasObject {
 				f.controller.BookList.SetOrdering(controller.ASC)
 			}
 			button.Refresh()
-			fmt.Println("sort not implemeted")
 			f.controller.BookList.SetOrderBy(label)
 			f.emiter.Emit(OnSort)
 		}
+		//f.emiter.On(OnModification, func() {
+		//	button.SetText(labelNormal)
+		//})
 		return button
 	}
 	fields := make([]fyne.CanvasObject, 0)
@@ -69,7 +71,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		fields = append(fields, obj)
 	}
 
-	// setting the the title feild to be sorted
+	// setting the the title field to be sorted
 	//fields[0].(*widget.Button).OnTapped() /* COULD CAUSE UNWANTED STATE CHANGE */
 
 	Heading := container.New(layout.NewGridLayout(len(fields)), fields...)
@@ -165,6 +167,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	listOnModification := func() {
 		List.UnselectAll()
 	}
+
 	listOnSearch := func() {
 		fmt.Println("list on search")
 		idx := f.controller.BookList.SelectedIndex

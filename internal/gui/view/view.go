@@ -1,7 +1,7 @@
 package view
 
 import (
-	"fmt"
+	//"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -68,7 +68,6 @@ func (e *emiter) Emit(key string) {
 	}
 }
 
-
 /***********************
 	FunkView
 ************************/
@@ -92,6 +91,7 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 	f.loadEvents()
 
 	f.View = f.Body()
+	f.emiter.Emit(OnSort)
 	return f, nil
 }
 
@@ -141,11 +141,9 @@ func (f *FunkView) EventSelectPrev() {
 }
 
 func (f *FunkView) EventSearchBy() {
-	fmt.Println("event search by")
 	f.refresh()
 }
 func (f *FunkView) EventSearch() {
-	fmt.Println("event search")
 	f.controller.BookList.Search()
 	f.refresh()
 }

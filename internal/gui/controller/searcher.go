@@ -54,11 +54,8 @@ func (s *Searcher) SelectedPrev() {
 	if !s.IsSelection() {
 		return
 	}
-	
 	prevIdx := s.selected - 1
 	if prevIdx < 0 {
-		fmt.Println("Negative: ", prevIdx)
-		fmt.Println("Length: ", len(s.selection))
 		prevIdx = len(s.selection) + prevIdx
 	}
 	s.selected = prevIdx

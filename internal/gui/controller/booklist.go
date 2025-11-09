@@ -91,7 +91,6 @@ func (l *BookList) SetOrdering(o Ordering) {
 	l.ordering = o
 }
 
-
 func (l *BookList) Update() error {
 	bookLoans, err := l.core.ListBookLoans(l.orderBy, core.Order(l.ordering))
 	if err != nil {

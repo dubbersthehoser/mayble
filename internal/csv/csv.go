@@ -106,7 +106,6 @@ func (c BookLoanCSV) ExportBooks(w io.Writer, books []storage.BookLoan) error {
 		if err != nil {
 			return fmt.Errorf("book id '%d': %w", book.ID, err)
 		}
-		fmt.Printf("%#v\n", fields)
 		err = writer.Write(fields)
 		if err != nil {
 			return fmt.Errorf("book id '%d': %w", book.ID, err)

@@ -124,11 +124,17 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 				result = LesserX
 			}
 		case ByTitle:
-			result = strings.Compare(x.Title, y.Title)
+			a := strings.ToLower(x.Title)
+			b := strings.ToLower(y.Title)
+			result = strings.Compare(a, b)
 		case ByAuthor:
-			result = strings.Compare(x.Author, y.Author)
+			a := strings.ToLower(x.Author)
+			b := strings.ToLower(y.Author)
+			result = strings.Compare(a, b)
 		case ByGenre:
-			result = strings.Compare(x.Genre, y.Genre)
+			a := strings.ToLower(x.Genre)
+			b := strings.ToLower(y.Genre)
+			result = strings.Compare(a, b)
 		case ByRatting:
 			switch {
 			case x.Ratting == y.Ratting:
@@ -146,7 +152,9 @@ func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error
 			} else if y.Loan == nil {
 				result = GreaterX
 			} else if by == ByBorrower {
-				result = strings.Compare(x.Loan.Name, y.Loan.Name)
+				a := strings.ToLower(x.Loan.Name)
+				b := strings.ToLower(y.Loan.Name)
+				result = strings.Compare(a, b)
 			} else if by == ByDate {
 				result = x.Loan.Date.Compare(y.Loan.Date)
 			}
