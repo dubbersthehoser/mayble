@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
+
 )
 
 const (
@@ -72,7 +73,7 @@ func (e *emiter) Emit(key string) {
 	FunkView
 ************************/
 
-// NOTE Its called FunkView because I was frustrated and I needed some amusement. FuckYou.
+// NOTE It's called FunkView because I was frustrated and I needed some amusement.
 
 type FunkView struct {
 	window     fyne.Window
