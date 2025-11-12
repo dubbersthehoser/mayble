@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 	"fmt"
+
+	"github.com/dubbersthehoser/mayble/data"
 )
 
 //const MaxBooks int64 = 1000 // the max of books that can be stored.
@@ -16,47 +18,6 @@ var (
 	ErrEntryNotFound = errors.New("storage: entry not found") // return when id could not be found in storage.
 	ErrStorageFull   = errors.New("storage: hit storage cap") // return when the BookCap is hit.
 )
-
-type Book struct {
-	ID      int64  
-	Title   string 
-	Author  string 
-	Genre   string 
-	Ratting int    
-}
-
-type Loan struct {
-	ID   int64     
-	Name string   
-	Date time.Time 
-}
-
-type BookLoan struct {
-	Book
-	Loan *Loan
-}
-
-func NewBookLoan() *BookLoan {
-	b := &BookLoan{
-		Book: Book{
-			ID: ZeroID,
-		},
-		Loan: &Loan{
-			ID: ZeroID,
-		},
-	}
-	return b
-}
-
-// IsOnLoan
-func (bl *BookLoan) IsOnLoan() bool {
-	return bl.Loan != nil
-}
-func (bl *BookLoan) UnsetLoan() {
-	bl.Loan = nil
-}
-
-
 
 
 /***********************
@@ -84,7 +45,7 @@ func ValidateLoan(loan Loan) error {
 	}
 }
 
-func ValidateBook(book Book) error {
+func ValidateBook(book data.Book) error {
 	var (
 		TitleIsZero      bool = book.Title == ""
 		AuthorIsZero     bool = book.Author == ""
@@ -127,22 +88,22 @@ func ValidRatting(ratting int) bool {
 
 type Storage interface {
 	// GetAllBookLoans returns a list of stored book loans.
-	GetAllBookLoans() ([]BookLoan, error)
+	GetAllBookLoans() ([]data.BookLoan, error)
 
 	// GetBookLoanByID returns stored book by its id.
-	GetBookLoanByID(id int64) (BookLoan, error)
+	GetBookLoanByID(id int64) (data.BookLoan, error)
 
 	// CreateBookLoan adds book loan to storage.
 	// returns ErrEntryExists when book id is in storage. Use ZeroID for id or NewBookLoan().
-	CreateBookLoan(*BookLoan) (int64, error)
+	CreateBookLoan(*data.BookLoan) (int64, error)
 
 	// UpdateBookLoan update book loan in storage.
 	// returns ErrEntryNotFound when book id is not in storage.
-	UpdateBookLoan(*BookLoan) error
+	UpdateBookLoan(*data.BookLoan) error
 
 	// DeleteBookLoan remove book loan from storage.
 	// returns ErrEntryNotFound when book id is not in storage.
-	DeleteBookLoan(*BookLoan) error
+	DeleteBookLoan(*data.BookLoan) error
 
 	// Close whatever implementation. Can be nop.
 	Close() error

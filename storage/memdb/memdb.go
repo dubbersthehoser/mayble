@@ -1,18 +1,19 @@
 package memdb
 
 import (
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/data"
+	"github.com/dubbersthehoser/mayble/storage"
 )
 
 type MemStorage struct {
-	Books map[int64]storage.Book
-	Loans map[int64]storage.Loan
+	Books map[int64]data.Book
+	Loans map[int64]data.Loan
 }
 
 func NewMemStorage() *MemStorage {
 	mem := &MemStorage{
-		Books: make(map[int64]storage.Book),
-		Loans:  make(map[int64]storage.Loan),
+		Books: make(map[int64]data.Book),
+		Loans:  make(map[int64]data.Loan),
 	}
 	return mem
 }
@@ -25,12 +26,12 @@ func (m *MemStorage) GetNewLoanID() int64 {
 	return int64(len(m.Loans)) + 1
 }
 
-func (m *MemStorage) GetAllBookLoans() ([]storage.BookLoan, error) {
-	booksLoans := make([]storage.BookLoan, len(m.Books))
+func (m *MemStorage) GetAllBookLoans() ([]data.BookLoan, error) {
+	booksLoans := make([]data.BookLoan, len(m.Books))
 	count := 0
 	for id := range m.Books {
 		book := m.Books[id]
-		bookLoan := storage.BookLoan{
+		bookLoan := data.BookLoan{
 			Book: book,
 		}
 		loan, ok := m.Loans[id]
@@ -43,12 +44,12 @@ func (m *MemStorage) GetAllBookLoans() ([]storage.BookLoan, error) {
 	return booksLoans, nil
 }
 
-func (m *MemStorage) GetBookLoanByID(id int64) (storage.BookLoan, error) {
+func (m *MemStorage) GetBookLoanByID(id int64) (data.BookLoan, error) {
 	book, ok := m.Books[id]
 	if !ok {
-		return storage.BookLoan{}, storage.ErrEntryNotFound
+		return data.BookLoan{}, storage.ErrEntryNotFound
 	}
-	bookLoan := storage.BookLoan{
+	bookLoan := data.BookLoan{
 		Book: book,
 	}
 	loan, ok := m.Loans[id]
@@ -58,8 +59,8 @@ func (m *MemStorage) GetBookLoanByID(id int64) (storage.BookLoan, error) {
 	return bookLoan, nil
 }
 
-func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) (int64, error) {
-	if book.ID == storage.ZeroID {
+func (m *MemStorage) CreateBookLoan(book *data.BookLoan) (int64, error) {
+	if book.ID == data.ZeroID {
 		book.ID = m.GetNewBookID()
 	}
 	_, ok := m.Books[book.ID]
@@ -75,7 +76,7 @@ func (m *MemStorage) CreateBookLoan(book *storage.BookLoan) (int64, error) {
 	return book.ID, nil
 }
 
-func (m *MemStorage) UpdateBookLoan(book *storage.BookLoan) error {
+func (m *MemStorage) UpdateBookLoan(book *data.BookLoan) error {
 	_, ok := m.Books[book.ID]
 	if !ok {
 		return storage.ErrEntryNotFound
@@ -97,7 +98,7 @@ func (m *MemStorage) UpdateBookLoan(book *storage.BookLoan) error {
 
 }
 
-func (m *MemStorage) DeleteBookLoan(book *storage.BookLoan) error {
+func (m *MemStorage) DeleteBookLoan(book *data.BookLoan) error {
 	_, ok := m.Books[book.ID]
 	if !ok {
 		return storage.ErrEntryNotFound

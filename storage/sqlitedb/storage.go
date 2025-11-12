@@ -11,23 +11,24 @@ import (
 	"errors"
 	"database/sql"
 
-	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/sqlitedb/database"
+	"github.com/dubbersthehoser/mayble/data"
+	"github.com/dubbersthehoser/mayble/storage"
+	"github.com/dubbersthehoser/mayble/storage/sqlitedb/database"
 )
 
-func (d *Database) getBookLoanAsStorage(bookID int64) (storage.BookLoan, error) {
+func (d *Database) getBookLoanAsStorage(bookID int64) (data.BookLoan, error) {
 	book, err := d.Queries.GetBookByID(context.Background(), bookID)
 	var (
 		unknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
 		notFound   bool = err != nil && errors.Is(err, sql.ErrNoRows)
 	)
 	if unknownErr {
-		return storage.BookLoan{}, err
+		return data.BookLoan{}, err
 	}
 	if notFound {
-		return storage.BookLoan{}, storage.ErrEntryNotFound
+		return data.BookLoan{}, storage.ErrEntryNotFound
 	}
-	bookLoan := storage.BookLoan{
+	bookLoan := data.BookLoan{
 		Book: storage.Book{
 			ID:      book.ID,
 			Title:   book.Title,
@@ -40,7 +41,7 @@ func (d *Database) getBookLoanAsStorage(bookID int64) (storage.BookLoan, error) 
 	if err == nil {
 		date, err := time.Parse(time.DateOnly, dbLoan.Date)
 		if err != nil {
-			return storage.BookLoan{}, err
+			return data.BookLoan{}, err
 		}
 		loan := storage.Loan{
 			ID:   dbLoan.ID,
@@ -53,7 +54,7 @@ func (d *Database) getBookLoanAsStorage(bookID int64) (storage.BookLoan, error) 
 }
 
 // GetBookLoanByID
-func (d *Database) GetBookLoanByID(bookID int64) (storage.BookLoan, error) {
+func (d *Database) GetBookLoanByID(bookID int64) (data.BookLoan, error) {
 	bookLoan, err := d.getBookLoanAsStorage(bookID)
 	if err != nil {
 		return bookLoan, err
@@ -62,13 +63,13 @@ func (d *Database) GetBookLoanByID(bookID int64) (storage.BookLoan, error) {
 }
 
 // GetAllBookLoans
-func (d *Database) GetAllBookLoans() ([]storage.BookLoan, error) {
+func (d *Database) GetAllBookLoans() ([]data.BookLoan, error) {
 	ctx := context.Background()
 	books, err := d.Queries.GetAllBooks(ctx)
 	if err != nil {
 		return nil, err
 	}
-	storeBooks := make([]storage.BookLoan, len(books))
+	storeBooks := make([]data.BookLoan, len(books))
 	for i, b := range books {
 		bookLoan, err := d.getBookLoanAsStorage(b.ID)
 		if err != nil {
@@ -80,7 +81,7 @@ func (d *Database) GetAllBookLoans() ([]storage.BookLoan, error) {
 }
 
 // CreateBookLoan 
-func (d *Database) CreateBookLoan(book *storage.BookLoan) (error) {
+func (d *Database) CreateBookLoan(book *data.BookLoan) (error) {
 	ctx := context.Background()
 
 	if book.ID != storage.ZeroID {
@@ -117,7 +118,7 @@ func (d *Database) CreateBookLoan(book *storage.BookLoan) (error) {
 }
 
 // UpdateBookLoan
-func (d *Database) UpdateBookLoan(book *storage.BookLoan) (error) {
+func (d *Database) UpdateBookLoan(book *data.BookLoan) (error) {
 	ctx := context.Background()
 	params := database.UpdateBookParams{
 		ID:    book.ID,

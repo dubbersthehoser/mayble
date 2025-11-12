@@ -1,9 +1,9 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "internal/sqlitedb/queries"
-    schema: "internal/sqlitedb/schemas"
+    queries: "storage/sqlitedb/queries"
+    schema: "storage/sqlitedb/schemas"
     gen:
       go:
-        out: "internal/sqlitedb/database"
+        out: "storage/sqlitedb/database"
 

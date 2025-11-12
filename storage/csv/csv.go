@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/data"
 )
 
 
@@ -26,7 +26,7 @@ const (
 
 )
 
-func ToFields(book storage.BookLoan) ([]string, error) {
+func ToFields(book data.BookLoan) ([]string, error) {
 	fields := make([]string, NumberOfFields)
 	fields[TitleIndex] = book.Title
 	fields[AuthorIndex] = book.Author
@@ -42,12 +42,12 @@ func ToFields(book storage.BookLoan) ([]string, error) {
 	return fields, nil
 }
 
-func FromFields(fields []string) (*storage.BookLoan, error) {
+func FromFields(fields []string) (*data.BookLoan, error) {
 	if len(fields) != NumberOfFields {
 		return nil, errors.New("invalid number of fields")
 	}
 
-	book := storage.NewBookLoan()
+	book := data.NewBookLoan()
 
 	book.Title = fields[TitleIndex]
 	book.Author = fields[AuthorIndex]
@@ -73,10 +73,10 @@ func FromFields(fields []string) (*storage.BookLoan, error) {
 
 type BookLoanCSV struct {}
 
-func (c BookLoanCSV) ImportBooks(r io.Reader) ([]storage.BookLoan, error) {
+func (c BookLoanCSV) ImportBooks(r io.Reader) ([]data.BookLoan, error) {
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = NumberOfFields
-	books := make([]storage.BookLoan, 0)
+	books := make([]data.BookLoan, 0)
 	recordCount := 0
 	for {
 		fields, err := reader.Read()
@@ -99,7 +99,7 @@ func (c BookLoanCSV) ImportBooks(r io.Reader) ([]storage.BookLoan, error) {
 
 }
 
-func (c BookLoanCSV) ExportBooks(w io.Writer, books []storage.BookLoan) error {
+func (c BookLoanCSV) ExportBooks(w io.Writer, books []data.BookLoan) error {
 	writer := csv.NewWriter(w)
 	for _, book := range books {
 		fields, err := ToFields(book)
