@@ -2,7 +2,7 @@ package data
 
 import (
 	"time"
-	"errors"
+	"fmt"
 )
 
 const ZeroID int64 = -127 
@@ -12,13 +12,13 @@ type Book struct {
 	Title   string 
 	Author  string 
 	Genre   string 
-	Ratting int    
+	Ratting int
 }
 
 type Loan struct {
-	ID       int64     
-	Borrower string   
-	Date     time.Time 
+	ID       int64
+	Borrower string
+	Date     time.Time
 }
 
 type BookLoan struct {
@@ -44,6 +44,12 @@ func (bl *BookLoan) IsOnLoan() bool {
 func (bl *BookLoan) UnsetLoan() {
 	bl.Loan = nil
 }
+
+
+
+/********************
+	Builder
+*********************/
 
 type BookLoanBuilder struct {
 	bookID   int64
@@ -86,8 +92,9 @@ func (b *BookLoanBuilder) WithDate(t time.Time) *BookLoanBuilder {
 	b.date = &t
 	return b
 }
-func (b *BookLoanBuilder) Build() (*BookLoan, error) {
 
+// Build with builder. Returns BookLoan and a validation error.
+func (b *BookLoanBuilder) Build() (*BookLoan, error) {
 	bl := NewBookLoan()
 	bl.Title = b.title
 	bl.Author = b.author
@@ -99,37 +106,10 @@ func (b *BookLoanBuilder) Build() (*BookLoan, error) {
 	} else {
 		bl.UnsetLoan()
 	}
-
-	var (
-		InvalidTitle        bool = !ValidTitle(b.title)
-		InvalidAuthor       bool = !ValidAuthor(b.author)
-		InvalidGenre        bool = !ValidGenre(b.genre)
-		InvalidRatting      bool = !ValidRatting(b.ratting)
-		InvalidBorrowerName bool = !ValidBorrowerName(b.borrower)
-		InvalidBorrowDate   bool = !ValidBorrowDate(b.date)
-	)
-	switch {
-	case InvalidTitle:
-		return nil, errors.New("data: invalid title")
-
-	case InvalidAuthor:
-		return nil, errors.New("data: invalid author")
-
-	case InvalidGenre:
-		return nil, errors.New("data: invalid genre")
-
-	case InvalidRatting:
-		return nil, errors.New("data: invalid ratting")
-
-	case InvalidBorrowerName && bl.IsOnLoan():
-		return nil , errors.New("data: invalid borrower name")
-
-	case InvalidBorrowDate && bl.IsOnLoan():
-		return nil, errors.New("data: invalid borrow date")
-	}
-	return bl, nil
+	return bl, ValidateBookLoan(bl)
 }
 
+// BookLoanToBuilder convers a BookLoan type to a builder for reconstruction.
 func BookLoanToBuilder(bl *BookLoan) *BookLoanBuilder {
 	builder := NewBookLoanBuilder()
 	builder.bookID = bl.Book.ID
@@ -156,31 +136,119 @@ func BookLoanToBuilder(bl *BookLoan) *BookLoanBuilder {
 	Validation
 ************************/
 
-func ValidID(id int64) bool {
-	return id >= 0
+type ValidationErr struct {
+	field       string
+	description string
 }
-func ValidTitle(s string) bool {
-	return "" != s
+func (v *ValidationErr) Description() string {
+	return v.description
 }
-func ValidAuthor(s string) bool {
-	return "" != s
+func (v *ValidationErr) Field() string {
+	return v.field
 }
-func ValidGenre(s string) bool {
-	return "" != s
+func (v *ValidationErr) Error() string {
+	return fmt.Sprintf("data: %s, %s", v.field, v.description)
 }
-func ValidRatting(ratting int) bool {
-	return ratting >= 0 && ratting < 6
-}
-func ValidBorrowerName(s string) bool {
-	return "" != s
-}
-func ValidBorrowDate(date *time.Time) bool {
-	if date == nil {
-		return false
+
+func ValidateBookLoan(b *BookLoan) error {
+	var (
+		InvalidTitle        error = ValidTitle(b.Title)
+		InvalidAuthor       error = ValidAuthor(b.Author)
+		InvalidGenre        error = ValidGenre(b.Genre)
+		InvalidRatting      error = ValidRatting(b.Ratting)
+		InvalidBorrowerName error
+		InvalidBorrowDate   error
+	)
+	if b.IsOnLoan() {
+		InvalidBorrowerName = ValidBorrowerName(b.Loan.Borrower)
+		InvalidBorrowDate = ValidBorrowDate(&b.Loan.Date)
 	}
-	return !date.IsZero()
+	switch {
+	case InvalidTitle != nil:
+		return InvalidTitle
+
+	case InvalidAuthor != nil:
+		return InvalidAuthor
+
+	case InvalidGenre != nil:
+		return InvalidGenre
+
+	case InvalidRatting != nil:
+		return InvalidRatting
+
+	case b.IsOnLoan() && InvalidBorrowerName != nil:
+		return InvalidBorrowerName
+
+	case b.IsOnLoan() && InvalidBorrowDate != nil:
+		return InvalidBorrowDate
+	}
+	return nil
 }
 
-
-
-
+func ValidID(id int64) error {
+	err := &ValidationErr{}
+	if id < 0 {
+		err.field= "ID"
+		err.description = "can't be a negative value"
+		return err
+	}
+	return nil
+}
+func ValidTitle(s string) error {
+	err := &ValidationErr{}
+	if s == ""  {
+		err.field= "Title"
+		err.description = "can't be empty string"
+		return err
+	}
+	return nil
+}
+func ValidAuthor(s string) error {
+	err := &ValidationErr{}
+	if s == ""  {
+		err.field= "Author"
+		err.description = "can't be empty string"
+		return err
+	}
+	return nil
+}
+func ValidGenre(s string) error {
+	err := &ValidationErr{}
+	if s == ""  {
+		err.field = "Genre"
+		err.description = "can't be empty string"
+		return err
+	}
+	return nil
+}
+func ValidRatting(ratting int) error {
+	err := &ValidationErr{}
+	if ratting < 0 || ratting >= 6 {
+		err.field = "Ratting"
+		err.description = "out of range of 0-5"
+		return err
+	}
+	return nil
+}
+func ValidBorrowerName(s string) error {
+	err := &ValidationErr{}
+	if s == ""  {
+		err.field = "Borrower"
+		err.description = "can't be empty string"
+		return err
+	}
+	return nil
+}
+func ValidBorrowDate(date *time.Time) error {
+	err := &ValidationErr{}
+	if date == nil {
+		err.field = "Date"
+		err.description = "can't be nil value"
+		return err
+	}
+	if date.IsZero() {
+		err.field = "Date"
+		err.description = "can't be zero value"
+	}
+	return nil
+}
