@@ -2,12 +2,13 @@ package storage
 
 import (
 	"io"
+	"github.com/dubbersthehoser/mayble/data"
 )
 
 type Importer interface {
-	ImportBooks(io.Reader) ([]BookLoan, error)
+	ImportBooks(io.Reader) ([]data.BookLoan, error)
 }
 
 type Exporter interface {
-	ExportBooks( io.Writer, []BookLoan) error
+	ExportBooks(io.Writer, []data.BookLoan) error
 }
