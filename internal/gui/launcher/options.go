@@ -1,55 +1,73 @@
 package launcher
 
 import (
+	"fmt"
 	"os"
 	"fmt"
 	"errors"
 	"path/filepath"
 
+	"github.com/dubbersthehoser/mayble/internal/settings"
 )
 
-type Settings struct {
-	configDir  string
-	configPath string
-	dbPath     string
-}
+/* Lancher Options */
 
-type Option func(s *Settings) 
+type Option func(s *settings.Settings) 
 
 func WithDBPath(path string) Option {
-	return func(s *Settings) {
-		s.configDir = path
+	return func(s *settings.Settings) {
+		s.DBPath = path
 	}
 }
-
 func WithConfigPath(path string) Option {
-	return func(s *Settings) {
-		s.configPath = path
+	return func(s *settings.Settings) {
+		s.ConfigPath = path
+	}
+}
+func WithDBDriver(driver string) Option {
+	return func(s *settings.Settings) {
+		s.DBDriver = driver
 	}
 }
 
+/* Default Settings */
 
-func defaultDBPath(s *Settings) {
-	if s.configDir == "" {
+// defaultConfigDir function must be ran first before other default setting functions
+func defaultConfigDir(s *settings.Settings) { 
+	if s.ConfigDir != "" {
+		return
+	}
+	dir, err := determinConfigDir("mayble")
+	if err == nil {
+		s.ConfigDir = dir
+	} else {
+		panic("could not determin configuration path for application")
+	}
+}
+
+func defaultDBPath(s *settings.Settings) {
+	if s.ConfigDir == "" {
 		panic("configuration path was not set before setting default dbPath.")
+	}
+	if s.DBPath != "" {
+		return
 	}
 	s.dbPath = filepath.Join(s.configDir, "db.sqlite")
 }
 
-func defaultConfigPath(s *Settings) {
-	if s.configDir == "" {
+
+func defaultConfigPath(s *settings.Settings) {
+	if s.ConfigDir == "" {
 		panic("configuration path was not set before setting default configPath.")
 	}
-	s.configPath = filepath.Join(s.configDir, "config.json")
+	if s.ConfigPath != "" {
+		return
+	}
+	s.ConfigPath = filepath.Join(s.configDir, "config.json")
 }
 
-func defaultConfigDir(s *Settings) {
-	dir, err := determinConfigDir("mayble")
-	if err == nil {
-		s.configDir = dir
-	} else {
-		panic("could not determin configuration path for application")
-	}
+func defaultDBDriver(s *settings.Settings) {
+	s.DBDriver = "memory"
 }
 
 func determinConfigDir(appName string) (string, error) {
@@ -113,3 +131,4 @@ func determinConfigDir(appName string) (string, error) {
 
 	return ThePath, nil
 }
+

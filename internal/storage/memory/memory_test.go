@@ -1,4 +1,4 @@
-package memdb
+package memstore
 
 import (
 	"testing"
@@ -6,26 +6,27 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/data"
+	//"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
 
-func TestMemStorageBasic(t *testing.T) {
-	memStore := NewMemStorage()
+func TestStorage(t *testing.T) {
+	memStore := NewStorage()
 	bookAmount := 12
-	tests := make([]*storage.BookLoan, bookAmount)
+	tests := make([]*data.BookLoan, bookAmount)
 	for i:=0; i<bookAmount; i++ {
-		bookLoan := storage.BookLoan{
-			Book: storage.Book{
+		bookLoan := data.BookLoan{
+			Book: data.Book{
 				ID: int64(i),
 				Title: fmt.Sprintf("title_%d", i),
 				Author: fmt.Sprintf("author_%d", i),
 				Genre: fmt.Sprintf("genre_%d", i),
 				Ratting: i % 6,
 			},
-			Loan: &storage.Loan{
+			Loan: &data.Loan{
 				ID: int64(i),
-				Name: fmt.Sprintf("name_%d", i),
+				Borrower: fmt.Sprintf("name_%d", i),
 				Date: time.Now().Add(time.Hour * time.Duration(24 * (i+1))),
 			},
 		}
@@ -125,4 +126,21 @@ func TestMemStorageBasic(t *testing.T) {
 		}
 	})
 }
+
+func TestMemeStoreFailure(t *testing.T) {
+	 
+	memStore := NewStorage()
+	_, err := memStore.CreateBookLoan(nil)
+	if err == nil {
+		t.Fatal("passing nil did not error")
+	}
+	
+}
+
+
+
+
+
+
+
 

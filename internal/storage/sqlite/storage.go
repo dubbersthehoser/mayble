@@ -1,8 +1,4 @@
-package sqlitedb
-
-/**********************************************
-	Implementing Storage Interface
-***********************************************/
+package sqlite
 
 import (
 	"fmt"
@@ -11,12 +7,22 @@ import (
 	"errors"
 	"database/sql"
 
-	"github.com/dubbersthehoser/mayble/data"
-	"github.com/dubbersthehoser/mayble/storage"
-	"github.com/dubbersthehoser/mayble/storage/sqlitedb/database"
+	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/sqlite"
+	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 )
 
-func (d *Database) getBookLoanAsStorage(bookID int64) (data.BookLoan, error) {
+type Storage struct {
+	sqlite.Storage
+}
+
+func NewStorage() *Storage {
+	s := Storage{}
+}
+
+// GetBookLoanByID
+func (d *Storage) GetBookLoanBy(bookID int64) (data.BookLoan, error) {
 	book, err := d.Queries.GetBookByID(context.Background(), bookID)
 	var (
 		unknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
@@ -53,17 +59,8 @@ func (d *Database) getBookLoanAsStorage(bookID int64) (data.BookLoan, error) {
 	return bookLoan, nil
 }
 
-// GetBookLoanByID
-func (d *Database) GetBookLoanByID(bookID int64) (data.BookLoan, error) {
-	bookLoan, err := d.getBookLoanAsStorage(bookID)
-	if err != nil {
-		return bookLoan, err
-	}
-	return bookLoan, nil
-}
-
 // GetAllBookLoans
-func (d *Database) GetAllBookLoans() ([]data.BookLoan, error) {
+func (d *Storage) GetAllBookLoans() ([]data.BookLoan, error) {
 	ctx := context.Background()
 	books, err := d.Queries.GetAllBooks(ctx)
 	if err != nil {
@@ -81,12 +78,17 @@ func (d *Database) GetAllBookLoans() ([]data.BookLoan, error) {
 }
 
 // CreateBookLoan 
-func (d *Database) CreateBookLoan(book *data.BookLoan) (error) {
-	ctx := context.Background()
+func (d *Storage) CreateBookLoan(book *data.BookLoan) (error) {
+
+	if book == nil {
+		return fmt.Errorf("%w: book pointer is nil", storage.ErrInvalidValue)
+	}
 
 	if book.ID != storage.ZeroID {
-		return fmt.Errorf("%w: given book isn't zero id'ed", storage.ErrEntryExists)
+		return fmt.Errorf("%w: book id is non zero", storage.ErrInvalidValue)
 	}
+
+	ctx := context.Background()
 
 	params := database.CreateBookParams{
 		Title: book.Title,
@@ -118,7 +120,7 @@ func (d *Database) CreateBookLoan(book *data.BookLoan) (error) {
 }
 
 // UpdateBookLoan
-func (d *Database) UpdateBookLoan(book *data.BookLoan) (error) {
+func (d *Storage) UpdateBookLoan(book *data.BookLoan) (error) {
 	ctx := context.Background()
 	params := database.UpdateBookParams{
 		ID:    book.ID,
@@ -179,16 +181,24 @@ func (d *Database) UpdateBookLoan(book *data.BookLoan) (error) {
 }
 
 // DeleteBookLoan
-func (d *Database) DeleteBookLoan(bookID int64) (error) {
+func (d *Storage) DeleteBookLoan(bookID int64) (error) {
+
+	if bookID == storage.ZeroID {
+		return fmt.Errorf("%w: given zero id", storage.ErrInvalidValue)
+	}
+
 	ctx := context.Background()
 	err := d.Queries.DeleteBook(ctx, bookID)
+
 	var (
 		bookNotFound bool = errors.Is(err, sql.ErrNoRows)
 		bookUnknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
 	)
+
 	if bookUnknownErr {
 		return err
 	}
+
 	if bookNotFound {
 		return storage.ErrEntryNotFound
 	}
@@ -201,6 +211,7 @@ func (d *Database) DeleteBookLoan(bookID int64) (error) {
 	if loanUnknownErr {
 		return err
 	}
+
 	if loanNotFound {
 		return nil
 	}

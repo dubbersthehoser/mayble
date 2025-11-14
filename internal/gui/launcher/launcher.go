@@ -2,54 +2,20 @@ package launcher
 
 import (
 	
-	"fmt"
-	
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
 	
 	"github.com/dubbersthehoser/mayble/internal/core"
-	"github.com/dubbersthehoser/mayble/internal/storage"
-	//_"github.com/dubbersthehoser/mayble/internal/sqlitedb"
-	"github.com/dubbersthehoser/mayble/internal/memdb"
-	"github.com/dubbersthehoser/mayble/pkg/config"
+	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
+	"github.com/dubbersthehoser/mayble/internal/settings"
 )
 
-
-
-//func loadSqliteDatabase(s *Settings) (*sqlitedb.Database, error) {
-//	database := sqlitedb.NewDatabase()
-//	if err := database.Open(s.dbPath); err != nil {
-//		return nil, err
-//	}
-//	if err := database.MigrateUp(); err != nil {
-//		return nil, err
-//	}
-//	return database, nil
-//}
-
-func loadMemDatabase(s *Settings) (*memdb.MemStorage, error) {
-	store := memdb.NewMemStorage()
-	return store, nil
-} 
-
-func loadDatabase(s *Settings, driver string) (storage.Storage, error) {
-	switch driver {
-	case "memory":
-		return loadMemDatabase(s)
-	//case "sqlite":
-	//	return loadSqliteDatabase(s)
-	default:
-		return nil, fmt.Errorf("driver '%s', not found", driver)
-	}
-}
-
-func loadConfig(s *Settings) (*config.Config, error) {
+func loadConfig(s *settings.Settings) (*config.Config, error) {
 	return config.Load(s.configPath)
 }
-
 
 func SetupTextGrid() *widget.TextGrid {
 	textgrid := widget.NewTextGrid()
@@ -57,17 +23,16 @@ func SetupTextGrid() *widget.TextGrid {
 	return textgrid
 }
 
-
 func Run(options ...Option) {
 
-	s := Settings{}
-	
+	s := settings.Settings{}
 	for _, option := range options {
 		option(&s)
 	}
 
 	defaultConfigDir(&s)
 	defaultConfigPath(&s)
+	defaultDBDriver(&s)
 	defaultDBPath(&s)
 	
 	App := app.NewWithID("app.dubbersthehoser.mayble")
@@ -103,7 +68,7 @@ func Run(options ...Option) {
 
 	core, err := core.New(storage)
 	if err != nil && !Errored {
-		logGrid.Append(fmt.Sprintf("- core: failed: %s", err.Error()))
+		logGrid.Append(fmt.Sprintf("- core failed: %s", err.Error()))
 		Errored = true
 	} else {
 		logGrid.Append("- core: success")

@@ -1,4 +1,4 @@
-package sqlitedb
+package sqlite
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	"github.com/pressly/goose/v3"
 	
 	"github.com/dubbersthehoser/mayble/internal/sqlitedb/database"
+	"github.com/dubbersthehoser/mayble/api"
 )
 
-//go:embed schemas
-var embedFS  embed.FS
-var schemaDir string = "schemas"
+
+var schemaDir string = "sqlite/schemas"
 
 // Schema contains schemas for migrations. Primary use is for embed file system and testing.
 type Schema struct {
@@ -33,17 +33,17 @@ type Database struct {
 func NewDatabase() *Database {
 	goose.SetVerbose(false)
 	goose.SetLogger(goose.NopLogger())
-	goose.SetBaseFS(embedFS)
+	goose.SetBaseFS(api.SQLiteFS)
 	return &Database{
 		Schema: Schema{
 			Dir: schemaDir,
-			FS:  embedFS,
+			FS:  api.SQLiteFS,
 		},
 	}
 }
 
 func fmtError(err error) error {
-	return fmt.Errorf("sqlitedb: %w", err)
+	return fmt.Errorf("sqlite: %w", err)
 }
 
 // EnableForeignKeys set sqlite's foreign_key to ON for current connection
@@ -70,7 +70,7 @@ func (d *Database) Open(path string) error {
 	return nil
 }
 
-// Close connection set DB to nil.
+// Close connection and set DB to nil.
 func (d *Database) Close() error {
 	err := d.DB.Close()
 	if err != nil {

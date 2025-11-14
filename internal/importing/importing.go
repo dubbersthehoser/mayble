@@ -2,7 +2,8 @@ package storage
 
 import (
 	"io"
-	"github.com/dubbersthehoser/mayble/data"
+
+	"github.com/dubbersthehoser/mayble/internal/data"
 )
 
 type Importer interface {
