@@ -17,11 +17,11 @@ const (
 )
 
 type Searcher struct {
-	list []storage.BookLoan
-	by  Field
-	selection []int
-	selected  int	// an index in selection
-	pattern string
+	list      []storage.BookLoan
+	by        Field
+	selection []int  // matched indexies in list 
+	selected  int	 // an index in selection
+	pattern   string
 }
 func NewSearcher() *Searcher{
 	s := &Searcher{}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/memdb"
+	"github.com/dubbersthehoser/mayble/internal/broker"
 )
 
 /*******************
@@ -18,9 +19,11 @@ type Core struct {
 	storage  storage.Storage
 	storeMgr *manager 
 	memMgr   *manager 
+	broker   *broker.Broker
 }
-func New(store storage.Storage) (*Core, error) {
+func New(store storage.Storage, b *broker.Broker) (*Core, error) {
 	var c Core
+	c.broker = b
 	c.storeMgr = newManager(store)
 	memStore := memdb.NewMemStorage()
 	c.memMgr = newManager(memStore)
@@ -47,6 +50,24 @@ func (c *Core) load() error {
 	return nil
 }
 
+func HandleBookLoanCreate(c *Core) broker.Handler {
+	handler := func(d any) {
+		bookLoan, ok := d.(data.BookLoan)
+		if !ok {
+			panic("core: create bookloan was given invalid data")
+		}
+		c.CreateBookLoan(&bookLoan)
+	}
+	return broker.Handler(handler)
+}
+
+func handleBookLoanDelete(c *Core) broker.Handler
+
+func (c *Core) setUpListeners() {
+	b.On(KeyBookLoanCreate, HandleBookCreate(c))
+
+}
+
 
 
 
@@ -68,108 +89,107 @@ func (c *Core) Save() error {
 	return c.load()
 }
 
-func (c *Core) GetAllBookLoans() ([]storage.BookLoan, error) {
+func (c *Core) GetAllBookLoans() ([]data.BookLoan, error) {
 	bookLoans, err := c.memMgr.store.GetAllBookLoans()
 	if err != nil {
 		return nil, err
 	}
 	return bookLoans, nil
 }
-
 
 /* Listing and Ordering */
 
-type OrderBy string
+//type OrderBy string
+//
+//const (
+//	ByTitle OrderBy = "Title"
+//	ByAuthor        = "Author"
+//	ByGenre         = "Genre"
+//	ByRatting       = "Ratting"
+//	ByBorrower      = "Borrower"
+//	ByDate          = "Date"
+//	ByID            = "ID"
+//)
+//
+//type Order int
+//
+//const (
+//	ASC Order = iota
+//	DEC
+//)
+//
+//
+//func (c *Core) ListBookLoans(by OrderBy, order Order) ([]data.BookLoan, error) {
+//	
+//	bookLoans, err := c.memMgr.store.GetAllBookLoans()
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	compare := func(x, y storage.BookLoan) int {
+//		const (
+//			GreaterX int = 1
+//			Equal    int = 0
+//			LesserX  int = -1
+//		)
+//		result := Equal
+//		switch by {
+//		case ByID:
+//			switch {
+//			case x.Ratting == y.Ratting:
+//				result = Equal
+//			case x.Ratting > y.Ratting:
+//				result = GreaterX
+//			case x.Ratting < y.Ratting:
+//				result = LesserX
+//			}
+//		case ByTitle:
+//			a := strings.ToLower(x.Title)
+//			b := strings.ToLower(y.Title)
+//			result = strings.Compare(a, b)
+//		case ByAuthor:
+//			a := strings.ToLower(x.Author)
+//			b := strings.ToLower(y.Author)
+//			result = strings.Compare(a, b)
+//		case ByGenre:
+//			a := strings.ToLower(x.Genre)
+//			b := strings.ToLower(y.Genre)
+//			result = strings.Compare(a, b)
+//		case ByRatting:
+//			switch {
+//			case x.Ratting == y.Ratting:
+//				result = Equal
+//			case x.Ratting > y.Ratting:
+//				result = GreaterX
+//			case x.Ratting < y.Ratting:
+//				result = LesserX
+//			}
+//		case ByBorrower, ByDate:
+//			if x.Loan == nil && y.Loan == nil {
+//				result = Equal
+//			} else if x.Loan == nil {
+//				result = LesserX
+//			} else if y.Loan == nil {
+//				result = GreaterX
+//			} else if by == ByBorrower {
+//				a := strings.ToLower(x.Loan.Name)
+//				b := strings.ToLower(y.Loan.Name)
+//				result = strings.Compare(a, b)
+//			} else if by == ByDate {
+//				result = x.Loan.Date.Compare(y.Loan.Date)
+//			}
+//		}
+//		if order == DEC {
+//			result = result * -1
+//		}
+//		return result
+//	}
+//	slices.SortFunc(bookLoans, compare)
+//	return bookLoans, nil
+//}
 
-const (
-	ByTitle OrderBy = "Title"
-	ByAuthor        = "Author"
-	ByGenre         = "Genre"
-	ByRatting       = "Ratting"
-	ByBorrower      = "Borrower"
-	ByDate          = "Date"
-	ByID            = "ID"
-)
 
-type Order int
-
-const (
-	ASC Order = iota
-	DEC
-)
-
-
-func (c *Core) ListBookLoans(by OrderBy, order Order) ([]storage.BookLoan, error) {
-	
-	bookLoans, err := c.memMgr.store.GetAllBookLoans()
-	if err != nil {
-		return nil, err
-	}
-
-	compare := func(x, y storage.BookLoan) int {
-		const (
-			GreaterX int = 1
-			Equal    int = 0
-			LesserX  int = -1
-		)
-		result := Equal
-		switch by {
-		case ByID:
-			switch {
-			case x.Ratting == y.Ratting:
-				result = Equal
-			case x.Ratting > y.Ratting:
-				result = GreaterX
-			case x.Ratting < y.Ratting:
-				result = LesserX
-			}
-		case ByTitle:
-			a := strings.ToLower(x.Title)
-			b := strings.ToLower(y.Title)
-			result = strings.Compare(a, b)
-		case ByAuthor:
-			a := strings.ToLower(x.Author)
-			b := strings.ToLower(y.Author)
-			result = strings.Compare(a, b)
-		case ByGenre:
-			a := strings.ToLower(x.Genre)
-			b := strings.ToLower(y.Genre)
-			result = strings.Compare(a, b)
-		case ByRatting:
-			switch {
-			case x.Ratting == y.Ratting:
-				result = Equal
-			case x.Ratting > y.Ratting:
-				result = GreaterX
-			case x.Ratting < y.Ratting:
-				result = LesserX
-			}
-		case ByBorrower, ByDate:
-			if x.Loan == nil && y.Loan == nil {
-				result = Equal
-			} else if x.Loan == nil {
-				result = LesserX
-			} else if y.Loan == nil {
-				result = GreaterX
-			} else if by == ByBorrower {
-				a := strings.ToLower(x.Loan.Name)
-				b := strings.ToLower(y.Loan.Name)
-				result = strings.Compare(a, b)
-			} else if by == ByDate {
-				result = x.Loan.Date.Compare(y.Loan.Date)
-			}
-		}
-		if order == DEC {
-			result = result * -1
-		}
-		return result
-	}
-	slices.SortFunc(bookLoans, compare)
-	return bookLoans, nil
-}
-
-
-func (c *Core) ImportBookLoans(bookLoans []storage.BookLoan) error {
+func (c *Core) ImportBookLoans(bookLoans []data.BookLoan) error {
 	cmd := &commandImportBookLoans{
 		bookLoans: bookLoans,
 	}
@@ -182,7 +202,7 @@ func (c *Core) ImportBookLoans(bookLoans []storage.BookLoan) error {
 }
 
 
-func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
+func (c *Core) CreateBookLoan(book *data.BookLoan) error {
 	cmd := &commandCreateBookLoan{
 		bookLoan: book,
 	}
@@ -194,7 +214,7 @@ func (c *Core) CreateBookLoan(book *storage.BookLoan) error {
 	return nil
 }
 
-func (c *Core) UpdateBookLoan(book *storage.BookLoan) error {
+func (c *Core) UpdateBookLoan(book *data.BookLoan) error {
 	cmd := &commandUpdateBookLoan{
 		bookLoan: book,
 	}
@@ -206,7 +226,7 @@ func (c *Core) UpdateBookLoan(book *storage.BookLoan) error {
 	return nil
 }
 
-func (c *Core) DeleteBookLoan(book *storage.BookLoan) error {
+func (c *Core) DeleteBookLoan(book *data.BookLoan) error {
 	cmd := &commandDeleteBookLoan{
 		bookLoan: book,
 	}
@@ -242,42 +262,108 @@ func (c *Core) IsRedo() bool {
 
 
 
-/********************************
-	Command Stack
-*********************************/
 
-type commandStack struct {
-	items []command
+/**********************
+	Commands
+***********************/
+
+type command interface {
+	do(storage.Storage)   error
+	undo(storage.Storage) error
 }
-func newCommandStack() *commandStack {
-	c := commandStack{
-		items: make([]command, 0),
+
+/* Import Book Loans */
+
+type commandImportBookLoans struct {
+	addedIDs []int64
+	bookLoans []book.BookLoan
+}
+func (c *commandImportBookLoans) do(s storage.Storage) error {
+	c.addedIDs = make([]int64, len(c.bookLoans))
+	for i, BookLoan := range c.bookLoans {
+		id, err := s.CreateBookLoan(&BookLoan)
+		if err != nil {
+			return fmt.Errorf("core: import: %w", err)
+		}
+		c.addedIDs[i] = id
 	}
-	return &c
+	return nil
+	
 }
-
-func (cs *commandStack) pop() command {
-	length := len(cs.items)
-	if length == 0 {
-		return nil
+func (c *commandImportBookLoans) undo(s storage.Storage) error {
+	for _, id := range c.addedIDs {
+		book, err :=s.GetBookLoanByID(id)
+		if err != nil {
+			return err
+		}
+		err = s.DeleteBookLoan(&book)
+		if err != nil {
+			return err
+		}
 	}
-	cmd := cs.items[length-1]
-	cs.items = cs.items[:length-1]
-	return cmd
+	return nil
 }
 
-func (cs *commandStack) push(cmd command) {
-	cs.items = append(cs.items, cmd)
+/* Create Book Loan */
+
+type commandCreateBookLoan struct {
+	bookLoan *storage.BookLoan
 }
 
-func (cs *commandStack) length() int {
-	return len(cs.items)
+func (c *commandCreateBookLoan) do(s storage.Storage) error {
+	_, err := s.CreateBookLoan(c.bookLoan)
+	return err
 }
 
-func (cs *commandStack) clear() {
-	cs.items = make([]command, 0)
+func (c *commandCreateBookLoan) undo(s storage.Storage) error {
+	return s.DeleteBookLoan(c.bookLoan)
 }
 
+
+/* Delete Book Loan */
+
+type commandDeleteBookLoan struct {
+	bookLoan *storage.BookLoan
+}
+
+func (c *commandDeleteBookLoan) do(s storage.Storage) error {
+	return s.DeleteBookLoan(c.bookLoan)
+}
+
+func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
+	_, err := s.CreateBookLoan(c.bookLoan)
+	return err
+}
+
+
+/* Update Book Loan */
+
+type commandUpdateBookLoan struct {
+	bookLoan *data.BookLoan
+	prevBookLoan *data.BookLoan
+}
+
+func (c *commandUpdateBookLoan) do(s storage.Storage) error {
+	book, err := s.GetBookLoanByID(c.bookLoan.ID)
+	if err != nil {
+		return err
+	}
+	if c.prevBookLoan == nil {
+		c.prevBookLoan = &book
+	} else {
+		book = *c.prevBookLoan
+		c.prevBookLoan = c.bookLoan
+		c.bookLoan = &book
+	}
+	return s.UpdateBookLoan(c.bookLoan)
+}
+
+func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
+	book := c.prevBookLoan
+	c.prevBookLoan = c.bookLoan
+	c.bookLoan = book
+	return s.UpdateBookLoan(c.bookLoan)
+}
 
 
 
@@ -353,105 +439,41 @@ func (m *manager) dequeue() command {
 
 
 
+/********************************
+	Command Stack
+*********************************/
 
-
-/**********************
-	Commands
-***********************/
-
-type command interface {
-	do(storage.Storage)   error
-	undo(storage.Storage) error
+type commandStack struct {
+	items []command
 }
-
-/* Import Book Loans */
-type commandImportBookLoans struct {
-	addedIDs []int64
-	bookLoans []storage.BookLoan
-}
-func (c *commandImportBookLoans) do(s storage.Storage) error {
-	c.addedIDs = make([]int64, len(c.bookLoans))
-	for i, BookLoan := range c.bookLoans {
-		id, err := s.CreateBookLoan(&BookLoan)
-		if err != nil {
-			return fmt.Errorf("core: import: %w", err)
-		}
-		c.addedIDs[i] = id
+func newCommandStack() *commandStack {
+	c := commandStack{
+		items: make([]command, 0),
 	}
-	return nil
-	
+	return &c
 }
-func (c *commandImportBookLoans) undo(s storage.Storage) error {
-	for _, id := range c.addedIDs {
-		book, err :=s.GetBookLoanByID(id)
-		if err != nil {
-			return err
-		}
-		err = s.DeleteBookLoan(&book)
-		if err != nil {
-			return err
-		}
+
+func (cs *commandStack) pop() command {
+	length := len(cs.items)
+	if length == 0 {
+		return nil
 	}
-	return nil
+	cmd := cs.items[length-1]
+	cs.items = cs.items[:length-1]
+	return cmd
 }
 
-/* Create Book Loan */
-
-type commandCreateBookLoan struct {
-	bookLoan *storage.BookLoan
+func (cs *commandStack) push(cmd command) {
+	cs.items = append(cs.items, cmd)
 }
 
-func (c *commandCreateBookLoan) do(s storage.Storage) error {
-	_, err := s.CreateBookLoan(c.bookLoan)
-	return err
+func (cs *commandStack) length() int {
+	return len(cs.items)
 }
 
-func (c *commandCreateBookLoan) undo(s storage.Storage) error {
-	return s.DeleteBookLoan(c.bookLoan)
-}
-
-
-/* Delete Book Loan */
-
-type commandDeleteBookLoan struct {
-	bookLoan *storage.BookLoan
-}
-
-func (c *commandDeleteBookLoan) do(s storage.Storage) error {
-	return s.DeleteBookLoan(c.bookLoan)
-}
-
-func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
-	_, err := s.CreateBookLoan(c.bookLoan)
-	return err
+func (cs *commandStack) clear() {
+	cs.items = make([]command, 0)
 }
 
 
-/* Update Book Loan */
 
-type commandUpdateBookLoan struct {
-	bookLoan *storage.BookLoan
-	prevBookLoan *storage.BookLoan
-}
-
-func (c *commandUpdateBookLoan) do(s storage.Storage) error {
-	book, err := s.GetBookLoanByID(c.bookLoan.ID)
-	if err != nil {
-		return err
-	}
-	if c.prevBookLoan == nil {
-		c.prevBookLoan = &book
-	} else {
-		book = *c.prevBookLoan
-		c.prevBookLoan = c.bookLoan
-		c.bookLoan = &book
-	}
-	return s.UpdateBookLoan(c.bookLoan)
-}
-
-func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
-	book := c.prevBookLoan
-	c.prevBookLoan = c.bookLoan
-	c.bookLoan = book
-	return s.UpdateBookLoan(c.bookLoan)
-}
