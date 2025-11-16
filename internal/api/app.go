@@ -1,42 +1,67 @@
-package core
+package app
+
 
 import (
-	"strings"
-	"slices"
-	"fmt"
-	"errors"
-
 	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/storage/memory"
+	"github.com/dubbersthehoser/mayble/internal/storage/memeory"
 	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/core"
 )
 
-type Core struct {
+type Redoable interface {
+	Redo() error
+	RedoIsEmpty()  bool
+}
+type Undoable interface {
+	Undo() error
+	UndoIsEmpty() bool
+}
+type Savable interface {
+	Save() error
+}
+
+type BookLoaning interface {
+	CreateBookLoan(*data.BookLoan) error
+	UpdateBookLoan(*data.BookLoan) error
+	DeleteBookLoan(*data.BookLoan) error
+	GetBookLoans(*data.BookLoan) ([]data.BookLoan, error)
+	ImportBookLoans([]data.BookLoan) error
+}
+
+type Mayble interface {
+	BookLoaning
+	Redoable
+	Undoable
+	Savable
+}
+
+type App struct {
 	storage  storage.Storage
 	storeMgr *manager 
 	memMgr   *manager 
 }
-func New(store storage.Storage, b *broker.Broker) (*Core, error) {
-	var c Core
-	c.broker = b
-	c.storeMgr = newManager(store)
-	memStore := memdb.NewMemStorage()
-	c.memMgr = newManager(memStore)
-	if err := c.load(); err != nil {
+func New(store storage.Storage) (*App, error) {
+	var a App
+	a.broker = b
+	a.storeMgr = newManager(store)
+	memStore := memory.NewStorage()
+	a.memMgr = newManager(memStore)
+	if err := a.load(); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (c *Core) load() error {
-	bookLoans, err := c.storeMgr.store.GetAllBookLoans()
+func (a *App) load() error {
+	bookLoans, err := a.storeMgr.store.GetAllBookLoans()
 	if err != nil {
 		return fmt.Errorf("core: %w", err)
 	}
 	for _, book := range bookLoans {
-		_, err = c.memMgr.store.CreateBookLoan(&book)
+		_, err = a.memMgr.store.CreateBookLoan(&book)
 		if errors.Is(err, storage.ErrEntryExists) {
-			err = c.memMgr.store.UpdateBookLoan(&book)
+			err = a.memMgr.store.UpdateBookLoan(&book)
 		}
 		if err != nil {
 			return err
@@ -46,97 +71,92 @@ func (c *Core) load() error {
 }
 
 
-
-/***********************
-	Core API
-************************/
-
-func (c *Core) Save() error {
+func (a *App) Save() error {
 	for {
-		cmd := c.storeMgr.dequeue()
+		cmd := a.storeMgr.dequeue()
 		if cmd == nil {
 			break
 		}
-		err := c.storeMgr.execute(cmd)
+		err := a.storeMgr.execute(cmd)
 		if err != nil {
 			return err
 		}
 	}
-	return c.load()
+	return a.load()
 }
 
-func (c *Core) GetAllBookLoans() ([]data.BookLoan, error) {
-	bookLoans, err := c.memMgr.store.GetAllBookLoans()
+func (a *App) GetAllBookLoans() ([]data.BookLoan, error) {
+	bookLoans, err := a.memMgr.store.GetAllBookLoans()
 	if err != nil {
 		return nil, err
 	}
 	return bookLoans, nil
 }
 
-func (c *Core) ImportBookLoans(bookLoans []data.BookLoan) error {
+func (a *App) ImportBookLoans(bookLoans []data.BookLoan) error {
 	cmd := &commandImportBookLoans{
 		bookLoans: bookLoans,
 	}
-	err := c.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err
 	}
-	c.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd)
 	return nil
 }
 
 
-func (c *Core) CreateBookLoan(book *data.BookLoan) error {
+func (a *App) CreateBookLoan(book *data.BookLoan) error {
 	cmd := &commandCreateBookLoan{
 		bookLoan: book,
 	}
-	err := c.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err
 	}
-	c.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd)
 	return nil
 }
 
-func (c *Core) UpdateBookLoan(book *data.BookLoan) error {
+func (a *App) UpdateBookLoan(book *data.BookLoan) error {
 	cmd := &commandUpdateBookLoan{
 		bookLoan: book,
 	}
-	err := c.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err
 	}
-	c.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd)
 	return nil
 }
 
-func (c *Core) DeleteBookLoan(book *data.BookLoan) error {
+func (a *App) DeleteBookLoan(book *data.BookLoan) error {
 	cmd := &commandDeleteBookLoan{
 		bookLoan: book,
 	}
-	err := c.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err
 	}
-	c.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd)
 	return nil
 }
 
-func (c *Core) Undo() error {
-	return c.memMgr.unExecute()
+func (a *App) Undo() error {
+	return a.memMgr.unExecute()
 }
-func (c *Core) IsUndo() bool {
-	if c.memMgr.undos.length() == 0 {
+func (a *App) UndoIsEmpty() bool {
+	if a.memMgr.undos.length() == 0 {
 		return false
 	}
 	return true
 }
 
-func (c *Core) Redo() error {
-	return c.memMgr.reExecute()
+func (a *App) Redo() error {
+	return a.memMgr.reExecute()
 }
-func (c *Core) IsRedo() bool {
-	if c.memMgr.redos.length() == 0 {
+func (a *App) RedoIsEmpty() bool {
+	if a.memMgr.redos.length() == 0 {
 		return false
 	}
 	return true
@@ -151,7 +171,7 @@ func (c *Core) IsRedo() bool {
 	Commands
 ***********************/
 
-/* Import Book Loans */
+/* Import */
 
 type commandImportBookLoans struct {
 	addedIDs []int64
@@ -183,7 +203,8 @@ func (c *commandImportBookLoans) undo(s storage.Storage) error {
 	return nil
 }
 
-/* Create Book Loan */
+
+/* Create */
 
 type commandCreateBookLoan struct {
 	bookLoan *storage.BookLoan
@@ -199,7 +220,7 @@ func (c *commandCreateBookLoan) undo(s storage.Storage) error {
 }
 
 
-/* Delete Book Loan */
+/* Delete */
 
 type commandDeleteBookLoan struct {
 	bookLoan *storage.BookLoan
@@ -215,11 +236,11 @@ func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
 }
 
 
-/* Update Book Loan */
+/* Update */
 
 type commandUpdateBookLoan struct {
-	bookLoan *data.BookLoan
-	prevBookLoan *data.BookLoan
+	bookLoan *datc.BookLoan
+	prevBookLoan *datc.BookLoan
 }
 
 func (c *commandUpdateBookLoan) do(s storage.Storage) error {
@@ -243,6 +264,7 @@ func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
 	c.bookLoan = book
 	return s.UpdateBookLoan(c.bookLoan)
 }
+
 
 
 
@@ -314,6 +336,3 @@ func (m *manager) dequeue() command {
 	m.queue = m.queue[1:]
 	return cmd
 }
-
-
-

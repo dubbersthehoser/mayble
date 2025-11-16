@@ -14,31 +14,6 @@ var (
 )
 
 
-type BookStore interface {
-
-	GetAllBooks() (data.BookLoan, error)
-
-	GetBookByID(id int64) (data.Book, error) 
-
-	CreateBook(*data.Book) (int64, error)
-
-	UpdateBook(*data.Book) error
-
-	DeleteBookByID(id int64) error
-}
-
-type LoanStore interface {
-	GetAllLoans() (data.Loan, error)
-
-	GetLoanByID(id int64) (data.Book, error)
-
-	CreateLoan(*data.Loan) (int64, error)
-
-	UpdateLoan(*data.Loan) error
-
-	DeleteBookByID(id int64) error
-}
-
 type Storage interface {
 
 	// GetAllBookLoans all book loans in store.
