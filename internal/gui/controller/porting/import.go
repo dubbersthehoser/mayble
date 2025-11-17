@@ -4,16 +4,16 @@ import (
 	"errors"
 	"path/filepath"
 
-	"github.com/dubbersthehoser/mayble/internal/csv"
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/importing/csv"
+	"github.com/dubbersthehoser/mayble/internal/importing"
 )
 
-var importerMap map[string]storage.Importer
-var exporterMap map[string]storage.Exporter
+var importerMap map[string]importing.Importer
+var exporterMap map[string]importing.Exporter
 
 func init() {
-	importerMap = make(map[string]storage.Importer)
-	exporterMap = make(map[string]storage.Exporter)
+	importerMap = make(map[string]importing.Importer)
+	exporterMap = make(map[string]importing.Exporter)
 	importerMap["csv"] = csv.BookLoanCSV{}
 	exporterMap["csv"] = csv.BookLoanCSV{}
 }
@@ -38,7 +38,7 @@ func ListImporters() []string {
 	return list
 }
 
-func GetImporterByFilePath(filePath string) (storage.Importer, error) {
+func GetImporterByFilePath(filePath string) (importing.Importer, error) {
 	driver, err := DriverByFilePath(filePath)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func GetImporterByFilePath(filePath string) (storage.Importer, error) {
 	return GetImporter(driver);
 }
 
-func GetImporter(driver string) (storage.Importer, error) {
+func GetImporter(driver string) (importing.Importer, error) {
 	impoter, ok := importerMap[driver]
 	if !ok {
 		return nil, errors.New("import driver not found")
@@ -64,14 +64,14 @@ func ListExporters() []string {
 	return list
 }
 
-func GetExporter(driver string) (storage.Exporter, error) {
+func GetExporter(driver string) (importing.Exporter, error) {
 	exporter, ok := exporterMap[driver]
 	if !ok {
 		return nil, errors.New("export driver not found")
 	}
 	return exporter, nil
 }
-func GetExporterByFilePath(filePath string) (storage.Exporter, error) {
+func GetExporterByFilePath(filePath string) (importing.Exporter, error) {
 	driver, err := DriverByFilePath(filePath)
 	if err != nil {
 		return nil, err

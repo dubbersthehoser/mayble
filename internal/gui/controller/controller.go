@@ -1,20 +1,20 @@
 package controller
 
 import (
-	"github.com/dubbersthehoser/mayble/internal/core"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 type Controller struct {
-	Core        *core.Core
+	App         app.Mayble
 	BookList    *BookList
 	BookEditor  *BookEditor
 }
 
-func New(core *core.Core) *Controller {
+func New(a app.Mayble) *Controller {
 	var c Controller
-	c.Core = core
-	c.BookList = NewBookList(core)
-	c.BookEditor = NewBookEditor(core)
+	c.App = a
+	c.BookList = NewBookList(app.BookLoaning(a))
+	c.BookEditor = NewBookEditor(app.BookLoaning(a))
 	return &c
 }
 

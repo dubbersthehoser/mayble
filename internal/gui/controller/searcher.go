@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/data"
 )
 
 
@@ -17,7 +17,7 @@ const (
 )
 
 type Searcher struct {
-	list      []storage.BookLoan
+	list      []data.BookLoan
 	by        Field
 	selection []int  // matched indexies in list 
 	selected  int	 // an index in selection
@@ -106,7 +106,7 @@ func (s *Searcher) Search() {
 	
 }
 
-func (s *Searcher) Refresh(l []storage.BookLoan) {
+func (s *Searcher) Refresh(l []data.BookLoan) {
 	if l == nil {
 		panic("nil value slice")
 	}

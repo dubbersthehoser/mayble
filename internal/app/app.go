@@ -1,12 +1,12 @@
 package app
 
-
 import (
+	"fmt"
+	"errors"
 	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/storage/memeory"
+	"github.com/dubbersthehoser/mayble/internal/storage/memory"
 	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/data"
-	"github.com/dubbersthehoser/mayble/internal/core"
 )
 
 type Redoable interface {
@@ -25,7 +25,7 @@ type BookLoaning interface {
 	CreateBookLoan(*data.BookLoan) error
 	UpdateBookLoan(*data.BookLoan) error
 	DeleteBookLoan(*data.BookLoan) error
-	GetBookLoans(*data.BookLoan) ([]data.BookLoan, error)
+	GetBookLoans() ([]data.BookLoan, error)
 	ImportBookLoans([]data.BookLoan) error
 }
 
@@ -43,20 +43,19 @@ type App struct {
 }
 func New(store storage.Storage) (*App, error) {
 	var a App
-	a.broker = b
 	a.storeMgr = newManager(store)
 	memStore := memory.NewStorage()
 	a.memMgr = newManager(memStore)
 	if err := a.load(); err != nil {
 		return nil, err
 	}
-	return &c, nil
+	return &a, nil
 }
 
 func (a *App) load() error {
 	bookLoans, err := a.storeMgr.store.GetAllBookLoans()
 	if err != nil {
-		return fmt.Errorf("core: %w", err)
+		return fmt.Errorf("app: %w", err)
 	}
 	for _, book := range bookLoans {
 		_, err = a.memMgr.store.CreateBookLoan(&book)
@@ -85,7 +84,7 @@ func (a *App) Save() error {
 	return a.load()
 }
 
-func (a *App) GetAllBookLoans() ([]data.BookLoan, error) {
+func (a *App) GetBookLoans() ([]data.BookLoan, error) {
 	bookLoans, err := a.memMgr.store.GetAllBookLoans()
 	if err != nil {
 		return nil, err
@@ -146,7 +145,7 @@ func (a *App) Undo() error {
 	return a.memMgr.unExecute()
 }
 func (a *App) UndoIsEmpty() bool {
-	if a.memMgr.undos.length() == 0 {
+	if a.memMgr.undos.Length() == 0 {
 		return false
 	}
 	return true
@@ -156,7 +155,7 @@ func (a *App) Redo() error {
 	return a.memMgr.reExecute()
 }
 func (a *App) RedoIsEmpty() bool {
-	if a.memMgr.redos.length() == 0 {
+	if a.memMgr.redos.Length() == 0 {
 		return false
 	}
 	return true
@@ -175,21 +174,21 @@ func (a *App) RedoIsEmpty() bool {
 
 type commandImportBookLoans struct {
 	addedIDs []int64
-	bookLoans []book.BookLoan
+	bookLoans []data.BookLoan
 }
-func (c *commandImportBookLoans) do(s storage.Storage) error {
+func (c *commandImportBookLoans) Do(s storage.Storage) error {
 	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
 		id, err := s.CreateBookLoan(&BookLoan)
 		if err != nil {
-			return fmt.Errorf("core: import: %w", err)
+			return fmt.Errorf("app: import: %w", err)
 		}
 		c.addedIDs[i] = id
 	}
 	return nil
 	
 }
-func (c *commandImportBookLoans) undo(s storage.Storage) error {
+func (c *commandImportBookLoans) Undo(s storage.Storage) error {
 	for _, id := range c.addedIDs {
 		book, err :=s.GetBookLoanByID(id)
 		if err != nil {
@@ -207,15 +206,15 @@ func (c *commandImportBookLoans) undo(s storage.Storage) error {
 /* Create */
 
 type commandCreateBookLoan struct {
-	bookLoan *storage.BookLoan
+	bookLoan *data.BookLoan
 }
 
-func (c *commandCreateBookLoan) do(s storage.Storage) error {
+func (c *commandCreateBookLoan) Do(s storage.Storage) error {
 	_, err := s.CreateBookLoan(c.bookLoan)
 	return err
 }
 
-func (c *commandCreateBookLoan) undo(s storage.Storage) error {
+func (c *commandCreateBookLoan) Undo(s storage.Storage) error {
 	return s.DeleteBookLoan(c.bookLoan)
 }
 
@@ -223,14 +222,14 @@ func (c *commandCreateBookLoan) undo(s storage.Storage) error {
 /* Delete */
 
 type commandDeleteBookLoan struct {
-	bookLoan *storage.BookLoan
+	bookLoan *data.BookLoan
 }
 
-func (c *commandDeleteBookLoan) do(s storage.Storage) error {
+func (c *commandDeleteBookLoan) Do(s storage.Storage) error {
 	return s.DeleteBookLoan(c.bookLoan)
 }
 
-func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
+func (c *commandDeleteBookLoan) Undo(s storage.Storage) error {
 	_, err := s.CreateBookLoan(c.bookLoan)
 	return err
 }
@@ -239,11 +238,11 @@ func (c *commandDeleteBookLoan) undo(s storage.Storage) error {
 /* Update */
 
 type commandUpdateBookLoan struct {
-	bookLoan *datc.BookLoan
-	prevBookLoan *datc.BookLoan
+	bookLoan *data.BookLoan
+	prevBookLoan *data.BookLoan
 }
 
-func (c *commandUpdateBookLoan) do(s storage.Storage) error {
+func (c *commandUpdateBookLoan) Do(s storage.Storage) error {
 	book, err := s.GetBookLoanByID(c.bookLoan.ID)
 	if err != nil {
 		return err
@@ -258,7 +257,7 @@ func (c *commandUpdateBookLoan) do(s storage.Storage) error {
 	return s.UpdateBookLoan(c.bookLoan)
 }
 
-func (c *commandUpdateBookLoan) undo(s storage.Storage) error {
+func (c *commandUpdateBookLoan) Undo(s storage.Storage) error {
 	book := c.prevBookLoan
 	c.prevBookLoan = c.bookLoan
 	c.bookLoan = book
@@ -289,8 +288,8 @@ func newManager(store storage.Storage) *manager{
 	return &m
 }
 
-func (m *manager) execute(cmd command) error {
-	if err := cmd.do(m.store); err != nil {
+func (m *manager) execute(cmd command.Command) error {
+	if err := cmd.Do(m.store); err != nil {
 		return err
 	}
 	m.undos.Push(cmd)
@@ -312,23 +311,23 @@ func (m *manager) unExecute() error {
 } 
 
 func (m *manager) reExecute() error {
-	cmd := m.redos.pop()
+	cmd := m.redos.Pop()
 	if cmd == nil {
 		return nil
 	}
-	err := cmd.do(m.store)
+	err := cmd.Do(m.store)
 	if err != nil {
 		return err
 	}
-	m.undos.push(cmd)
+	m.undos.Push(cmd)
 	return nil
 }
 
-func (m *manager) enqueue(cmd command) {
+func (m *manager) enqueue(cmd command.Command) {
 	m.queue = append(m.queue, cmd)
 }
 
-func (m *manager) dequeue() command {
+func (m *manager) dequeue() command.Command {
 	if len(m.queue) == 0 {
 		return nil
 	}

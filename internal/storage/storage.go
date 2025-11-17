@@ -19,17 +19,16 @@ type Storage interface {
 	// GetAllBookLoans all book loans in store.
 	GetAllBookLoans() ([]data.BookLoan, error)
 
-	// GetBookLoanByID returns stored book by its id, and ErrEntryNotFound if not found.
+	// GetBookLoanByID returns stored book loan by its id, and ErrEntryNotFound if not found.
 	GetBookLoanByID(id int64) (data.BookLoan, error)
 
 	// CreateBookLoan adds book loan to storage, and returns its new id.
 	// return ErrEntryExists when book id is in storage. Use data.ZeroID as id or data.NewBookLoan().
-	// return ErrInvalidValue when given nil
+	// And ErrInvalidValue when given nil
 	CreateBookLoan(*data.BookLoan) (int64, error)
 
 	// UpdateBookLoan update book loan in storage.
-	// return ErrEntryNotFound when book id is not in storage.
-	// return ErrInvalidValue when book loan is nil
+	// return ErrEntryNotFound when book id is not in storage, and ErrInvalidValue when book loan is nil
 	UpdateBookLoan(*data.BookLoan) error
 
 	// DeleteBookLoan remove book loan from storage.

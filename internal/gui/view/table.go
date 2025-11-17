@@ -11,7 +11,7 @@ import (
 	_"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
-	"github.com/dubbersthehoser/mayble/internal/gui/controller"
+	"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
 func (f *FunkView) Table() fyne.CanvasObject {
@@ -49,13 +49,14 @@ func (f *FunkView) Table() fyne.CanvasObject {
 			}
 			if button.Text != labelDesc {
 				button.SetText(labelDesc)
-				f.controller.BookList.SetOrdering(controller.DEC)
+				f.controller.BookList.SetOrdering(listing.DEC)
 			} else {
 				button.SetText(labelAsc)
-				f.controller.BookList.SetOrdering(controller.ASC)
+				f.controller.BookList.SetOrdering(listing.ASC)
 			}
 			button.Refresh()
-			f.controller.BookList.SetOrderBy(label)
+			by := listing.MustStringToOrderBy(label)
+			f.controller.BookList.SetOrderBy(by)
 			f.emiter.Emit(OnSort)
 		}
 		//f.emiter.On(OnModification, func() {
@@ -64,7 +65,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		return button
 	}
 	fields := make([]fyne.CanvasObject, 0)
-	labels := controller.SortByList()
+	labels := listing.SortByList()
 	for _, label := range labels {
 		obj := newSortByButtonAndLabel(label)
 		labelResets = append(labelResets, newLabelReset(obj.(*widget.Button), label))

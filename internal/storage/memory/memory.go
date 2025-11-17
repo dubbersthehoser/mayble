@@ -81,7 +81,7 @@ func (m *Storage) CreateBookLoan(book *data.BookLoan) (int64, error) {
 
 func (m *Storage) UpdateBookLoan(book *data.BookLoan) error {
 	if book == nil {
-		return data.ZeroID, storage.ErrInvalidValue
+		return storage.ErrInvalidValue
 	}
 	_, ok := m.Books[book.ID]
 	if !ok {

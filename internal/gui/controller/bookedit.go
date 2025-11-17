@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"errors"
 
-	"github.com/dubbersthehoser/mayble/internal/core"
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
 type EditType int
@@ -30,12 +31,12 @@ func (t EditType) String() string {
 }
 
 type BookEditor struct {
-	core *core.Core
+	app  app.BookLoaning
 }
 
-func NewBookEditor(c *core.Core) *BookEditor {
+func NewBookEditor(a app.BookLoaning) *BookEditor {
 	return &BookEditor{
-		core: c,
+		app: a,
 	}
 }
 
@@ -43,11 +44,11 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 	bookLoan := builder.Build()
 	switch builder.Type {
 	case Updating:
-		return be.core.UpdateBookLoan(bookLoan)
+		return be.app.UpdateBookLoan(bookLoan)
 	case Creating:
-		return be.core.CreateBookLoan(bookLoan)
+		return be.app.CreateBookLoan(bookLoan)
 	case Deleting:
-		return be.core.DeleteBookLoan(bookLoan)
+		return be.app.DeleteBookLoan(bookLoan)
 	default:
 		return fmt.Errorf("submit type not found: %s", builder.Type)
 	}
@@ -57,11 +58,11 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 func NewBookLoanBuilder() *BookLoanBuilder {
 	return &BookLoanBuilder{
 		Type: Creating,
-		id: storage.ZeroID,
+		id: data.ZeroID,
 	}
 } 
 
-func NewBuilderWithBookLoan(b *storage.BookLoan) *BookLoanBuilder {
+func NewBuilderWithBookLoan(b *data.BookLoan) *BookLoanBuilder {
 	builder := NewBookLoanBuilder()
 	builder.id = b.ID
 	builder.SetToUpdate()
@@ -72,7 +73,7 @@ func NewBuilderWithBookLoan(b *storage.BookLoan) *BookLoanBuilder {
 	
 	if b.IsOnLoan() {
 		builder.SetIsOnLoan(true)
-		builder.SetBorrower(b.Loan.Name)
+		builder.SetBorrower(b.Loan.Borrower)
 		builder.SetDate(&b.Loan.Date)
 	}
 
@@ -139,9 +140,9 @@ func (b *BookLoanBuilder) SetGenre(genre string) {
 func (b *BookLoanBuilder) SetRatting(ratting int){
 	b.Ratting = ratting
 }
-// SetRattingAsString sets ratting from string value returned by RattingToStirng
-func (b *BookLoanBuilder) SetRattingAsString(ratting string){
-	b.Ratting = RattingToInt(ratting)
+
+func (b *BookLoanBuilder) SetRattingAsString(ratting string) {
+	b.Ratting = listing.MustRattingToInt(ratting)
 }
 func (b *BookLoanBuilder) SetBorrower(name string) {
 	b.Borrower = name
@@ -153,6 +154,7 @@ func (b *BookLoanBuilder) SetDate(date *time.Time) {
 		b.Date = *date
 	}
 }
+
 func (b *BookLoanBuilder) SetDateAsString(date string) {
 	t, err := time.Parse(time.DateOnly, date)
 	if err != nil {
@@ -160,15 +162,15 @@ func (b *BookLoanBuilder) SetDateAsString(date string) {
 	}
 	b.Date = t
 }
-func (b *BookLoanBuilder) Build() *storage.BookLoan {
-	bl := storage.NewBookLoan()
+func (b *BookLoanBuilder) Build() *data.BookLoan {
+	bl := data.NewBookLoan()
 	bl.Title = b.Title
 	bl.Author = b.Author
 	bl.Genre = b.Genre
 	bl.Ratting = b.Ratting
 	bl.ID = b.id
 	if b.IsOnLoan {
-		bl.Loan.Name = b.Borrower
+		bl.Loan.Borrower = b.Borrower
 		bl.Loan.Date = b.Date
 	} else {
 		bl.UnsetLoan()

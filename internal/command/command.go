@@ -1,6 +1,11 @@
 package command
 
 
+import (
+	"github.com/dubbersthehoser/mayble/internal/storage"
+)
+
+
 type Command interface {
 	Do(storage.Storage)   error
 	Undo(storage.Storage) error
@@ -9,11 +14,11 @@ type Command interface {
 type Stack struct {
 	items []Command
 }
-func NewStack() *CommandStack {
-	c := CommandStack{
+func NewStack() *Stack {
+	c := &Stack{
 		items: make([]Command, 0),
 	}
-	return &c
+	return c
 }
 
 func (s *Stack) Pop() Command {
@@ -22,7 +27,7 @@ func (s *Stack) Pop() Command {
 		return nil
 	}
 	cmd := s.items[length-1]
-	cs.items = s.items[:length-1]
+	s.items = s.items[:length-1]
 	return cmd
 }
 

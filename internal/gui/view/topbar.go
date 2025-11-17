@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
-	"github.com/dubbersthehoser/mayble/internal/gui/controller"
+	"github.com/dubbersthehoser/mayble/internal/searching"
 )
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
@@ -127,12 +127,12 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	redoItem.Disable()
 
 	f.emiter.On(OnModification, func() {
-		if f.controller.Core.IsUndo() {
+		if f.controller.App.UndoIsEmpty() {
 			undoItem.Enable()
 		} else {
 			undoItem.Disable()
 		}
-		if f.controller.Core.IsRedo() {
+		if f.controller.App.RedoIsEmpty() {
 			redoItem.Enable()
 		} else {
 			redoItem.Disable()
@@ -150,13 +150,13 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		func(s string) {
 			switch s {
 			case "Title":
-				f.controller.BookList.SetSearchBy(controller.ByTitle)
+				f.controller.BookList.SetSearchBy(searching.ByTitle)
 			case "Author":
-				f.controller.BookList.SetSearchBy(controller.ByAuthor)
+				f.controller.BookList.SetSearchBy(searching.ByAuthor)
 			case "Genre":
-				f.controller.BookList.SetSearchBy(controller.ByGenre)
+				f.controller.BookList.SetSearchBy(searching.ByGenre)
 			case "Borrower":
-				f.controller.BookList.SetSearchBy(controller.ByBorrower)
+				f.controller.BookList.SetSearchBy(searching.ByBorrower)
 			default:
 				panic("search by not found")
 			}

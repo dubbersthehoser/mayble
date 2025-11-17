@@ -39,7 +39,7 @@ func (f *FunkView) ShowMenu() {
 		}
 		_ = books
 
-		err = f.controller.Core.ImportBookLoans(books)
+		err = f.controller.App.ImportBookLoans(books)
 		if err != nil {
 			f.displayError(err)
 			return
@@ -75,7 +75,7 @@ func (f *FunkView) ShowMenu() {
 			f.displayError(err)
 			return
 		}
-		books, err := f.controller.Core.GetAllBookLoans()
+		books, err := f.controller.App.GetBookLoans()
 		if err != nil {
 			f.displayError(err)
 			return

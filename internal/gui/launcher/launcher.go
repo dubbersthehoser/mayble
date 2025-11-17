@@ -1,12 +1,16 @@
 package launcher
 
 import (
+	"fmt"
 	
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
 	
-	"github.com/dubbersthehoser/mayble/internal/core"
+	//myapp "github.com/dubbersthehoser/mayble/internal/app"
+	appStub "github.com/dubbersthehoser/mayble/internal/app/stub"
+	storeDriver "github.com/dubbersthehoser/mayble/internal/storage/driver"
+
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
@@ -14,7 +18,7 @@ import (
 )
 
 func loadConfig(s *settings.Settings) (*config.Config, error) {
-	return config.Load(s.configPath)
+	return config.Load(s.ConfigPath)
 }
 
 func SetupTextGrid() *widget.TextGrid {
@@ -44,8 +48,8 @@ func Run(options ...Option) {
 
 	logGrid.Append("Hello, World!")
 	logGrid.Append("--- PATHS ---")
-	logGrid.Append(fmt.Sprintf("config: '%s'", s.configPath))
-	logGrid.Append(fmt.Sprintf("storage: '%s'", s.dbPath))
+	logGrid.Append(fmt.Sprintf("config: '%s'", s.ConfigPath))
+	logGrid.Append(fmt.Sprintf("storage: '%s'", s.DBPath))
 	logGrid.Append("\n--- LOADING ---")
 
 	var Errored bool = false
@@ -58,24 +62,28 @@ func Run(options ...Option) {
 		logGrid.Append("- config: success")
 	}
 
-	storage, err := loadDatabase(&s, "memory")
+	storage, err := storeDriver.Load("memory", s.DBPath)
 	if err != nil && !Errored{
 		logGrid.Append(fmt.Sprintf("- storage: failed: %s", err.Error()))
 		Errored = true
 	} else {
 		logGrid.Append("- storage: success")
 	}
+	 
 
-	core, err := core.New(storage)
-	if err != nil && !Errored {
-		logGrid.Append(fmt.Sprintf("- core failed: %s", err.Error()))
-		Errored = true
-	} else {
-		logGrid.Append("- core: success")
-	}
+	 _ = storage
 
-	master := controller.New(core)
-	funkView, err := view.NewFunkView(master, window)
+	app := &appStub.App{}
+	//core, err := core.New(storage)
+	//if err != nil && !Errored {
+	//	logGrid.Append(fmt.Sprintf("- core failed: %s", err.Error()))
+	//	Errored = true
+	//} else {
+	//	logGrid.Append("- core: success")
+	//}
+
+	control := controller.New(app)
+	funkView, err := view.NewFunkView(control, window)
 	if err != nil {
 		logGrid.Append(fmt.Sprintf("- view: failed: %s", err.Error()))
 		Errored = true

@@ -1,5 +1,11 @@
 package searching
 
+import (
+	"strings"
+
+	"github.com/dubbersthehoser/mayble/internal/data"
+)
+
 type Ring interface {
 	Selected() int
 	Next() int
@@ -12,10 +18,10 @@ type RangeRing struct {
 }
 func NewRangeRing(max int) *RangeRing {
 	return &RangeRing{
-		
+		max: max,
 	}
 }
-func (rr *RangeRing) Selection() int {
+func (rr *RangeRing) Selected() int {
 	return rr.selected
 }
 func (rr *RangeRing) Next() int {
@@ -37,21 +43,21 @@ type SelectionRing struct {
 
 func NewSelectionRing(selection []int) *SelectionRing {
 	return &SelectionRing{
-		selection = selection
+		selection: selection,
 	}
 }
 
-func (sr *SeletedRing) Selected() int {
+func (sr *SelectionRing) Selected() int {
 	index := sr.selected
 	return sr.selection[index]
 }
 
-func (sr *SelectedRing) Next() int {
+func (sr *SelectionRing) Next() int {
 	index := (sr.selected+1) % len(sr.selection)
 	return sr.selection[index]
 }
 
-func (sr *SelectedRing) Prev() int {
+func (sr *SelectionRing) Prev() int {
 	index := sr.selected-1
 	if index < 0 {
 		index = sr.selected+index
@@ -70,9 +76,9 @@ const (
 	ByBorrower
 )
 
-func SearchBookLoans([]data.BookLoan, f Field, pattern string) []int {
+func SearchBookLoans(l []data.BookLoan, f Field, pattern string) []int {
 	finds := make([]int, 0)
-	for i, bookLoan := range s.list {
+	for i, bookLoan := range l {
 		var s string
 		switch f {
 		case ByTitle:

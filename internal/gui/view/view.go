@@ -176,7 +176,7 @@ func (f *FunkView) EventSort() {
 
 
 func (f *FunkView) EventRedo() {
-	err := f.controller.Core.Redo()
+	err := f.controller.App.Redo()
 	if err != nil {
 		f.displayError(err)
 		return
@@ -185,7 +185,7 @@ func (f *FunkView) EventRedo() {
 }
 
 func (f *FunkView) EventUndo() {
-	err := f.controller.Core.Undo()
+	err := f.controller.App.Undo()
 	if err != nil {
 		f.displayError(err)
 		return

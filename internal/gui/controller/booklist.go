@@ -1,11 +1,10 @@
 package controller
 
 import (
-	//"fmt"
 	"errors"
 	
-	"github.com/dubbersthehoser/mayble/internal/core"
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/data"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/searching"
 )
@@ -17,30 +16,26 @@ import (
 const UnselectIndex int = -1
 
 type BookList struct {
-	broker         *broker.Broker
-	list           []storage.BookLoan
-	ordering       listring.Ordering
+	app            app.BookLoaning
+	list           []data.BookLoan
+	ordering       listing.Ordering
 	orderBy        listing.OrderBy
 	searchBy       searching.Field
 	searchPattern  string
-	SelectedIndex  int                // index element in list
+	SelectedIndex  int // selected element in list
 	selection      searching.Ring
 }
-func NewBookList(b *broker.Broker) *BookList {
+func NewBookList(app app.BookLoaning) *BookList {
 	b := &BookList{
-		list:          make([]storage.BookLoan, 0),
+		list:          make([]data.BookLoan, 0),
 		SelectedIndex: UnselectIndex,
-		broker:          b,
+		app:           app,
 	}
-	b.searcher.Refresh(b.list)
 	return b
 }
 
 func (l *BookList) SetOrderBy(by listing.OrderBy) {
-	if err != nil {
-		panic("invalid order by value")
-	}
-	l.orderBy = orderBy
+	l.orderBy = by
 	l.Search()
 }
 
@@ -49,18 +44,12 @@ func (l *BookList) SetOrdering(o listing.Ordering) {
 }
 
 func (l *BookList) Update() error {
-	err := l.broker.Request(core.KeyRequestBookLoans, func(data any) {
-		bookLoans, ok := data.([]data.BookLoan)
-		if !ok {
-			panic("request book loan given bad data")
-		}
-		l.list = listing.OrderBookLoans(bookLoans, l.orderBy, l.ordering)
-	})
+	bookLoans, err := l.app.GetBookLoans()
 	if err != nil {
 		return err
 	}
+	l.list = bookLoans
 	l.Unselect()
-	l.searcher.Refresh(l.list)
 	return nil
 }
 
@@ -102,7 +91,7 @@ func (l *BookList) Selected() (*data.BookLoan, error) {
 	return &bookLoan, nil
 }
 
-func (l *BookList) Get(index int) (*listed.BookLoan, error) {
+func (l *BookList) Get(index int) (*listing.BookLoan, error) {
 	if err := l.ValidateIndex(index); err != nil {
 		return nil, err
 	}
@@ -121,7 +110,7 @@ func (l *BookList) Search() bool {
 		l.selection = searching.NewRangeRing(len(l.list))
 		return true
 	}
-	selection := searching.SearchBookLoan(l.list, l.searchBy, l.searchPattern)
+	selection := searching.SearchBookLoans(l.list, l.searchBy, l.searchPattern)
 	if len(selection) != 0 {
 		l.selection = searching.NewSelectionRing(selection)
 		return true
@@ -129,7 +118,7 @@ func (l *BookList) Search() bool {
 	return false
 } 
 
-func (l *BookList) SetSearchBy(by seaching.Field) {
+func (l *BookList) SetSearchBy(by searching.Field) {
 	l.searchBy = by
 }
 

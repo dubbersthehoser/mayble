@@ -3,7 +3,7 @@ package launcher
 import (
 	"fmt"
 	"os"
-	"fmt"
+	//"fmt"
 	"errors"
 	"path/filepath"
 
@@ -52,7 +52,7 @@ func defaultDBPath(s *settings.Settings) {
 	if s.DBPath != "" {
 		return
 	}
-	s.dbPath = filepath.Join(s.configDir, "db.sqlite")
+	s.DBPath = filepath.Join(s.ConfigDir, "db.sqlite")
 }
 
 
@@ -63,7 +63,7 @@ func defaultConfigPath(s *settings.Settings) {
 	if s.ConfigPath != "" {
 		return
 	}
-	s.ConfigPath = filepath.Join(s.configDir, "config.json")
+	s.ConfigPath = filepath.Join(s.ConfigDir, "config.json")
 }
 
 func defaultDBDriver(s *settings.Settings) {

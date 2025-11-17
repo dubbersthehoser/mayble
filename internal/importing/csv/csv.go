@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dubbersthehoser/mayble/data"
+	"github.com/dubbersthehoser/mayble/internal/data"
 )
 
 
@@ -36,7 +36,7 @@ func ToFields(book data.BookLoan) ([]string, error) {
 	fields[RattingIndex] = ratting
 
 	if book.Loan != nil {
-		fields[BorrowerIndex] = book.Loan.Name
+		fields[BorrowerIndex] = book.Loan.Borrower
 		fields[DateIndex] = book.Loan.Date.Format(time.DateOnly)
 	}
 	return fields, nil
@@ -59,7 +59,7 @@ func FromFields(fields []string) (*data.BookLoan, error) {
 
 	book.Ratting = ratting
 	if fields[BorrowerIndex] != "" && fields[DateIndex] != "" {
-		book.Loan.Name = fields[BorrowerIndex]
+		book.Loan.Borrower = fields[BorrowerIndex]
 		date, err := time.Parse(time.DateOnly, fields[DateIndex])
 		if err != nil {
 			return nil, errors.New("failed to parse date field")
