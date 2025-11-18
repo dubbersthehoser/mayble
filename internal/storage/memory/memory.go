@@ -61,8 +61,10 @@ func (m *Storage) DeleteBook(book *storage.Book) error {
 
 func (m *Storage) GetBooks() ([]storage.Book, error) {
 	r := make([]storage.Book, len(m.Books))
+	i := 0
 	for _, v := range m.Books {
-		r[v.ID] = v
+		r[i] = v
+		i+=1
 	}
 	return r, nil
 }
