@@ -70,11 +70,36 @@ func (sr *SelectionRing) Prev() int {
 
 type Field int
 const (
-	ByTitle Field = iota
+	ByNothing Field = iota - 1
+	ByTitle
 	ByAuthor
 	ByGenre
 	ByBorrower
 )
+
+func StringToField(s string) (Field, error) {
+	s = strings.ToLower(s)
+	switch s {
+	case "title":
+		return ByTitle, nil
+	case "author":
+		return ByAuthor, nil
+	case "genre":
+		return ByGenre, nil
+	case "borrower":
+		return ByBorrower, nil
+	default:
+		return ByNothing, errors.New("invalid string field value")
+	}
+}
+
+func MustStringToField(s string) Field {
+	f, err := StringToField(s)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
 
 func SearchBookLoans(l []data.BookLoan, f Field, pattern string) []int {
 	finds := make([]int, 0)

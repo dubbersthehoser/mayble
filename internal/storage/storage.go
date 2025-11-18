@@ -2,8 +2,7 @@ package storage
 
 import (
 	"errors"
-
-	"github.com/dubbersthehoser/mayble/internal/data"
+	"time"
 )
 
 var (
@@ -13,29 +12,30 @@ var (
 	ErrStorageFull   = errors.New("storage: hit storage cap") // return when hit a storeage cap.
 )
 
-
-type Storage interface {
-
-	// GetAllBookLoans all book loans in store.
-	GetAllBookLoans() ([]data.BookLoan, error)
-
-	// GetBookLoanByID returns stored book loan by its id, and ErrEntryNotFound if not found.
-	GetBookLoanByID(id int64) (data.BookLoan, error)
-
-	// CreateBookLoan adds book loan to storage, and returns its new id.
-	// return ErrEntryExists when book id is in storage. Use data.ZeroID as id or data.NewBookLoan().
-	// And ErrInvalidValue when given nil
-	CreateBookLoan(*data.BookLoan) (int64, error)
-
-	// UpdateBookLoan update book loan in storage.
-	// return ErrEntryNotFound when book id is not in storage, and ErrInvalidValue when book loan is nil
-	UpdateBookLoan(*data.BookLoan) error
-
-	// DeleteBookLoan remove book loan from storage.
-	// returns ErrEntryNotFound when book id is not in storage.
-	DeleteBookLoan(*data.BookLoan) error
-
-	// Close run clean up code, or close a connection. Can be NOP.
-	Close() error
+type Book struct {
+	ID      int64
+	Title   string
+	Author  string
+	Genre   string
+	Ratting int
 }
 
+type BookStore interface {
+	CreateBook(title, author, genre string, ratting int) (int64, error)
+	UpdateBook(*Book) error 
+	DeleteBook(*Book) error
+	GetBooks(*Book) ([]Book, error)
+}
+
+type Loan struct {
+	ID       int64
+	Borrower string
+	Date     time.Time
+}
+
+type LoanStore interface {
+	CreateLoan(ID int64, borrower string, date time.Time) error
+	UpdateLoan(*Loan) error
+	DeleteLoan(*Loan) error
+	GetLoan(ID int64) (Loan, error)
+}

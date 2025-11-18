@@ -1,6 +1,7 @@
 package stub
 
 import (
+	"time"
 	"log"
 
 	"github.com/dubbersthehoser/mayble/internal/data"
@@ -23,7 +24,28 @@ func (a *App) UpdateBookLoan(bl *data.BookLoan) error {
 	return nil
 }
 func (a *App) GetBookLoans() ([]data.BookLoan, error) {
-	stubBookLoans := make([]data.BookLoan, 0)
+	stubBookLoans := []data.BookLoan{
+		data.BookLoan{
+			Book: data.Book{
+				Title: "placeholder_title",
+				Author: "placeholder_author",
+				Genre: "placeholder_genre",
+				Ratting: 0,
+			},
+			Loan: &data.Loan{
+				Borrower: "placeholder_borrower",
+				Date: time.Date(2000, time.Month(9), 15, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		data.BookLoan{
+			Book: data.Book{
+				Title: "placeholder_title",
+				Author: "placeholder_author",
+				Genre: "placeholder_genre",
+				Ratting: 5,
+			},
+		},
+	}
 	log.Printf("appstub: get book loans")
 	return stubBookLoans, nil
 }
@@ -44,7 +66,7 @@ func (a *App) Undo() error {
 }
 func (a *App) UndoIsEmpty() bool {
 	log.Printf("appstub: is undo stack empty?")
-	return true
+	return false
 }
 
 func (a *App) Redo() error {
@@ -53,6 +75,6 @@ func (a *App) Redo() error {
 }
 func (a *App) RedoIsEmpty() bool {
 	log.Printf("appstub: is redo stack empty?")
-	return true
+	return false
 }
 

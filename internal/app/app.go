@@ -26,11 +26,15 @@ type BookLoaning interface {
 	UpdateBookLoan(*data.BookLoan) error
 	DeleteBookLoan(*data.BookLoan) error
 	GetBookLoans() ([]data.BookLoan, error)
+}
+
+type Importable interface {
 	ImportBookLoans([]data.BookLoan) error
 }
 
 type Mayble interface {
 	BookLoaning
+	Importable
 	Redoable
 	Undoable
 	Savable

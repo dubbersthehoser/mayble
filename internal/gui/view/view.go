@@ -9,6 +9,9 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/searching"
+	"github.com/dubbersthehoser/mayble/internal/listing"
 
 )
 
@@ -39,35 +42,6 @@ const (
 	OnMenuClose    = "ON_MENU_CLOSE"
 )
 
-type emiter struct {
-	items map[string][]func()
-}
-
-func (e *emiter) init() {
-	if e.items == nil {
-		e.items = make(map[string][]func())
-	}
-}
-
-func (e *emiter) On(key string, do func()) {
-	e.init()
-	list, ok := e.items[key]
-	if !ok {
-		list = make([]func(), 0)
-	}
-	list = append(list, do)
-	e.items[key] = list
-}
-func (e *emiter) Emit(key string) {
-	e.init()
-	list, ok := e.items[key]
-	if !ok {
-		return
-	}
-	for _, fn := range list {
-		fn()
-	}
-}
 
 /***********************
 	FunkView
@@ -79,13 +53,13 @@ type FunkView struct {
 	window     fyne.Window
 	controller *controller.Controller
 	View       fyne.CanvasObject
-	emiter     emiter
+	emiter     *emiter.Emiter
 }
 
 func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, error) {
 	f := FunkView{
 		controller: control,
-		emiter: emiter{},
+		emiter: emiter.NewEmiter(),
 		window: window,
 	}
 
@@ -119,103 +93,127 @@ func (f *FunkView) refresh() {
 ********************/
 
 func (f *FunkView) loadEvents() {
-	f.emiter.On(OnUpdate, f.EventUpdate)
-	f.emiter.On(OnCreate, f.EventCreate)
-	f.emiter.On(OnModification, f.EventModification)
-	f.emiter.On(OnDelete, f.EventDelete)
-	f.emiter.On(OnRedo, f.EventRedo)
-	f.emiter.On(OnUndo, f.EventUndo)
-	f.emiter.On(OnSort, f.EventSort)
-	f.emiter.On(OnSearch, f.EventSearch)
-	f.emiter.On(OnSearchBy, f.EventSearchBy)
-	f.emiter.On(OnMenuOpen, f.EventMenuOpen)
-	f.emiter.On(OnSelectNext, f.EventSelectNext)
-	f.emiter.On(OnSelectPrev, f.EventSelectPrev)
+	f.emiter.OnEmit(OnUpdate, f.EventUpdate)
+	f.emiter.OnEmit(OnCreate, f.EventCreate)
+	f.emiter.OnEmit(OnModification, f.EventModification)
+	f.emiter.OnEmit(OnDelete, f.EventDelete)
+	f.emiter.OnEmit(OnRedo, f.EventRedo)
+	f.emiter.OnEmit(OnUndo, f.EventUndo)
+	f.emiter.OnEmit(OnSort, f.EventSort)
+	f.emiter.OnEmit(OnMenuOpen, f.EventMenuOpen)
+
+	f.emiter.OnEmit(OnSelectNext, handleSelectNext(f))
+	f.emiter.OnEmit(OnSelectPrev, handleSelectPrev(f))
+	f.emiter.OnEmit(OnSearchBy, handleSearchBy(f))
+	f.emiter.OnEmit(OnSearch, f.EventSearch)
 }
 
-func (f *FunkView) EventSelectNext() {
-	f.controller.BookList.SelectNext()
+func handleSelectNext(f *FunkView) func(any) {
+	return func(data any) {
+		f.controller.List.SelectNext()
+	}
+}
+func handleSelectPrev(f *FunkView) func(any) {
+	return func(data any) {
+		f.controller.List.SelectPrev()
+	}
 }
 
-func (f *FunkView) EventSelectPrev() {
-	f.controller.BookList.SelectPrev()
+func handleSearchBy(f *FunkView) func(any) {
+	return func(data any) {
+		by, ok := data.(string)
+		if !ok {
+			panic("given invalid data for SearchBy event")
+		}
+		field := searching.MustStringToField(by)
+		f.controller.List.SetSearchBy(field)
+	}
+}
+func handleSearch(f *FunkView) func(any) {
+	return func(data any) {
+		pattern, ok := data.(string)
+		if !ok {
+			panic("given invalid data for Search event")
+		}
+		field := searching
+	}
 }
 
-func (f *FunkView) EventSearchBy() {
-	f.refresh()
-}
-func (f *FunkView) EventSearch() {
-	f.controller.BookList.Search()
-	f.refresh()
+func handleMenuOpen(f *FunkView) func(any) {
+	return func(data any) {
+		f.ShowMenu
+	}
 }
 
-func (f *FunkView) EventMenuOpen() {
-	f.ShowMenu()
-}
-
-
-
-func (f *FunkView) EventModification() {
-	err := f.controller.BookList.Update()
+func handleModification(f *FunkView) func(any) {
+	err := f.controller.List.Update()
 	if err != nil {
 		f.displayError(err)
 		return
 	}
 	f.refresh()
 }
-
-func (f *FunkView) EventSort() {
-	err := f.controller.BookList.Update()
-	if err != nil {
-		f.displayError(err)
-		return
+func handleSort(f *FunkView) func(any) {
+	return func(data any) {
+		err := f.controller.BookList.Update()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.refresh()
 	}
-	f.refresh()
+} 
+
+func handleRedo(f *FunkView) func(any) {
+	return func(data any) {
+		err := f.controller.App.Redo()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.emiter.Emit(OnModification)
+	}
 }
 
-
-
-func (f *FunkView) EventRedo() {
-	err := f.controller.App.Redo()
-	if err != nil {
-		f.displayError(err)
-		return
+func handleUndo(f *FunkView) func(any) {
+	return func(data any) {
+		err := f.controller.App.Undo()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.emiter.Emit(OnModification)
 	}
-	f.emiter.Emit(OnModification)
 }
 
-func (f *FunkView) EventUndo() {
-	err := f.controller.App.Undo()
-	if err != nil {
-		f.displayError(err)
-		return
+func handleDelete() func(any) {
+	return func(data any) {
+		bookLoan, err := f.controller.BookList.Selected()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		builder := controller.NewBuilderWithBookLoan(bookLoan)
+		builder.Type = controller.Deleting
+		f.controller.BookEditor.Submit(builder)
+		f.emiter.Emit(OnModification)
 	}
-	f.emiter.Emit(OnModification)
 }
 
-func (f *FunkView) EventDelete() {
-	bookLoan, err := f.controller.BookList.Selected()
-	if err != nil {
-		f.displayError(err)
-		return
+func handleUpdate() func(any) {
+	return func(data any) {
+		bookLoan, err := f.controller.BookList.Selected()
+		if err != nil {
+			f.displayError(err)
+			return 
+		}
+		builder := controller.NewBuilderWithBookLoan(bookLoan)
+		f.ShowEdit(builder)
 	}
-	builder := controller.NewBuilderWithBookLoan(bookLoan)
-	builder.Type = controller.Deleting
-	f.controller.BookEditor.Submit(builder)
-	f.emiter.Emit(OnModification)
 }
 
-func (f *FunkView) EventUpdate() {
-	bookLoan, err := f.controller.BookList.Selected()
-	if err != nil {
-		f.displayError(err)
-		return 
-	}
-	builder := controller.NewBuilderWithBookLoan(bookLoan)
-	f.ShowEdit(builder)
-}
-
-func (f *FunkView) EventCreate() {
+func handleCreate() func(any) {
 	builder := controller.NewBookLoanBuilder()
 	f.ShowEdit(builder)
 }
+

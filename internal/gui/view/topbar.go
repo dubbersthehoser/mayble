@@ -106,7 +106,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Undo
 	//------
 	OnUndoItem := func() {
-		f.emiter.Emit(OnUndo)
+		f.emiter.Emit(OnUndo, nil)
 	}
 	undoItem := &widget.ToolbarAction{
 		Icon: theme.ContentUndoIcon(),
@@ -123,21 +123,29 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		OnActivated: OnRedoItem,
 	}
 
-	undoItem.Disable()
-	redoItem.Disable()
-
-	f.emiter.On(OnModification, func() {
+	checkUndoBtn := func() {
 		if f.controller.App.UndoIsEmpty() {
 			undoItem.Enable()
 		} else {
 			undoItem.Disable()
 		}
+	}
+	checkRedoBtn := func() {
 		if f.controller.App.RedoIsEmpty() {
 			redoItem.Enable()
 		} else {
 			redoItem.Disable()
 		}
+	}
+
+	f.emiter.On(OnModification, func() {
+		checkRedoBtn()
+		checkUndoBtn()
 	})
+
+	checkRedoBtn()
+	checkUndoBtn()
+
 
 
 	// Search
