@@ -10,7 +10,7 @@ import (
 
 
 type App struct {
-	storage  storage.Storage
+	storage  storage.BookLoanStore
 	storeMgr *manager 
 	memMgr   *manager 
 }
@@ -67,9 +67,7 @@ func (a *App) GetBookLoans() ([]data.BookLoan, error) {
 }
 
 func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
-	cmd := &commandImportBookLoans{
-		bookLoans: bookLoans,
-	}
+	cmd := newCommandImportBookLoans(bookLoans)
 	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err
@@ -80,9 +78,7 @@ func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
 
 
 func (a *App) CreateBookLoan(book *BookLoan) error {
-	cmd := &commandCreateBookLoan{
-		bookLoan: book,
-	}
+	cmd := newCommandCreateBookLoan(book)
 	err := a.memMgr.execute(cmd)
 	if err != nil {
 		return err

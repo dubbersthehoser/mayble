@@ -1,6 +1,5 @@
 package app
 
-
 /**********************
 	Commands
 ***********************/
@@ -8,14 +7,25 @@ package app
 /* Import */
 
 // NOTE need to re-think import system implementation.
+
 type commandImportBookLoans struct {
+	store    storage.BookLoanStore
 	addedIDs  []int64
-	bookLoans []data.BookLoan
+	bookLoans []BookLoan
 }
-func (c *commandImportBookLoans) Do(s storage.BookLoanStore) error {
+func newCommandImportBookLoans(books []BookLoan) func(storage.BookLoanStore) *commandImportBookLoans {
+	return func(s storage.BookLoanStore) {
+		return &commandCreateBookLoan{
+			bookLoans: book,
+			store: s,
+		}
+	}
+}
+
+func (c *commandImportBookLoans) Do() error {
 	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
-		id, err := createBookLoan(s, BookLoan)
+		id, err := createBookLoan(c.store, BookLoan)
 		if err != nil {
 			return fmt.Errorf("app: import: %w", err)
 		}
@@ -27,7 +37,7 @@ func (c *commandImportBookLoans) Undo(s storage.BookLoanStore) error {
 	for i, id := range c.addedIDs {
 		book := c.bookLoans[i]
 		book.ID = id
-		err = deleteBookLoan(s, &book)
+		err = deleteBookLoan(c.store, &book)
 		if err != nil {
 			return err
 		}
@@ -39,31 +49,49 @@ func (c *commandImportBookLoans) Undo(s storage.BookLoanStore) error {
 /* Create */
 
 type commandCreateBookLoan struct {
+	store    storage.BookLoanStore
 	bookLoan *BookLoan
 }
+func newCommandCreateBookLoan(book *BookLoan) func(storage.BookLoanStore) *commandCreateBookLoan {
+	return func(s storage.BookLoanStore) {
+		return &commandCreateBookLoan{
+			bookLoan: book,
+			store: s,
+		}
+	}
+}
 
-func (c *commandCreateBookLoan) Do(s storage.Storage) error {
-	_, err := createBookLoan(s, c.bookLoan)
+func (c *commandCreateBookLoan) Do() error {
+	_, err := createBookLoan(c.store, c.bookLoan)
 	return err
 }
 
-func (c *commandCreateBookLoan) Undo(s storage.Storage) error {
-	return deleteBookLoan(s, c.bookLoan)
+func (c *commandCreateBookLoan) Undo() error {
+	return deleteBookLoan(c.store, c.bookLoan)
 }
 
 
 /* Delete */
 
 type commandDeleteBookLoan struct {
+	store    storage.BookLoanStore
 	bookLoan *data.BookLoan
 }
-
-func (c *commandDeleteBookLoan) Do(s storage.Storage) error {
-	return deleteBookLoan(s, c.bookLoan)
+func newCommandDeleteBookLoan(book *BookLoan) func(storage.BookLoanStore) *commandDeleteBookLoan {
+	return func(s storage.BookLoanStore) {
+		return &commandDeleteBookLoan{
+			bookLoan: book,
+			store: s,
+		}
+	}
 }
 
-func (c *commandDeleteBookLoan) Undo(s storage.Storage) error {
-	_, err := createBookLoan(s, c.bookLoan)
+func (c *commandDeleteBookLoan) Do() error {
+	return deleteBookLoan(c.store, c.bookLoan)
+}
+
+func (c *commandDeleteBookLoan) Undo() error {
+	_, err := createBookLoan(c.store, c.bookLoan)
 	return err
 }
 
@@ -71,12 +99,22 @@ func (c *commandDeleteBookLoan) Undo(s storage.Storage) error {
 /* Update */
 
 type commandUpdateBookLoan struct {
+	store    storage.BookLoanStore
 	bookLoan *BookLoan
 	prevBookLoan *BookLoan
 }
 
-func (c *commandUpdateBookLoan) Do(s storage.Storage) error {
-	bookLoan, err := getBookLoanByID(s, c.bookLoan.ID)
+func newCommandUpdateBookLoan(book *BookLoan) func(storage.BookLoanStore) commandUpdateBookLoan {
+	return func(s storage.BookLoanStore) *commandUpdateBookLoan {
+		return &commandUpdateBookLoan{
+			bookLoan: book,
+			store: s,
+		}
+	}
+}
+
+func (c *commandUpdateBookLoan) Do() error {
+	bookLoan, err := getBookLoanByID(c.store, c.bookLoan.ID)
 	if err != nil {
 		return err
 	}
@@ -87,14 +125,14 @@ func (c *commandUpdateBookLoan) Do(s storage.Storage) error {
 		c.prevBookLoan = c.bookLoan
 		c.bookLoan = &bookLoan
 	}
-	return updateBookLoan(s, c.bookLoan)
+	return updateBookLoan(c.store, c.bookLoan)
 }
 
-func (c *commandUpdateBookLoan) Undo(s storage.Storage) error {
+func (c *commandUpdateBookLoan) Undo() error {
 	book := c.prevBookLoan
 	c.prevBookLoan = c.bookLoan
 	c.bookLoan = book
-	return s.UpdateBookLoan(c.bookLoan)
+	return updateBookLoan(c.store, c.bookLoan)
 }
 
 
@@ -106,13 +144,13 @@ func (c *commandUpdateBookLoan) Undo(s storage.Storage) error {
 *****************************************/
 
 type manager struct {
-	store storage.Storage
+	store storage.BookLoanStore
 	undos *command.Stack
 	redos *command.Stack
 	queue []command.Command
 }
 
-func newManager(store storage.Storage) *manager{
+func newManager(store storage.BookLoanStore) *manager{
 	m := manager{
 		undos: command.NewStack(),
 		redos: command.NewStack(),
@@ -121,8 +159,10 @@ func newManager(store storage.Storage) *manager{
 	return &m
 }
 
-func (m *manager) execute(cmd command.Command) error {
-	if err := cmd.Do(m.store); err != nil {
+// execute command
+func (m *manager) execute(cmdSetup func(storage.BookLoanStore) command.Command) error {
+	cmd := cmdSetup(m.store)
+	if err := cmd.Do(); err != nil {
 		return err
 	}
 	m.undos.Push(cmd)
@@ -130,6 +170,7 @@ func (m *manager) execute(cmd command.Command) error {
 	return nil
 }
 
+// unExecute command
 func (m *manager) unExecute() error {
 	cmd := m.undos.Pop()
 	if cmd == nil {
@@ -143,6 +184,7 @@ func (m *manager) unExecute() error {
 	return nil
 } 
 
+// reExecute an undo'ed command
 func (m *manager) reExecute() error {
 	cmd := m.redos.Pop()
 	if cmd == nil {
@@ -156,10 +198,13 @@ func (m *manager) reExecute() error {
 	return nil
 }
 
-func (m *manager) enqueue(cmd command.Command) {
+// enqueue command into queue
+func (m *manager) enqueue(cmdSetup func(storage.BookLoanStore) command.Command) {
+	cmd := cmdSetup(m.store)
 	m.queue = append(m.queue, cmd)
 }
 
+// dequeue command out of queue
 func (m *manager) dequeue() command.Command {
 	if len(m.queue) == 0 {
 		return nil
