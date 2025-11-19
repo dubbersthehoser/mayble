@@ -14,11 +14,13 @@ import (
 )
 
 type Storage struct {
-	sqlite.Storage
+	sqlite.Database
 }
 
-func NewStorage() *Storage {
-	s := Storage{}
+func NewStorage(s sqlite.Database) *Storage {
+	return  Storage{
+		Storage: s,
+	}	
 }
 
 // GetBookLoanByID

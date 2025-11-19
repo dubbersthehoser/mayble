@@ -1,19 +1,26 @@
 package command
 
-
 import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/command/stub"
 )
 
+// TODO remove the storage depenency
+//
+//type Command interface {
+//	Do() error
+//	Undo() error
+//}
 
 type Command interface {
-	Do(storage.Storage)   error
-	Undo(storage.Storage) error
+	Do(storage.BookLoanStore) error
+	Undo(storage.BookLoanStore) error
 }
 
 type Stack struct {
 	items []Command
 }
+
 func NewStack() *Stack {
 	c := &Stack{
 		items: make([]Command, 0),

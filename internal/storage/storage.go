@@ -25,6 +25,7 @@ type BookStore interface {
 	UpdateBook(*Book) error 
 	DeleteBook(*Book) error
 	GetBooks(*Book) ([]Book, error)
+	GetBookByID(int64) (Book, error)
 }
 
 type Loan struct {
@@ -38,4 +39,9 @@ type LoanStore interface {
 	UpdateLoan(*Loan) error
 	DeleteLoan(*Loan) error
 	GetLoan(ID int64) (Loan, error)
+}
+
+type BookLoanStore interface {
+	BookStore
+	LoanStore
 }

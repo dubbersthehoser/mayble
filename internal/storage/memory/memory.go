@@ -69,6 +69,15 @@ func (m *Storage) GetBooks() ([]storage.Book, error) {
 	return r, nil
 }
 
+func (m *Storage) GetBookByID(id int64) (*storage.Book, error) {
+	book, ok := m.Books[id]
+	if !ok {
+		return nil, storage.ErrEntryNotFound
+	}
+	return &book, nil
+
+}
+
 
 /************************
         StoreLoan

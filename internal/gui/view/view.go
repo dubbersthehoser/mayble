@@ -12,7 +12,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/listing"
-
 )
 
 const (
@@ -213,7 +212,9 @@ func handleUpdate() func(any) {
 }
 
 func handleCreate() func(any) {
-	builder := controller.NewBookLoanBuilder()
-	f.ShowEdit(builder)
+	return func (_ any) {
+		builder := controller.NewBookLoanBuilder()
+		f.ShowEdit(builder)
+	}
 }
 

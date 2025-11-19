@@ -156,19 +156,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	selectSearchBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre", "Borrower"},
 		func(s string) {
-			switch s {
-			case "Title":
-				f.controller.BookList.SetSearchBy(searching.ByTitle)
-			case "Author":
-				f.controller.BookList.SetSearchBy(searching.ByAuthor)
-			case "Genre":
-				f.controller.BookList.SetSearchBy(searching.ByGenre)
-			case "Borrower":
-				f.controller.BookList.SetSearchBy(searching.ByBorrower)
-			default:
-				panic("search by not found")
-			}
-		f.emiter.Emit(OnSearchBy)
+			f.emit(OnSearchBy, s)
 		},
 	)
 	selectSearchBy.PlaceHolder = "Search By"
@@ -178,19 +166,18 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	searchEnt := widget.NewEntry()
 	searchEnt.PlaceHolder = "Search"
 	searchEnt.OnChanged = func(s string) {
-		f.controller.BookList.SetSearch(s)
-		f.emiter.Emit(OnSearch)
+		f.emiter.Emit(OnSearch, s)
 	}
 
 	searchEnt.OnSubmitted = func (s string) {
 		f.emiter.Emit(OnSelectNext)
 	}
 
-	f.emiter.On(OnSort, func() {
+	f.emiter.On(OnSort, func(_ any) {
 		searchEnt.SetText("")
 	})
 
-	f.emiter.On(OnSearchBy, func() {
+	f.emiter.On(OnSearchBy, func(_ any)) {
 		searchEnt.SetText("")
 	})
 

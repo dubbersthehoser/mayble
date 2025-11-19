@@ -184,6 +184,52 @@ func TestGetBooks(t *testing.T) {
 	}
 }
 
+func TestGetBookByID(t *testing.T) {
+	store := NewStorage()
+	tests := []storage.Book{
+		storage.Book{
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 1,
+		},
+		storage.Book{
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 2,
+		},
+	}
+	for i, test := range tests {
+		id, err := store.CreateBook(test.Title, test.Author, test.Genre, test.Ratting)
+		if err != nil {
+			t.Fatalf("case %d, unexpected error: %s", i, err)
+		}
+		tests[i].ID = id
+	}
+
+	for i, test := range tests {
+		book, err := store.GetBookByID(test.ID)
+		if err != nil {
+			t.Fatalf("case %d, unexpected error: %s", i, err)
+		}
+
+		if book.Title != test.Title {
+			t.Fatalf("case %d, expect title %s, got %s", i, test.Title, book.Title)
+		} 
+		if book.Author != test.Author {
+			t.Fatalf("case %d, expect author %s, got %s", i, test.Author, book.Author)
+		} 
+		if book.Genre != test.Genre {
+			t.Fatalf("case %d, expect genre %s, got %s", i, test.Genre, book.Genre)
+		} 
+		if book.Ratting != test.Ratting {
+			t.Fatalf("case %d, expect ratting %d, got %d", i, test.Ratting, book.Ratting)
+		} 
+	}
+	
+}
+
 func TestStoreBookErrors(t *testing.T) {
 	store := NewStorage()
 
@@ -213,6 +259,12 @@ func TestStoreBookErrors(t *testing.T) {
 	err = store.DeleteBook(&book)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
 		t.Fatal("delete book gave wrong error value")
+	}
+
+	// GetBookByID
+	_, err = store.GetBookByID(23)
+	if !errors.Is(err, storage.ErrEntryNotFound) {
+		t.Fatal("get book by id gave wrong error value")
 	}
 
 }
