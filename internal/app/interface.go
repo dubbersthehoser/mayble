@@ -9,8 +9,8 @@ type BookLoan struct {
 	Title    string
 	Author   string
 	Genre    string
-	Ratting  string
-	OnLoan   bool
+	Ratting  int
+	IsOnLoan   bool
 	Borrower string
 	Date     time.Time
 }
@@ -23,7 +23,7 @@ type BookLoaning interface {
 }
 
 type Importable interface {
-	ImportBookLoans([]data.BookLoan) error
+	ImportBookLoans([]BookLoan) error
 }
 
 type Mayble interface {

@@ -24,8 +24,8 @@ type BookStore interface {
 	CreateBook(title, author, genre string, ratting int) (int64, error)
 	UpdateBook(*Book) error 
 	DeleteBook(*Book) error
-	GetBooks(*Book) ([]Book, error)
-	GetBookByID(int64) (Book, error)
+	GetBooks() ([]Book, error)
+	GetBookByID(ID int64) (*Book, error)
 }
 
 type Loan struct {
@@ -38,7 +38,7 @@ type LoanStore interface {
 	CreateLoan(ID int64, borrower string, date time.Time) error
 	UpdateLoan(*Loan) error
 	DeleteLoan(*Loan) error
-	GetLoan(ID int64) (Loan, error)
+	GetLoan(ID int64) (*Loan, error)
 }
 
 type BookLoanStore interface {

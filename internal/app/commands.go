@@ -1,7 +1,13 @@
 package app
 
+import (
+	"fmt"
+	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/storage"
+)
+
 /**********************
-	Commands
+        Commands
 ***********************/
 
 /* Import */
@@ -9,14 +15,15 @@ package app
 // NOTE need to re-think import system implementation.
 
 type commandImportBookLoans struct {
-	store    storage.BookLoanStore
+	store     storage.BookLoanStore
 	addedIDs  []int64
 	bookLoans []BookLoan
+	// addIDs and bookLoans slices align with each other.
 }
 func newCommandImportBookLoans(books []BookLoan) func(storage.BookLoanStore) *commandImportBookLoans {
-	return func(s storage.BookLoanStore) {
-		return &commandCreateBookLoan{
-			bookLoans: book,
+	return func(s storage.BookLoanStore) *commandImportBookLoans {
+		return &commandImportBookLoans{
+			bookLoans: books,
 			store: s,
 		}
 	}
@@ -25,19 +32,19 @@ func newCommandImportBookLoans(books []BookLoan) func(storage.BookLoanStore) *co
 func (c *commandImportBookLoans) Do() error {
 	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
-		id, err := createBookLoan(c.store, BookLoan)
+		id, err := createBookLoan(c.store, &BookLoan)
 		if err != nil {
 			return fmt.Errorf("app: import: %w", err)
 		}
-		c.addedIDs[i] = BookLoan
+		c.addedIDs[i] = id
 	}
 	return nil
 }
-func (c *commandImportBookLoans) Undo(s storage.BookLoanStore) error {
+func (c *commandImportBookLoans) Undo() error {
 	for i, id := range c.addedIDs {
 		book := c.bookLoans[i]
 		book.ID = id
-		err = deleteBookLoan(c.store, &book)
+		err := deleteBookLoan(c.store, &book)
 		if err != nil {
 			return err
 		}
@@ -53,7 +60,7 @@ type commandCreateBookLoan struct {
 	bookLoan *BookLoan
 }
 func newCommandCreateBookLoan(book *BookLoan) func(storage.BookLoanStore) *commandCreateBookLoan {
-	return func(s storage.BookLoanStore) {
+	return func(s storage.BookLoanStore) *commandCreateBookLoan {
 		return &commandCreateBookLoan{
 			bookLoan: book,
 			store: s,
@@ -75,10 +82,10 @@ func (c *commandCreateBookLoan) Undo() error {
 
 type commandDeleteBookLoan struct {
 	store    storage.BookLoanStore
-	bookLoan *data.BookLoan
+	bookLoan *BookLoan
 }
 func newCommandDeleteBookLoan(book *BookLoan) func(storage.BookLoanStore) *commandDeleteBookLoan {
-	return func(s storage.BookLoanStore) {
+	return func(s storage.BookLoanStore) *commandDeleteBookLoan {
 		return &commandDeleteBookLoan{
 			bookLoan: book,
 			store: s,
@@ -99,12 +106,12 @@ func (c *commandDeleteBookLoan) Undo() error {
 /* Update */
 
 type commandUpdateBookLoan struct {
-	store    storage.BookLoanStore
-	bookLoan *BookLoan
+	store        storage.BookLoanStore
+	bookLoan     *BookLoan
 	prevBookLoan *BookLoan
 }
 
-func newCommandUpdateBookLoan(book *BookLoan) func(storage.BookLoanStore) commandUpdateBookLoan {
+func newCommandUpdateBookLoan(book *BookLoan) func(storage.BookLoanStore) *commandUpdateBookLoan {
 	return func(s storage.BookLoanStore) *commandUpdateBookLoan {
 		return &commandUpdateBookLoan{
 			bookLoan: book,
@@ -119,11 +126,11 @@ func (c *commandUpdateBookLoan) Do() error {
 		return err
 	}
 	if c.prevBookLoan == nil {
-		c.prevBookLoan = &bookLoan
+		c.prevBookLoan = bookLoan
 	} else {
-		bookLoan = *c.prevBookLoan
+		bookLoan = c.prevBookLoan
 		c.prevBookLoan = c.bookLoan
-		c.bookLoan = &bookLoan
+		c.bookLoan = bookLoan
 	}
 	return updateBookLoan(c.store, c.bookLoan)
 }
@@ -137,31 +144,28 @@ func (c *commandUpdateBookLoan) Undo() error {
 
 
 
-
-
 /****************************************
         Command Storage Manager
 *****************************************/
 
+// manager of commands and invoking.
 type manager struct {
-	store storage.BookLoanStore
 	undos *command.Stack
 	redos *command.Stack
-	queue []command.Command
+	queue *command.Queue
 }
 
-func newManager(store storage.BookLoanStore) *manager{
+func newManager() *manager{
 	m := manager{
 		undos: command.NewStack(),
 		redos: command.NewStack(),
-		store: store,
+		queue: command.NewQueue(),
 	}
 	return &m
 }
 
 // execute command
-func (m *manager) execute(cmdSetup func(storage.BookLoanStore) command.Command) error {
-	cmd := cmdSetup(m.store)
+func (m *manager) execute(cmd command.Command) error {
 	if err := cmd.Do(); err != nil {
 		return err
 	}
@@ -176,7 +180,7 @@ func (m *manager) unExecute() error {
 	if cmd == nil {
 		return nil
 	}
-	err := cmd.Undo(m.store)
+	err := cmd.Undo()
 	if err != nil {
 		return err
 	}
@@ -190,7 +194,7 @@ func (m *manager) reExecute() error {
 	if cmd == nil {
 		return nil
 	}
-	err := cmd.Do(m.store)
+	err := cmd.Do()
 	if err != nil {
 		return err
 	}
@@ -199,17 +203,11 @@ func (m *manager) reExecute() error {
 }
 
 // enqueue command into queue
-func (m *manager) enqueue(cmdSetup func(storage.BookLoanStore) command.Command) {
-	cmd := cmdSetup(m.store)
-	m.queue = append(m.queue, cmd)
+func (m *manager) enqueue(cmd command.Command) {
+	m.queue.Enqueue(cmd)
 }
 
 // dequeue command out of queue
 func (m *manager) dequeue() command.Command {
-	if len(m.queue) == 0 {
-		return nil
-	}
-	cmd := m.queue[0]
-	m.queue = m.queue[1:]
-	return cmd
+	return m.queue.Dequeue()
 }

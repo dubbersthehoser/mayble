@@ -5,21 +5,23 @@ import (
 	"errors"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
-	"github.com/dubbersthehoser/mayble/internal/command"
 )
 
 
 type App struct {
 	storage  storage.BookLoanStore
 	storeMgr *manager 
+
+	memory   *memory.Storage
 	memMgr   *manager 
 }
 
 func New(store storage.BookLoanStore) (*App, error) {
 	var a App
-	a.storeMgr = newManager(store)
-	memStore := memory.NewStorage()
-	a.memMgr = newManager(memStore)
+	a.storage = store
+	a.storeMgr = newManager()
+	a.memory = memory.NewStorage()
+	a.memMgr = newManager()
 	if err := a.load(); err != nil {
 		return nil, err
 	}
@@ -27,14 +29,14 @@ func New(store storage.BookLoanStore) (*App, error) {
 }
 
 func (a *App) load() error {
-	bookLoans, err := a.storeMgr.store.GetAllBookLoans()
+	bookLoans, err := getAllBookLoans(a.storage)
 	if err != nil {
 		return fmt.Errorf("app: %w", err)
 	}
 	for _, book := range bookLoans {
-		_, err = a.memMgr.store.CreateBookLoan(&book)
+		_, err = createBookLoan(a.memory, &book)
 		if errors.Is(err, storage.ErrEntryExists) {
-			err = a.memMgr.store.UpdateBookLoan(&book)
+			err = updateBookLoan(a.memory, &book)
 		}
 		if err != nil {
 			return err
@@ -42,7 +44,6 @@ func (a *App) load() error {
 	}
 	return nil
 }
-
 
 func (a *App) Save() error {
 	for {
@@ -55,11 +56,12 @@ func (a *App) Save() error {
 			return err
 		}
 	}
+	a.storeMgr.undos.Clear() // clear undos from executed commands
 	return a.load()
 }
 
-func (a *App) GetBookLoans() ([]data.BookLoan, error) {
-	bookLoans, err := a.memMgr.store.GetAllBookLoans()
+func (a *App) GetBookLoans() ([]BookLoan, error) {
+	bookLoans, err := getAllBookLoans(a.memory)
 	if err != nil {
 		return nil, err
 	}
@@ -68,46 +70,42 @@ func (a *App) GetBookLoans() ([]data.BookLoan, error) {
 
 func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
 	cmd := newCommandImportBookLoans(bookLoans)
-	err := a.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
 		return err
 	}
-	a.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd(a.storage))
 	return nil
 }
 
 
 func (a *App) CreateBookLoan(book *BookLoan) error {
 	cmd := newCommandCreateBookLoan(book)
-	err := a.memMgr.execute(cmd)
+	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
 		return err
 	}
-	a.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd(a.storage))
 	return nil
 }
 
 func (a *App) UpdateBookLoan(book *BookLoan) error {
-	cmd := &commandUpdateBookLoan{
-		bookLoan: book,
-	}
-	err := a.memMgr.execute(cmd)
+	cmd := newCommandUpdateBookLoan(book)
+	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
 		return err
 	}
-	a.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd(a.storage))
 	return nil
 }
 
 func (a *App) DeleteBookLoan(book *BookLoan) error {
-	cmd := &commandDeleteBookLoan{
-		bookLoan: book,
-	}
-	err := a.memMgr.execute(cmd)
+	cmd := newCommandDeleteBookLoan(book)
+	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
 		return err
 	}
-	a.storeMgr.enqueue(cmd)
+	a.storeMgr.enqueue(cmd(a.storage))
 	return nil
 }
 
@@ -115,36 +113,62 @@ func (a *App) Undo() error {
 	return a.memMgr.unExecute()
 }
 func (a *App) UndoIsEmpty() bool {
-	if a.memMgr.undos.Length() == 0 {
-		return false
-	}
-	return true
+	return a.memMgr.undos.Length() == 0
 }
 
 func (a *App) Redo() error {
 	return a.memMgr.reExecute()
 }
 func (a *App) RedoIsEmpty() bool {
-	if a.memMgr.redos.Length() == 0 {
-		return false
-	}
-	return true
-	
+	return a.memMgr.redos.Length() == 0
 }
+
 
 func createBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) (int64, error) {
 	id, err := s.CreateBook(bookLoan.Title, bookLoan.Author, bookLoan.Genre, bookLoan.Ratting)
 	if err != nil {
 		return -1, err
 	}
-	if !bookLoan.IsOnLoan{
+	if !bookLoan.IsOnLoan {
 		return id, nil
 	}
-	err := s.CreateLoan(id, bookLoan.Borrower, bookLoan.Date)
+	err = s.CreateLoan(id, bookLoan.Borrower, bookLoan.Date)
 	if err != nil {
 		return -1, err
 	}
 	return id, nil
+}
+
+func getAllBookLoans(s storage.BookLoanStore) ([]BookLoan, error) {
+	books, err := s.GetBooks()
+	if err != nil {
+		return nil, err
+	}
+
+	bookLoans := make([]BookLoan, 0)
+	for _, book := range books {
+		bookLoan := BookLoan{
+			Title: book.Title,
+			Author: book.Author,
+			Genre: book.Genre,
+			Ratting: book.Ratting,
+		}
+
+		loan, err := s.GetLoan(book.ID)
+		if errors.Is(err, storage.ErrEntryNotFound) {
+			bookLoans = append(bookLoans, bookLoan)
+			continue
+		}
+		if err == nil {
+			bookLoan.Borrower = loan.Borrower
+			bookLoan.Date = loan.Date
+			bookLoan.IsOnLoan = true
+			bookLoans = append(bookLoans, bookLoan)
+			continue
+		}
+		return nil, err
+	}
+	return bookLoans, nil
 }
 
 func getBookLoanByID(s storage.BookLoanStore, id int64) (*BookLoan, error) {
@@ -162,10 +186,10 @@ func getBookLoanByID(s storage.BookLoanStore, id int64) (*BookLoan, error) {
 	loan, err := s.GetLoan(id)
 	if errors.Is(err, storage.ErrEntryNotFound) {
 		return &bookLoan, nil
-	}
-	else if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
+	bookLoan.IsOnLoan = true
 	bookLoan.Borrower = loan.Borrower
 	bookLoan.Date = loan.Date
 	return &bookLoan, nil
@@ -176,11 +200,12 @@ func updateBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
 	if err != nil {
 		return err
 	}
+	book.ID = bookLoan.ID
 	book.Title = bookLoan.Title
 	book.Author = bookLoan.Author
 	book.Genre = bookLoan.Genre
 	book.Ratting = bookLoan.Ratting
-	err = s.UpdateBook(&book)
+	err = s.UpdateBook(book)
 	if err != nil {
 		return err
 	}
@@ -188,7 +213,7 @@ func updateBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
 	var (
 		LoanIsInStore bool
 	)
-	_, err := s.GetLoan(bookLoan.ID)
+	_, err = s.GetLoan(bookLoan.ID)
 	if errors.Is(err, storage.ErrEntryNotFound) {
 		LoanIsInStore = false
 	} else if err != nil {
@@ -200,24 +225,28 @@ func updateBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
 	loan := storage.Loan{
 		ID: bookLoan.ID,
 		Borrower: bookLoan.Borrower,
-		Date: bookLoan.Date
+		Date: bookLoan.Date,
 	}
-	if LoanIsInStore {
-		if bookLoan.IsOnLoan {
-			err := s.UpdateLoan(&loan)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := s.DeleteLoan(&loan)
-			if err != nil {
-				return err
-			}
+
+	if !LoanIsInStore && !bookLoan.IsOnLoan {
+		return nil
+	}
+
+	if LoanIsInStore && bookLoan.IsOnLoan {
+		err := s.UpdateLoan(&loan)
+		if err != nil {
+			return err
 		}
 		return nil
-	} else { 
-		return s.CreateLoan(loan.ID, loan.Borrower, loan.Date)
 	}
+	if LoanIsInStore && !bookLoan.IsOnLoan {
+		err := s.DeleteLoan(&loan)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return s.CreateLoan(loan.ID, loan.Borrower, loan.Date)
 }
 
 func deleteBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
@@ -228,14 +257,20 @@ func deleteBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
 	if err != nil {
 		return err
 	}
-	loan, err : s.GetLoan(book.ID)
-	if errors.Is(err, storage.EntryNotFound) {
-		return
+	loan, err := s.GetLoan(book.ID)
+	if errors.Is(err, storage.ErrEntryNotFound) {
+		return nil
 	} else if (err != nil ) {
 		return err
 	}
-	loan := storage.Loan{
-		ID: bookLoan.ID,
-	}
-	return s.DeleteLoan(&loan)
+	return s.DeleteLoan(loan)
 }
+
+
+
+
+
+
+
+
+

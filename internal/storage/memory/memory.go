@@ -19,6 +19,7 @@ func NewStorage() *Storage {
 	return mem
 }
 
+
 /************************
         StoreBook
 *************************/
