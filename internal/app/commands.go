@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+
 	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
@@ -69,7 +70,8 @@ func newCommandCreateBookLoan(book *BookLoan) func(storage.BookLoanStore) *comma
 }
 
 func (c *commandCreateBookLoan) Do() error {
-	_, err := createBookLoan(c.store, c.bookLoan)
+	id, err := createBookLoan(c.store, c.bookLoan)
+	c.bookLoan.ID = id
 	return err
 }
 

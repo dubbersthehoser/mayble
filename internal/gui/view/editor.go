@@ -203,11 +203,11 @@ func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
 		d.Dismiss()
 	}
 	submitBtn.OnTapped = func() {
-		err := f.controller.BookEditor.Submit(builder)
+		err := f.controller.Editor.Submit(builder)
 		if err != nil {
 			f.displayError(err)
 		}
-		f.emiter.Emit(OnModification)
+		f.emiter.Emit(OnModification, nil)
 		f.refresh()
 		d.Dismiss()
 	}

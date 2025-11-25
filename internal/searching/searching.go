@@ -1,9 +1,10 @@
 package searching
 
 import (
+	"errors"
 	"strings"
 
-	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 type Ring interface {
@@ -25,13 +26,16 @@ func (rr *RangeRing) Selected() int {
 	return rr.selected
 }
 func (rr *RangeRing) Next() int {
-	return (rr.selected+1) % rr.max
+	idx := (rr.selected+1) % rr.max
+	rr.selected = idx
+	return idx
 }
 func (rr *RangeRing) Prev() int {
 	index := rr.selected-1
 	if index < 0 {
-		index = rr.selected + index
+		index = rr.max + index
 	}
+	rr.selected = index
 	return index
 }
 
@@ -54,19 +58,19 @@ func (sr *SelectionRing) Selected() int {
 
 func (sr *SelectionRing) Next() int {
 	index := (sr.selected+1) % len(sr.selection)
+	sr.selected = index
 	return sr.selection[index]
 }
 
 func (sr *SelectionRing) Prev() int {
 	index := sr.selected-1
 	if index < 0 {
-		index = sr.selected+index
+		index = len(sr.selection)+index
 	}
+	sr.selected = index
 	return sr.selection[index]
 }
 
-
-//func Search(s []string, pattern string) []int {}
 
 type Field int
 const (
@@ -101,7 +105,7 @@ func MustStringToField(s string) Field {
 	return f
 }
 
-func SearchBookLoans(l []data.BookLoan, f Field, pattern string) []int {
+func SearchBookLoans(l []app.BookLoan, f Field, pattern string) []int {
 	finds := make([]int, 0)
 	for i, bookLoan := range l {
 		var s string
@@ -113,12 +117,12 @@ func SearchBookLoans(l []data.BookLoan, f Field, pattern string) []int {
 		case ByGenre:
 			s = bookLoan.Genre
 		case ByBorrower:
-			if bookLoan.Loan == nil {
+			if !bookLoan.IsOnLoan {
 				continue
 			} 
-			s = bookLoan.Genre
+			s = bookLoan.Borrower
 		default:
-			panic("unknown search field")
+			panic("searching: invalid search field")
 		}
 		s = strings.ToLower(s)
 		pattern = strings.ToLower(pattern)

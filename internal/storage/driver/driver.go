@@ -7,7 +7,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
 )
 
-func Load(driver string, path string) (storage.Storage, error) {
+func Load(driver string, path string) (storage.BookLoanStore, error) {
 	switch driver {
 	case "memory":
 		return memory.NewStorage(), nil

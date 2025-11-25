@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
-	"github.com/dubbersthehoser/mayble/internal/data"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
@@ -58,11 +57,11 @@ func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
 func NewBookLoanBuilder() *BookLoanBuilder {
 	return &BookLoanBuilder{
 		Type: Creating,
-		id: data.ZeroID,
+		id: app.ZeroID,
 	}
 } 
 
-func NewBuilderWithBookLoan(b *data.BookLoan) *BookLoanBuilder {
+func NewBuilderWithBookLoan(b *app.BookLoan) *BookLoanBuilder {
 	builder := NewBookLoanBuilder()
 	builder.id = b.ID
 	builder.SetToUpdate()
@@ -71,10 +70,10 @@ func NewBuilderWithBookLoan(b *data.BookLoan) *BookLoanBuilder {
 	builder.SetGenre(b.Genre)
 	builder.SetRatting(b.Ratting)
 	
-	if b.IsOnLoan() {
+	if b.IsOnLoan {
 		builder.SetIsOnLoan(true)
-		builder.SetBorrower(b.Loan.Borrower)
-		builder.SetDate(&b.Loan.Date)
+		builder.SetBorrower(b.Borrower)
+		builder.SetDate(&b.Date)
 	}
 
 	return builder
@@ -162,18 +161,17 @@ func (b *BookLoanBuilder) SetDateAsString(date string) {
 	}
 	b.Date = t
 }
-func (b *BookLoanBuilder) Build() *data.BookLoan {
-	bl := data.NewBookLoan()
+func (b *BookLoanBuilder) Build() *app.BookLoan {
+	bl := &app.BookLoan{}
 	bl.Title = b.Title
 	bl.Author = b.Author
 	bl.Genre = b.Genre
 	bl.Ratting = b.Ratting
 	bl.ID = b.id
+	bl.IsOnLoan = b.IsOnLoan
 	if b.IsOnLoan {
-		bl.Loan.Borrower = b.Borrower
-		bl.Loan.Date = b.Date
-	} else {
-		bl.UnsetLoan()
+		bl.Borrower = b.Borrower
+		bl.Date = b.Date
 	}
 	return bl
 }

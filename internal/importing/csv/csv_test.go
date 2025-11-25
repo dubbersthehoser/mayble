@@ -4,89 +4,88 @@ import (
 	"testing"
 	"bytes"
 	"time"
-	"github.com/dubbersthehoser/mayble/internal/storage"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 func TestExportBooks(t *testing.T) {
-	type testCase struct {
-		books []storage.BookLoan
-		csv   string
+	tests := []struct{
+		input []app.BookLoan
+		expect string
+	}{
+		{ // case 0
+			input: []app.BookLoan{
+				app.BookLoan{
+					Title: "Test Title",
+					Author: "Test Author",
+					Genre: "Test Genre",
+					Ratting: 5,
+					
+				},
+			},
+			expect: "Test Title,Test Author,Test Genre,5,,\n",
+		},
+		{ // case 1
+			input: []app.BookLoan{
+				app.BookLoan{
+					Title: "Test Title",
+					Author: "Test Author",
+					Genre: "Test Genre",
+					Ratting: 4,
+					IsOnLoan: true,
+					Borrower: "Brian",
+					Date: time.Date(2020, time.Month(9), 21, 0, 0, 0, 0, time.Local),
+				},
+			},
+			expect: "Test Title,Test Author,Test Genre,4,Brian,2020-09-21\n",
+		},
+		{ // case 2
+			input: []app.BookLoan{
+				app.BookLoan{
+					Title: "Test Title",
+					Author: "Test Author",
+					Genre: "Test Genre",
+					Ratting: 4,
+					IsOnLoan: true,
+					Borrower: "Brian",
+					Date: time.Date(2020, time.Month(9), 21, 0, 0, 0, 0, time.Local),
+				},
+				app.BookLoan{
+					Title: "My Title",
+					Author: "My Author",
+					Genre: "My Genre",
+					Ratting: 2,
+				},
+			},
+			expect: "Test Title,Test Author,Test Genre,4,Brian,2020-09-21\nMy Title,My Author,My Genre,2,,\n",
+		},
+		{ // case 3
+			input: []app.BookLoan{
+				app.BookLoan{
+					Title: "Title_1",
+					Author: "Author_1",
+					Genre: "Genre_1",
+					Ratting: 0,
+					IsOnLoan: false,
+					Borrower: "Borrower_Null",
+					Date: time.Date(2222, time.Month(2), 2, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			expect: "Title_1,Author_1,Genre_1,0,,\n",
+		},
 	}
-	cases := []testCase {
-		testCase{
-			books: []storage.BookLoan{
-				storage.BookLoan{
-					Book: storage.Book{
-						Title: "Test Title",
-						Author: "Test Author",
-						Genre: "Test Genre",
-						Ratting: 5,
-					},
-				},
-
-			},
-			csv: "Test Title,Test Author,Test Genre,5,,\n",
-		},
-		testCase{
-			books: []storage.BookLoan{
-				storage.BookLoan{
-					Book: storage.Book{
-						Title: "Test Title",
-						Author: "Test Author",
-						Genre: "Test Genre",
-						Ratting: 4,
-					},
-					Loan: &storage.Loan{
-						Name: "Brian",
-						Date: time.Date(2020, time.Month(9), 21, 0, 0, 0, 0, time.Local),
-					},
-				},
 
 
-			},
-			csv: "Test Title,Test Author,Test Genre,4,Brian,2020-09-21\n",
-		},
-		testCase{
-			books: []storage.BookLoan{
-				storage.BookLoan{
-					Book: storage.Book{
-						Title: "Test Title",
-						Author: "Test Author",
-						Genre: "Test Genre",
-						Ratting: 4,
-					},
-					Loan: &storage.Loan{
-						Name: "Brian",
-						Date: time.Date(2020, time.Month(9), 21, 0, 0, 0, 0, time.Local),
-					},
-				},
-				storage.BookLoan{
-					Book: storage.Book{
-						Title: "My Title",
-						Author: "My Author",
-						Genre: "My Genre",
-						Ratting: 2,
-					},
-				},
-
-
-			},
-			csv: "Test Title,Test Author,Test Genre,4,Brian,2020-09-21\nMy Title,My Author,My Genre,2,,\n",
-		},
-	}
-
-
-	for i, _case := range cases {
+	for i, _case := range tests {
 		b := make([]byte, 0)
 		buf := bytes.NewBuffer(b)
 		exporter := BookLoanCSV{}
-		err := exporter.ExportBooks(buf, _case.books)
+		err := exporter.ExportBooks(buf, _case.input)
 		if err != nil {
 			t.Fatalf("case %d, failed to export: %s", i, err)
 		}
 
-		if buf.String() != _case.csv {
-			t.Fatalf("case %d, expect:\n'%s',\ngot:\n'%s'", i, _case.csv, buf.String())
+		if buf.String() != _case.expect {
+			t.Fatalf("case %d, expect:\n'%s',\ngot:\n'%s'", i, _case.expect, buf.String())
 		}
 
 	}
@@ -94,31 +93,32 @@ func TestExportBooks(t *testing.T) {
 
 
 func TestImportBooks(t *testing.T) {
-	input := "The Title,The Author,The Genre,3,,\nMy Title,My Author,My Genre,5,John,2021-01-02\n"
-	expects := []storage.BookLoan{
-		storage.BookLoan{
-			Book: storage.Book{
-				Title: "The Title",
-				Author: "The Author",
-				Genre: "The Genre",
-				Ratting: 3,
-			},
-			Loan: &storage.Loan{
-				Name: "",
-				Date: time.Time{},
-			},
+	input := "The Title,The Author,The Genre,3,,\nMy Title,My Author,My Genre,5,John,2021-01-02\nThe Title,The Author,The Genre,2,,"
+	expects := []app.BookLoan{
+		app.BookLoan{
+			Title: "The Title",
+			Author: "The Author",
+			Genre: "The Genre",
+			Ratting: 3,
+			IsOnLoan: false,
 		},
-		storage.BookLoan{
-			Book: storage.Book{
-				Title: "My Title",
-				Author: "My Author",
-				Genre: "My Genre",
-				Ratting: 5,
-			},
-			Loan: &storage.Loan{
-				Name: "John",
-				Date: time.Date(2021, time.Month(1), 2, 0, 0, 0, 0, time.UTC),
-			},
+		app.BookLoan{
+			Title: "My Title",
+			Author: "My Author",
+			Genre: "My Genre",
+			Ratting: 5,
+			IsOnLoan: true ,
+			Borrower: "John",
+			Date: time.Date(2021, time.Month(1), 2, 0, 0, 0, 0, time.UTC),
+		},
+		app.BookLoan{
+			Title: "The Title",
+			Author: "The Author",
+			Genre: "The Genre",
+			Ratting: 2,
+			IsOnLoan:  false,
+			Borrower: "",
+			Date: time.Time{},
 		},
 	}
 	buf := bytes.NewBuffer([]byte(input))
@@ -153,20 +153,16 @@ func TestImportBooks(t *testing.T) {
 			t.Fatalf("entry %d, expect ratting '%d', got '%d'", i, expect.Ratting, actual.Ratting)
 		}
 
-		if actual.Loan.Name != expect.Loan.Name {
-			t.Fatalf("entry %d, expect ratting '%s', got '%s'", i, expect.Loan.Name, actual.Loan.Name)
+		if actual.IsOnLoan != expect.IsOnLoan {
+			t.Fatalf("entry %d, expect is on loan '%t', got '%t'", i, expect.IsOnLoan, actual.IsOnLoan)
 		}
-		if !actual.Loan.Date.Equal(expect.Loan.Date) {
-			t.Fatalf("entry %d, expect ratting '%v', got '%v'", i, expect.Loan.Date, actual.Loan.Date)
+
+		if actual.Borrower != expect.Borrower {
+			t.Fatalf("entry %d, expect borrower '%s', got '%s'", i, expect.Borrower, actual.Borrower)
+		}
+		if !actual.Date.Equal(expect.Date) {
+			t.Fatalf("entry %d, expect date '%v', got '%v'", i, expect.Date, actual.Date)
 		}
 
 	}
 }
-
-
-
-
-
-
-
-

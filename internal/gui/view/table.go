@@ -49,15 +49,15 @@ func (f *FunkView) Table() fyne.CanvasObject {
 			}
 			if button.Text != labelDesc {
 				button.SetText(labelDesc)
-				f.controller.BookList.SetOrdering(listing.DEC)
+				f.controller.List.SetOrdering(listing.DEC)
 			} else {
 				button.SetText(labelAsc)
-				f.controller.BookList.SetOrdering(listing.ASC)
+				f.controller.List.SetOrdering(listing.ASC)
 			}
 			button.Refresh()
 			by := listing.MustStringToOrderBy(label)
-			f.controller.BookList.SetOrderBy(by)
-			f.emiter.Emit(OnSort)
+			f.controller.List.SetOrderBy(by)
+			f.emiter.Emit(OnSort, nil)
 		}
 		//f.emiter.On(OnModification, func() {
 		//	button.SetText(labelNormal)
@@ -82,7 +82,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		List's Methods
 	****************************/
 	OnListLength := func() int {
-		n := f.controller.BookList.Len()
+		n := f.controller.List.Len()
 		return n
 	}
 
@@ -129,7 +129,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		return entry
 	}   
 	OnCanvasInit := func(index int, o fyne.CanvasObject) {
-		book, err := f.controller.BookList.Get(index)
+		book, err := f.controller.List.Get(index)
 		if err != nil {
 			f.displayError(err)
 			return
@@ -144,17 +144,17 @@ func (f *FunkView) Table() fyne.CanvasObject {
 
 	OnSelect := func(index int) {
 		fmt.Println("Selected book")
-		err := f.controller.BookList.Select(index)
+		err := f.controller.List.Select(index)
 		if err != nil {
 			f.displayError(err)
 			return
 		}
-		f.emiter.Emit(OnSelected)
+		f.emiter.Emit(OnSelected, nil)
 	}
 	OnUnselect := func(index int) {
 		fmt.Println("Unselected book")
-		f.controller.BookList.Unselect()
-		f.emiter.Emit(OnUnselected)
+		f.controller.List.Unselect()
+		f.emiter.Emit(OnUnselected, nil)
 	}
 
 	/*******************
@@ -165,22 +165,22 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	List.OnSelected = OnSelect
 	List.OnUnselected = OnUnselect
 
-	listOnModification := func() {
+	listOnModification := func(_ any) {
 		List.UnselectAll()
 	}
 
-	listOnSearch := func() {
+	listOnSearch := func(_ any) {
 		fmt.Println("list on search")
-		idx := f.controller.BookList.SelectedIndex
+		idx := f.controller.List.SelectedIndex
 		List.Select(widget.ListItemID(idx))
 	}
 	listOnSelectNext := listOnSearch
 	listOnSelectPrev := listOnSearch
 
-	f.emiter.On(OnModification, listOnModification)
-	f.emiter.On(OnSearch, listOnSearch)
-	f.emiter.On(OnSelectNext, listOnSelectNext)
-	f.emiter.On(OnSelectPrev, listOnSelectPrev)
+	f.emiter.OnEvent(OnModification, listOnModification)
+	f.emiter.OnEvent(OnSearch, listOnSearch)
+	f.emiter.OnEvent(OnSelectNext, listOnSelectNext)
+	f.emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
 
 
 	// Table

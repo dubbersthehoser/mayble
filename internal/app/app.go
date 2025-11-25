@@ -7,6 +7,12 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
 )
 
+var (
+	ErrInvalidValue error = errors.New("invalid value")
+)
+
+var ZeroID int64 = storage.ZeroID
+
 
 type App struct {
 	storage  storage.BookLoanStore
@@ -33,11 +39,14 @@ func (a *App) load() error {
 	if err != nil {
 		return fmt.Errorf("app: %w", err)
 	}
+	a.memory.Wipe()
 	for _, book := range bookLoans {
-		_, err = createBookLoan(a.memory, &book)
-		if errors.Is(err, storage.ErrEntryExists) {
-			err = updateBookLoan(a.memory, &book)
+		id, err := createBookLoan(a.memory, &book)
+		if err != nil {
+			return err
 		}
+		book.ID = id
+		err = updateBookLoan(a.memory, &book)
 		if err != nil {
 			return err
 		}
@@ -69,6 +78,9 @@ func (a *App) GetBookLoans() ([]BookLoan, error) {
 }
 
 func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
+	if bookLoans == nil {
+		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
+	}
 	cmd := newCommandImportBookLoans(bookLoans)
 	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
@@ -80,6 +92,9 @@ func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
 
 
 func (a *App) CreateBookLoan(book *BookLoan) error {
+	if book == nil {
+		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
+	}
 	cmd := newCommandCreateBookLoan(book)
 	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
@@ -90,6 +105,9 @@ func (a *App) CreateBookLoan(book *BookLoan) error {
 }
 
 func (a *App) UpdateBookLoan(book *BookLoan) error {
+	if book == nil {
+		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
+	}
 	cmd := newCommandUpdateBookLoan(book)
 	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
@@ -100,6 +118,9 @@ func (a *App) UpdateBookLoan(book *BookLoan) error {
 }
 
 func (a *App) DeleteBookLoan(book *BookLoan) error {
+	if book == nil {
+		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
+	}
 	cmd := newCommandDeleteBookLoan(book)
 	err := a.memMgr.execute(cmd(a.memory))
 	if err != nil {
@@ -125,7 +146,7 @@ func (a *App) RedoIsEmpty() bool {
 
 
 func createBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) (int64, error) {
-	id, err := s.CreateBook(bookLoan.Title, bookLoan.Author, bookLoan.Genre, bookLoan.Ratting)
+	id, err := s.CreateBook(bookLoan.ID, bookLoan.Title, bookLoan.Author, bookLoan.Genre, bookLoan.Ratting)
 	if err != nil {
 		return -1, err
 	}
@@ -148,6 +169,7 @@ func getAllBookLoans(s storage.BookLoanStore) ([]BookLoan, error) {
 	bookLoans := make([]BookLoan, 0)
 	for _, book := range books {
 		bookLoan := BookLoan{
+			ID: book.ID,
 			Title: book.Title,
 			Author: book.Author,
 			Genre: book.Genre,
@@ -177,6 +199,7 @@ func getBookLoanByID(s storage.BookLoanStore, id int64) (*BookLoan, error) {
 	if err != nil {
 		return nil, err
 	}
+	bookLoan.ID = id
 	bookLoan.Title = book.Title
 	bookLoan.Author = book.Author
 	bookLoan.Genre = book.Genre

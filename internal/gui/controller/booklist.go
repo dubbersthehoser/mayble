@@ -4,7 +4,6 @@ import (
 	"errors"
 	
 	"github.com/dubbersthehoser/mayble/internal/app"
-	"github.com/dubbersthehoser/mayble/internal/data"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/searching"
 )
@@ -17,7 +16,7 @@ const UnselectIndex int = -1
 
 type BookList struct {
 	app            app.BookLoaning
-	list           []data.BookLoan
+	list           []app.BookLoan
 	ordering       listing.Ordering
 	orderBy        listing.OrderBy
 	searchBy       searching.Field
@@ -25,11 +24,11 @@ type BookList struct {
 	SelectedIndex  int // selected element in list
 	selection      searching.Ring
 }
-func NewBookList(app app.BookLoaning) *BookList {
+func NewBookList(a app.BookLoaning) *BookList {
 	b := &BookList{
-		list:          make([]data.BookLoan, 0),
+		list:          make([]app.BookLoan, 0),
 		SelectedIndex: UnselectIndex,
-		app:           app,
+		app:           a,
 	}
 	return b
 }
@@ -80,7 +79,7 @@ func (l *BookList) IsSelected() bool {
 	return l.SelectedIndex != UnselectIndex
 }
 
-func (l *BookList) Selected() (*data.BookLoan, error) {
+func (l *BookList) Selected() (*app.BookLoan, error) {
 	if l.SelectedIndex == UnselectIndex {
 		return nil, errors.New("booklist: no book selected")
 	}
@@ -101,7 +100,7 @@ func (l *BookList) Get(index int) (*listing.BookLoan, error) {
 }
 
 
-func (l *BookList) SetSearch(pattern string) {
+func (l *BookList) SetSearchPattern(pattern string) {
 	l.searchPattern = pattern
 }
 

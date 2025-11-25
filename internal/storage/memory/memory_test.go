@@ -8,22 +8,85 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
+func TestStoreWipe(t *testing.T) {
+	store := NewStorage()
+	date := time.Now()
+	tests := []struct{
+		book storage.Book
+		loan storage.Loan
+	}{
+		{
+			book: storage.Book{
+				ID: storage.ZeroID,
+				Title: "title_1",
+				Author: "author_1",
+				Genre: "genre_1",
+				Ratting: 1,
+			},
+			loan: storage.Loan{
+				Borrower: "borrower_1",
+				Date: date,
+			},
+		},
+		{
+			book: storage.Book{
+				ID: storage.ZeroID,
+				Title: "title_2",
+				Author: "author_2",
+				Genre: "genre_2",
+				Ratting: 2,
+			},
+			loan: storage.Loan{
+				Borrower: "borrower_2",
+				Date: date,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		book := test.book
+		loan := test.loan
+		id, err := store.CreateBook(storage.ZeroID, book.Title, book.Author, book.Genre, book.Ratting)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		err = store.CreateLoan(id, loan.Borrower, loan.Date)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	}
+	if len(store.Books) != len(tests) {
+		t.Fatalf("expect length %d, got %d", len(tests), len(store.Books))
+	}
+	if len(store.Loans) != len(tests) {
+		t.Fatalf("expect length %d, got %d", len(tests), len(store.Loans))
+	}
+	store.Wipe()
+	if len(store.Books) != 0 {
+		t.Fatalf("expect length %d, got %d", 0, len(store.Books))
+	}
+	if len(store.Loans) != 0 {
+		t.Fatalf("expect length %d, got %d", 0, len(store.Loans))
+	}
+}
+
 
 /**********************************
         Testing Store Book 
 ***********************************/
 
-
 func TestStoreBookCreate(t *testing.T) {
 	store := NewStorage()
 	tests := []storage.Book{
 		storage.Book{
+			ID: 3,
 			Title: "title_1",
 			Author: "author_1",
 			Genre: "genre_1",
 			Ratting: 1,
 		},
 		storage.Book{
+			ID: 2,
 			Title: "title_2",
 			Author: "author_2",
 			Genre: "genre_2",
@@ -31,7 +94,7 @@ func TestStoreBookCreate(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		id, err := store.CreateBook(test.Title, test.Author, test.Genre, test.Ratting)
+		id, err := store.CreateBook(storage.ZeroID, test.Title, test.Author, test.Genre, test.Ratting)
 		if err != nil {
 			t.Fatalf("case %d, unexpected error: %s", i, err)
 		}
@@ -39,6 +102,30 @@ func TestStoreBookCreate(t *testing.T) {
 			t.Fatalf("case %d, got id %d, want %d", i, id, i+1)
 		}
 	}
+
+	books, err := store.GetBooks()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	
+	for i, book := range books {
+		if book.ID == storage.ZeroID {
+			t.Fatalf("case %d, valid id was not set", i)
+		}
+	}
+
+	store.Wipe()
+
+	for i, test := range tests {
+		id, err := store.CreateBook(test.ID, test.Title, test.Author, test.Genre, test.Ratting)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if id != test.ID {
+			t.Fatalf("case %d, expect id %d, got %d", i, test.ID, id)
+		}
+	}
+
 }
 
 func TestStoreBookDelete(t *testing.T) {
@@ -58,7 +145,7 @@ func TestStoreBookDelete(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		id, err := store.CreateBook(test.Title, test.Author, test.Genre, test.Ratting)
+		id, err := store.CreateBook(storage.ZeroID, test.Title, test.Author, test.Genre, test.Ratting)
 		if err != nil {
 			t.Fatalf("case %d, unexpected error: %s", i, err)
 		}
@@ -115,7 +202,7 @@ func TestStoreUpdate(t *testing.T) {
 
 	for i, test := range tests {
 		create := test.created
-		id, err := store.CreateBook(create.Title, create.Author, create.Genre, create.Ratting)
+		id, err := store.CreateBook(storage.ZeroID, create.Title, create.Author, create.Genre, create.Ratting)
 		if err != nil {
 			t.Fatalf("case %d, unexpected error: %s", i, err)
 		}
@@ -167,7 +254,7 @@ func TestGetBooks(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		id, err := store.CreateBook(test.Title, test.Author, test.Genre, test.Ratting)
+		id, err := store.CreateBook(storage.ZeroID, test.Title, test.Author, test.Genre, test.Ratting)
 		if err != nil {
 			t.Fatalf("case %d, unexpected error: %s", i, err)
 		}
@@ -201,7 +288,7 @@ func TestGetBookByID(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		id, err := store.CreateBook(test.Title, test.Author, test.Genre, test.Ratting)
+		id, err := store.CreateBook(storage.ZeroID, test.Title, test.Author, test.Genre, test.Ratting)
 		if err != nil {
 			t.Fatalf("case %d, unexpected error: %s", i, err)
 		}
@@ -241,31 +328,64 @@ func TestStoreBookErrors(t *testing.T) {
 		Ratting: 3,
 	}
 
+
 	// UpdateBook()
 	err := store.UpdateBook(nil)
 	if !errors.Is(err, storage.ErrInvalidValue) {
-		t.Fatal("update book gave wrong error value")
+		t.Fatalf("update book gave wrong error value: %s", err)
 	}
 	err = store.UpdateBook(&book)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("update book gave wrong error value")
+		t.Fatalf("update book gave wrong error value: %s", err)
 	}
+	book.ID = -4
+	err = store.UpdateBook(&book)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("update book gave wrong error value: %s", err)
+	}
+
+	book.ID = 10
+
 	
 	// DeleteBook()
 	err = store.DeleteBook(nil)
 	if !errors.Is(err, storage.ErrInvalidValue) {
-		t.Fatal("delete book gave wrong error value")
+		t.Fatalf("delete book gave wrong error value: %s", err)
 	}
 	err = store.DeleteBook(&book)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("delete book gave wrong error value")
+		t.Fatalf("delete book gave wrong error value: %s", err)
 	}
+	book.ID = -5
+	err = store.DeleteBook(&book)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("delete book gave wrong error value: %s", err)
+	}
+
+	book.ID = 10
 
 	// GetBookByID
 	_, err = store.GetBookByID(23)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("get book by id gave wrong error value")
+		t.Fatalf("get book by id gave wrong error value: %s", err)
 	}
+	_, err = store.GetBookByID(-123)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("get book by id gave wrong error value: %s", err)
+	}
+
+
+
+	// CreateBook()
+	_, err = store.CreateBook(book.ID, book.Title, book.Author, book.Genre, book.Ratting)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	_, err = store.CreateBook(book.ID, book.Title, book.Author, book.Genre, book.Ratting) 
+	if !errors.Is(err, storage.ErrEntryExists) {
+		t.Fatalf("create book gave wron error value: %s", err)
+	}
+
 
 }
 
@@ -450,42 +570,55 @@ func TestStoreLoanErrors(t *testing.T) {
 	}
 	err := store.CreateLoan(loan.ID, loan.Borrower, loan.Date)
 	if err != nil {
-		t.Fatal("unexpected error")
+		t.Fatalf("unexpected error: %s", err)
 	}
 	err = store.CreateLoan(loan.ID, loan.Borrower, loan.Date)
 	if !errors.Is(err, storage.ErrEntryExists) {
-		t.Fatal("CreateLoan gave wrong error value")
+		t.Fatalf("CreateLoan gave wrong error value: %s", err)
+	}
+	err = store.CreateLoan(-1, loan.Borrower, loan.Date)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("CreateLoan gave wrong error value: %s", err)
 	}
 
 	// UpdateLoan()
 	err = store.UpdateLoan(nil)
 	if !errors.Is(err, storage.ErrInvalidValue) {
-		t.Fatal("UpdateLoan gave wrong error value")
+		t.Fatalf("UpdateLoan gave wrong error value: %s", err)
 		
 	}
-
 	loan.ID = 20
 	err = store.UpdateLoan(&loan)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("UpdateLoan gave wrong error value")
+		t.Fatalf("UpdateLoan gave wrong error value: %s", err)
+	}
+	loan.ID = -1
+	err = store.UpdateLoan(&loan)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("UpdateLoan gave wrong error value: %s", err)
 	}
 
 	// DeleteLoan()
 	err = store.DeleteLoan(nil)
 	if !errors.Is(err, storage.ErrInvalidValue) {
-		t.Fatal("DeleteLoan gave wrong error value")
+		t.Fatalf("DeleteLoan gave wrong error value: %s", err)
 	}
-
+	loan.ID = 20
 	err = store.DeleteLoan(&loan)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("DeleteLoan gave wrong error value")
+		t.Fatalf("DeleteLoan gave wrong error value: %s", err)
+	}
+	loan.ID = -1
+	err = store.DeleteLoan(&loan)
+	if !errors.Is(err, storage.ErrInvalidValue) {
+		t.Fatalf("DeleteLoan gave wrong error value: %s", err)
 	}
 
 
 	// GetLoan()
 	_, err = store.GetLoan(loan.ID)
 	if !errors.Is(err, storage.ErrEntryNotFound) {
-		t.Fatal("GetLoan gave wrong error value")
+		t.Fatalf("GetLoan gave wrong error value: %s", err)
 	}
 }
 
@@ -498,7 +631,7 @@ func TestGetNewBookID(t *testing.T) {
 		if expect != id {
 			t.Fatalf("%d'th call got %d, want %d", i, id, expect)
 		}
-		store.CreateBook("title", "author", "genre", 3)
+		store.CreateBook(storage.ZeroID, "title", "author", "genre", 3)
 	}
 
 }

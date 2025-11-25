@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
-	"github.com/dubbersthehoser/mayble/internal/searching"
+	//"github.com/dubbersthehoser/mayble/internal/searching"
 )
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
@@ -19,7 +19,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Save
 	//------
 	OnSaveItem := func() {
-		f.emiter.Emit(OnSave)
+		f.emiter.Emit(OnSave, nil)
 	}
 
 	saveItem := &widget.ToolbarAction{
@@ -30,21 +30,21 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	saveItem.Disable()
 
 	// Events
-	EnableSaveItem := func() {
+	EnableSaveItem := func(_ any) {
 		saveItem.Enable()
 	}
-	DisableSaveItem := func() {
+	DisableSaveItem := func(_ any) {
 		saveItem.Disable()
 	}
 
-	f.emiter.On(OnModification, EnableSaveItem)
-	f.emiter.On(OnSave, DisableSaveItem)
+	f.emiter.OnEvent(OnModification, EnableSaveItem)
+	f.emiter.OnEvent(OnSave, DisableSaveItem)
 
 
 	// Menu
 	//------
 	OnMenuItem := func() {
-		f.emiter.Emit(OnMenuOpen)
+		f.emiter.Emit(OnMenuOpen, nil)
 	}
 	menuItem := &widget.ToolbarAction{
 		Icon: theme.MenuIcon(),
@@ -56,7 +56,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Create 
 	//--------
 	OnCreateItem := func() {
-		f.emiter.Emit(OnCreate)
+		f.emiter.Emit(OnCreate, nil)
 	}
 	createItem := &widget.ToolbarAction{
 		Icon: theme.ContentAddIcon(),
@@ -67,7 +67,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Update
 	//--------
 	OnUpdateItem := func() {
-		f.emiter.Emit(OnUpdate)
+		f.emiter.Emit(OnUpdate, nil)
 	}
 	updateItem := &widget.ToolbarAction{
 		Icon: theme.DocumentCreateIcon(),
@@ -77,7 +77,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Delete
 	//--------
 	OnDeleteItem := func() {
-		f.emiter.Emit(OnDelete)
+		f.emiter.Emit(OnDelete, nil)
 	}
 	deleteItem := &widget.ToolbarAction{
 		Icon: theme.DeleteIcon(),
@@ -86,19 +86,19 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 
 
 	// Events
-	DisableItemOnMod := func() {
+	DisableItemOnMod := func(_ any) {
 		updateItem.Disable()
 		deleteItem.Disable()
 	}
-	EnableItemOnMod := func() {
+	EnableItemOnMod := func(_ any) {
 		updateItem.Enable()
 		deleteItem.Enable()
 	}
 	updateItem.Disable()
 	deleteItem.Disable()
 	
-	f.emiter.On(OnSelected, EnableItemOnMod)
-	f.emiter.On(OnUnselected, DisableItemOnMod)
+	f.emiter.OnEvent(OnSelected, EnableItemOnMod)
+	f.emiter.OnEvent(OnUnselected, DisableItemOnMod)
 
 	// Undo Redo
 	//-----------
@@ -116,7 +116,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Redo
 	//------
 	OnRedoItem := func() {
-		f.emiter.Emit(OnRedo)
+		f.emiter.Emit(OnRedo, nil)
 	}
 	redoItem := &widget.ToolbarAction{
 		Icon: theme.ContentRedoIcon(),
@@ -138,7 +138,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		}
 	}
 
-	f.emiter.On(OnModification, func() {
+	f.emiter.OnEvent(OnModification, func(_ any) {
 		checkRedoBtn()
 		checkUndoBtn()
 	})
@@ -156,7 +156,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	selectSearchBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre", "Borrower"},
 		func(s string) {
-			f.emit(OnSearchBy, s)
+			f.emiter.Emit(OnSearchBy, s)
 		},
 	)
 	selectSearchBy.PlaceHolder = "Search By"
@@ -169,22 +169,20 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		f.emiter.Emit(OnSearch, s)
 	}
 
-	searchEnt.OnSubmitted = func (s string) {
-		f.emiter.Emit(OnSelectNext)
+	searchEnt.OnSubmitted = func(s string) {
+		f.emiter.Emit(OnSelectNext, nil)
 	}
 
-	f.emiter.On(OnSort, func(_ any) {
+	resetSearchText := func(_ any) {
 		searchEnt.SetText("")
-	})
-
-	f.emiter.On(OnSearchBy, func(_ any)) {
-		searchEnt.SetText("")
-	})
+	}
+	f.emiter.OnEvent(OnSort, resetSearchText)
+	f.emiter.OnEvent(OnSearchBy, resetSearchText)
 
 	// Next Item
 	//-----------
 	onNextItem := func() {
-		f.emiter.Emit(OnSelectNext)
+		f.emiter.Emit(OnSelectNext, nil)
 	}
 
 	nextItemItem := &widget.ToolbarAction{
@@ -195,7 +193,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	// Previous Item
 	// --------------
 	onPrevItem := func() {
-		f.emiter.Emit(OnSelectPrev)
+		f.emiter.Emit(OnSelectPrev, nil)
 	}
 
 	prevItemItem := &widget.ToolbarAction{

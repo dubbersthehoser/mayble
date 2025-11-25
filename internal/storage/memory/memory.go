@@ -20,24 +20,41 @@ func NewStorage() *Storage {
 }
 
 
+func (m *Storage) Wipe() {
+	for id := range m.Books {
+		delete(m.Books, id)
+	}
+	for id := range m.Loans {
+		delete(m.Loans, id)
+	}
+}
+
+
 /************************
         StoreBook
 *************************/
 
-func (m *Storage) CreateBook(title, author, genre string, ratting int) (int64, error) {
+func (m *Storage) CreateBook(id int64, title, author, genre string, ratting int) (int64, error) {
+	if id < 0 {
+		id = m.getNewBookID()
+	}
+	_, ok := m.Books[id]
+	if ok {
+		return -1, storage.ErrEntryExists
+	}
 	book := storage.Book{
+		ID: id,
 		Title: title,
 		Author: author,
 		Genre: genre,
 		Ratting: ratting,
 	}
-	id := m.getNewBookID()
 	m.Books[id] = book
 	return id, nil
 }
 
 func (m *Storage) UpdateBook(book *storage.Book) error {
-	if book == nil {
+	if book == nil || book.ID < 0 {
 		return storage.ErrInvalidValue
 	}
 	_, ok := m.Books[book.ID]
@@ -49,7 +66,7 @@ func (m *Storage) UpdateBook(book *storage.Book) error {
 }
 
 func (m *Storage) DeleteBook(book *storage.Book) error {
-	if book == nil {
+	if book == nil || book.ID < 0 {
 		return storage.ErrInvalidValue
 	}
 	_, ok := m.Books[book.ID]
@@ -71,6 +88,9 @@ func (m *Storage) GetBooks() ([]storage.Book, error) {
 }
 
 func (m *Storage) GetBookByID(id int64) (*storage.Book, error) {
+	if id < 0 {
+		return nil, storage.ErrInvalidValue
+	}
 	book, ok := m.Books[id]
 	if !ok {
 		return nil, storage.ErrEntryNotFound
@@ -85,6 +105,9 @@ func (m *Storage) GetBookByID(id int64) (*storage.Book, error) {
 *************************/
 
 func (m *Storage) CreateLoan(ID int64, borrower string, date time.Time) error {
+	if ID < 0 {
+		return storage.ErrInvalidValue
+	}
 	_, ok := m.Loans[ID]
 	if ok {
 		return storage.ErrEntryExists
@@ -99,7 +122,7 @@ func (m *Storage) CreateLoan(ID int64, borrower string, date time.Time) error {
 }
 
 func (m *Storage) UpdateLoan(loan *storage.Loan) error {
-	if loan == nil {
+	if loan == nil || loan.ID < 0 {
 		return storage.ErrInvalidValue
 	}
 	_, ok := m.Loans[loan.ID]
@@ -111,7 +134,7 @@ func (m *Storage) UpdateLoan(loan *storage.Loan) error {
 }
 
 func (m *Storage) DeleteLoan(loan *storage.Loan) error {
-	if loan == nil {
+	if loan == nil || loan.ID < 0 {
 		return storage.ErrInvalidValue
 	}
 	_, ok := m.Loans[loan.ID]

@@ -11,8 +11,8 @@ type Controller struct {
 	Undoer     app.Undoable
 	Importer   app.Importable
 	Saver      app.Savable
-	BookList   *BookList
-	BookEditor *BookEditor
+	List      *BookList
+	Editor *BookEditor
 }
 
 func New(a app.Mayble) *Controller {
@@ -25,8 +25,8 @@ func New(a app.Mayble) *Controller {
 	c.Importer   = a
 	c.Saver      = a
 
-	c.BookList = NewBookList(app.BookLoaning(a))
-	c.BookEditor = NewBookEditor(app.BookLoaning(a))
+	c.List = NewBookList(app.BookLoaning(a))
+	c.Editor = NewBookEditor(app.BookLoaning(a))
 	return &c
 }
 

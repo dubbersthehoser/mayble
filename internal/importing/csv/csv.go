@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 
@@ -23,10 +23,9 @@ const (
 	RattingIndex   = 3
 	BorrowerIndex  = 4
 	DateIndex      = 5
-
 )
 
-func ToFields(book data.BookLoan) ([]string, error) {
+func ToFields(book app.BookLoan) ([]string, error) {
 	fields := make([]string, NumberOfFields)
 	fields[TitleIndex] = book.Title
 	fields[AuthorIndex] = book.Author
@@ -35,19 +34,19 @@ func ToFields(book data.BookLoan) ([]string, error) {
 	ratting := strconv.Itoa(book.Ratting)
 	fields[RattingIndex] = ratting
 
-	if book.Loan != nil {
-		fields[BorrowerIndex] = book.Loan.Borrower
-		fields[DateIndex] = book.Loan.Date.Format(time.DateOnly)
+	if book.IsOnLoan {
+		fields[BorrowerIndex] = book.Borrower
+		fields[DateIndex] = book.Date.Format(time.DateOnly)
 	}
 	return fields, nil
 }
 
-func FromFields(fields []string) (*data.BookLoan, error) {
+func FromFields(fields []string) (*app.BookLoan, error) {
 	if len(fields) != NumberOfFields {
 		return nil, errors.New("invalid number of fields")
 	}
 
-	book := data.NewBookLoan()
+	book := &app.BookLoan{ID: app.ZeroID}
 
 	book.Title = fields[TitleIndex]
 	book.Author = fields[AuthorIndex]
@@ -56,27 +55,34 @@ func FromFields(fields []string) (*data.BookLoan, error) {
 	if err != nil {
 		return nil, errors.New("failed to parse ratting field")
 	}
-
 	book.Ratting = ratting
-	if fields[BorrowerIndex] != "" && fields[DateIndex] != "" {
-		book.Loan.Borrower = fields[BorrowerIndex]
+
+	var (
+		HasBorrower bool = fields[BorrowerIndex] != ""
+		HasDate     bool = fields[DateIndex] != ""
+	)
+	if HasBorrower && HasDate {
+		book.IsOnLoan = true
+	} else {
+		book.IsOnLoan = false
+	}
+	if book.IsOnLoan {
+		book.Borrower = fields[BorrowerIndex]
 		date, err := time.Parse(time.DateOnly, fields[DateIndex])
 		if err != nil {
 			return nil, errors.New("failed to parse date field")
 		}
-		book.Loan.Date = date
-	} else {
-		book.Loan = nil
+		book.Date = date
 	}
 	return book, nil
 }
 
 type BookLoanCSV struct {}
 
-func (c BookLoanCSV) ImportBooks(r io.Reader) ([]data.BookLoan, error) {
+func (c BookLoanCSV) ImportBooks(r io.Reader) ([]app.BookLoan, error) {
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = NumberOfFields
-	books := make([]data.BookLoan, 0)
+	books := make([]app.BookLoan, 0)
 	recordCount := 0
 	for {
 		fields, err := reader.Read()
@@ -99,7 +105,7 @@ func (c BookLoanCSV) ImportBooks(r io.Reader) ([]data.BookLoan, error) {
 
 }
 
-func (c BookLoanCSV) ExportBooks(w io.Writer, books []data.BookLoan) error {
+func (c BookLoanCSV) ExportBooks(w io.Writer, books []app.BookLoan) error {
 	writer := csv.NewWriter(w)
 	for _, book := range books {
 		fields, err := ToFields(book)

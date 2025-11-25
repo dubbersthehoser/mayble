@@ -7,7 +7,7 @@ import (
 	"time"
 	"fmt"
 
-	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 type BookLoan struct {
@@ -52,8 +52,10 @@ func StringToOrderBy(s string) (OrderBy, error) {
 		return ByBorrower, nil
 	case "date":
 		return ByDate, nil
+	case "":
+		return ByNothing, nil
 	default:
-		return ByNothing, errors.New("invalid string order by value")
+		return ByNothing, errors.New("invalid string order by string")
 	}
 }
 func MustStringToOrderBy(s string) OrderBy {
@@ -71,8 +73,8 @@ const (
 	DEC
 )
 
-func OrderBookLoans(s []data.BookLoan, by OrderBy, order Ordering) []data.BookLoan {
-	compare := func(x, y data.BookLoan) int {
+func OrderBookLoans(s []app.BookLoan, by OrderBy, order Ordering) []app.BookLoan {
+	compare := func(x, y app.BookLoan) int {
 		const (
 			GreaterX int = 1
 			Equal    int = 0
@@ -82,11 +84,11 @@ func OrderBookLoans(s []data.BookLoan, by OrderBy, order Ordering) []data.BookLo
 		switch by {
 		case ByID:
 			switch {
-			case x.Ratting == y.Ratting:
+			case x.ID == y.ID:
 				result = Equal
-			case x.Ratting > y.Ratting:
+			case x.ID > y.ID:
 				result = GreaterX
-			case x.Ratting < y.Ratting:
+			case x.ID < y.ID:
 				result = LesserX
 			}
 		case ByTitle:
@@ -111,18 +113,18 @@ func OrderBookLoans(s []data.BookLoan, by OrderBy, order Ordering) []data.BookLo
 				result = LesserX
 			}
 		case ByBorrower, ByDate:
-			if x.Loan == nil && y.Loan == nil {
+			if !x.IsOnLoan && !y.IsOnLoan {
 				result = Equal
-			} else if x.Loan == nil {
+			} else if !x.IsOnLoan {
 				result = LesserX
-			} else if y.Loan == nil {
+			} else if !y.IsOnLoan {
 				result = GreaterX
 			} else if by == ByBorrower {
-				a := strings.ToLower(x.Loan.Borrower)
-				b := strings.ToLower(y.Loan.Borrower)
+				a := strings.ToLower(x.Borrower)
+				b := strings.ToLower(y.Borrower)
 				result = strings.Compare(a, b)
 			} else if by == ByDate {
-				result = x.Loan.Date.Compare(y.Loan.Date)
+				result = x.Date.Compare(y.Date)
 			}
 		case ByNothing:
 			result = Equal
@@ -177,9 +179,9 @@ func DateToString(date *time.Time) string {
 }
 
 
-func BookLoanToListed(bookLoan *data.BookLoan) *BookLoan {
+func BookLoanToListed(bookLoan *app.BookLoan) *BookLoan {
 	view := BookLoan{
-		ID:      bookLoan.Book.ID,
+		ID:      bookLoan.ID,
 		Title:   bookLoan.Title,
 		Author:  bookLoan.Author,
 		Genre:   bookLoan.Genre,
@@ -187,9 +189,9 @@ func BookLoanToListed(bookLoan *data.BookLoan) *BookLoan {
 		Borrower: "n/a",
 		Date:     "n/a",
 	}
-	if bookLoan.IsOnLoan() {
-		view.Borrower = bookLoan.Loan.Borrower
-		view.Date  = DateToString(&bookLoan.Loan.Date)
+	if bookLoan.IsOnLoan {
+		view.Borrower = bookLoan.Borrower
+		view.Date  = DateToString(&bookLoan.Date)
 	}
 	return &view
 }

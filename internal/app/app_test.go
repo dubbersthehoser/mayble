@@ -4,17 +4,468 @@ import (
 	"time"
 	"testing"
 	"fmt"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
+	"github.com/dubbersthehoser/mayble/internal/storage"
 )
 
 
-func TestApp(t *testing.T) {
-	store := memeory.NewStorage()
-	app := NewApp(store)
+func TestAppCreateBookLoan(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpeced error: %s", err)
+	}
 
+	date := time.Now()
 
+	tests := []BookLoan{
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 0,
+			IsOnLoan: false,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 1,
+			IsOnLoan: false,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_3",
+			Author: "author_3",
+			Genre: "genre_3",
+			Ratting: 2,
+			IsOnLoan: false,
+			Borrower: "borrower_3",
+			Date: date,
 
+		},
+	}
+
+	for i, test := range tests {
+		err := app.CreateBookLoan(&test)
+		if err != nil {
+			t.Fatalf("case %d, unexpected error: %s", i, err)
+		}
+	}
+
+	bookLoans, err := app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpeced error: %s", err)
+	}
+
+	if len(bookLoans) != len(tests) {
+		t.Fatalf("expect length %d, got %d", len(tests), len(bookLoans))
+	}
+}
+
+func TestAppError(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	err = app.UpdateBookLoan(nil)
+	if !errors.Is(err, ErrInvalidValue) {
+		t.Fatal("error value was not catched")
+	}
+
+	err = app.CreateBookLoan(nil)
+	if !errors.Is(err, ErrInvalidValue) {
+		t.Fatal("error value was not catched")
+	}
+
+	err = app.DeleteBookLoan(nil)
+	if !errors.Is(err, ErrInvalidValue) {
+		t.Fatal("error value was not catched")
+	}
+
+	err = app.ImportBookLoans(nil)
+	if !errors.Is(err, ErrInvalidValue) {
+		t.Fatal("error value was not catched")
+	}
+}
+
+func TestAppDeleteBookLoan(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpeced error: %s", err)
+	}
+
+	date := time.Now()
+	tests := []BookLoan{
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 0,
+			IsOnLoan: false,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 1,
+			IsOnLoan: true,
+			Borrower: "borrower_2",
+			Date: date,
+
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_3",
+			Author: "author_3",
+			Genre: "genre_3",
+			Ratting: 2,
+			IsOnLoan: false,
+		},
+	}
+
+	for i, test := range tests {
+		err := app.CreateBookLoan(&test)
+		if err != nil {
+			t.Fatalf("case %d, unexpected error: %s", i, err)
+		}
+	}
+
+	bookLoans, err := app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for i, bookLoan := range bookLoans {
+		err := app.DeleteBookLoan(&bookLoan)
+		if err != nil {
+			t.Fatalf("case %d, unexpected error: %s", i, err)
+		}
+	}
+	
+	bookLoans, err = app.GetBookLoans()
+	if len(bookLoans) != 0 {
+		t.Fatalf("expected length %d, got %d", 0, len(bookLoans))
+	}
+}
+
+func TestAppUpdateBookLoan(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpeced error: %s", err)
+	}
+
+	date := time.Now()
+	
+	tests := []struct{
+		create BookLoan
+		update BookLoan
+	}{
+		{
+			create: BookLoan{
+				ID: storage.ZeroID,
+				Title: "title_1",
+				Author: "author_1",
+				Genre: "genre_1",
+				Ratting: 1,
+			},
+			update: BookLoan{
+				Title: "new_title_1",
+				Author: "new_author_1",
+				Genre: "new_genre_1",
+				Ratting: 2,
+				IsOnLoan: true,
+				Borrower: "borrower_1",
+				Date: date,
+			},
+		},
+		{
+			create: BookLoan{
+				ID: storage.ZeroID,
+				Title: "new_title_2",
+				Author: "new_author_2",
+				Genre: "new_genre_2",
+				Ratting: 3,
+				IsOnLoan: true,
+				Borrower: "borrower_2",
+				Date: date,
+			},
+			update: BookLoan{
+				Title: "title_2",
+				Author: "author_2",
+				Genre: "genre_2",
+				Ratting: 2,
+			},
+		},
+		{
+			create: BookLoan{
+				ID: 21,
+				Title: "title_3",
+				Author: "author_3",
+				Genre: "genre_3",
+				Ratting: 4,
+				IsOnLoan: true,
+				Borrower: "borrower_3",
+				Date: date.Add(time.Hour * 24),
+			},
+			update: BookLoan{
+				ID: 31,
+				Title: "new_title_3",
+				Author: "new_author_3",
+				Genre: "new_genre_3",
+				Ratting: 5,
+				IsOnLoan: true,
+				Borrower: "new_borrower_3",
+				Date: date.Add(time.Hour * 24),
+			},
+		},
+	}
+
+	for i, test := range tests {
+		id, err := createBookLoan(app.memory, &test.create)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		tests[i].update.ID = id
+		if storage.IsZeroID(tests[i].create.ID) {
+			tests[i].create.ID = id
+		}
+	}
+
+	for i, test := range tests {
+		err := app.UpdateBookLoan(&test.update)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		expect := &test.update
+		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		err = compBookLoans(expect, actual)
+		if err != nil {
+			t.Fatalf("case %d, %s", i, err)
+		}
+	}
+
+	for !app.UndoIsEmpty() {
+		app.Undo()
+	}
+	for i, test := range tests {
+		expect := &test.create
+		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		err = compBookLoans(expect, actual)
+		if err != nil {
+			t.Fatalf("case %d, %s", i, err)
+		}
+	}
+
+	for !app.RedoIsEmpty() {
+		app.Redo()
+	}
+	for i, test := range tests {
+		expect := &test.update
+		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		err = compBookLoans(expect, actual)
+		if err != nil {
+			t.Fatalf("case %d, %s", i, err)
+		}
+	}
+
+}
+
+func TestAppImportBookLoans(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	date := time.Now()
+
+	test := []BookLoan{
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 1,
+			IsOnLoan: true,
+			Borrower: "borrower_1",
+			Date: date,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 2,
+		},
+	}
+
+	err = app.ImportBookLoans(test)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	bookLoans, err := app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if len(bookLoans) != len(test) {
+		t.Fatalf("expect length %d, got %d", len(test), len(bookLoans))
+	}
+
+	app.Undo()
+
+	bookLoans, err = app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if len(bookLoans) != 0 {
+		t.Fatalf("expect length %d, got %d", 0, len(bookLoans))
+	}
+	app.Redo()
+	bookLoans, err = app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if len(bookLoans) != len(test) {
+		t.Fatalf("expect length %d, got %d", len(test), len(bookLoans))
+	}
+}
+
+func TestAppSave(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	date := time.Now()
+
+	test := []BookLoan{
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 1,
+			IsOnLoan: true,
+			Borrower: "borrower_1",
+			Date: date,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 2,
+		},
+	}
+
+	for _, test := range test {
+		err := app.CreateBookLoan(&test)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	}
+
+	expect, err := getAllBookLoans(app.memory)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	app.Save()
+
+	expect, err = getAllBookLoans(app.memory)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	actual, err := getAllBookLoans(app.storage)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if len(expect) != len(actual) {
+		t.Fatalf("expect length %d, got %d", len(expect), len(actual))
+	}
+}
+
+func TestAppLoad(t *testing.T) {
+	store := memory.NewStorage()
+	app, err := New(store)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	date := time.Now()
+
+	test := []BookLoan{
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_1",
+			Author: "author_1",
+			Genre: "genre_1",
+			Ratting: 1,
+			IsOnLoan: true,
+			Borrower: "borrower_1",
+			Date: date,
+		},
+		BookLoan{
+			ID: storage.ZeroID,
+			Title: "title_2",
+			Author: "author_2",
+			Genre: "genre_2",
+			Ratting: 2,
+		},
+	}
+
+	// place book loans in to storage,
+	// then load it into memory.
+	//
+	for i, bookLoan := range test {
+		id, err := createBookLoan(app.storage, &bookLoan)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		test[i].ID = id
+	}
+
+	err = app.load()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	actual, err := app.GetBookLoans()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if len(actual) != len(test) {
+		t.Fatalf("expect length %d, got %d", len(test), len(actual))
+	}
 }
 
 
@@ -33,7 +484,13 @@ func TestApp(t *testing.T) {
 
 
 
+
 func compBookLoans(expect, actual *BookLoan) error {
+	if actual.ID != expect.ID {
+		println("actual:", actual.ID)
+		println("expect:", expect.ID)
+		return fmt.Errorf("expect id %d, got %d", expect.ID, actual.ID)
+	}
 	if actual.Title != expect.Title {
 		return fmt.Errorf("expect title %s, got %s", expect.Title, actual.Author)
 	}
@@ -63,6 +520,7 @@ func TestDeleteBookLoan(t *testing.T) {
 	date := time.Now()
 	tests := []BookLoan{
 		BookLoan{
+			ID: storage.ZeroID,
 			Title: "title_1",
 			Author: "author_1",
 			Genre: "genre_1",
@@ -72,6 +530,7 @@ func TestDeleteBookLoan(t *testing.T) {
 			Date: date,
 		},
 		BookLoan{
+			ID: storage.ZeroID,
 			Title: "title_2",
 			Author: "author_2",
 			Genre: "genre_2",
@@ -133,6 +592,7 @@ func TestUpdateBookLoan(t *testing.T) {
 				Date: date,
 			},
 			created: BookLoan{
+				ID: storage.ZeroID,
 				Title: "new_title_1",
 				Author: "new_author_1",
 				Genre: "new_genre_1",
@@ -153,6 +613,7 @@ func TestUpdateBookLoan(t *testing.T) {
 				Date: date,
 			},
 			created: BookLoan{
+				ID: storage.ZeroID,
 				Title: "new_title_2",
 				Author: "new_author_2",
 				Genre: "new_genre_2",
@@ -173,6 +634,7 @@ func TestUpdateBookLoan(t *testing.T) {
 				Date: date,
 			},
 			created: BookLoan{
+				ID: storage.ZeroID,
 				Title: "new_title_2",
 				Author: "new_author_2",
 				Genre: "new_genre_2",
@@ -193,6 +655,7 @@ func TestUpdateBookLoan(t *testing.T) {
 				Date: date,
 			},
 			created: BookLoan{
+				ID: storage.ZeroID,
 				Title: "new_title_4",
 				Author: "new_author_4",
 				Genre: "new_genre_4",
@@ -230,6 +693,3 @@ func TestUpdateBookLoan(t *testing.T) {
 		}
 	}
 }
-
-
-

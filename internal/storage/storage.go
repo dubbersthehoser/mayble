@@ -12,6 +12,13 @@ var (
 	ErrStorageFull   = errors.New("storage: hit storage cap") // return when hit a storeage cap.
 )
 
+const ZeroID int64 = -127
+
+// IsZeroID check if id is a zero id.
+func IsZeroID(id int64) bool {
+	return id < 0
+}
+
 type Book struct {
 	ID      int64
 	Title   string
@@ -21,7 +28,8 @@ type Book struct {
 }
 
 type BookStore interface {
-	CreateBook(title, author, genre string, ratting int) (int64, error)
+	// CreateBook with id if id is positive, if negative willl be created and return.
+	CreateBook(id int64, title, author, genre string, ratting int) (int64, error)
 	UpdateBook(*Book) error 
 	DeleteBook(*Book) error
 	GetBooks() ([]Book, error)

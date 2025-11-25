@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 
 	"github.com/dubbersthehoser/mayble/internal/gui/controller/porting"
+
 )
 
 
@@ -44,7 +45,7 @@ func (f *FunkView) ShowMenu() {
 			f.displayError(err)
 			return
 		}
-		f.emiter.Emit(OnModification)
+		f.emiter.Emit(OnModification, nil)
 
 	}
 	

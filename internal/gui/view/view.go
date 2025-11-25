@@ -11,7 +11,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/searching"
-	"github.com/dubbersthehoser/mayble/internal/listing"
+	//"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
 const (
@@ -65,7 +65,7 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 	f.loadEvents()
 
 	f.View = f.Body()
-	f.emiter.Emit(OnSort)
+	f.emiter.Emit(OnSort, nil)
 	return f, nil
 }
 
@@ -92,19 +92,18 @@ func (f *FunkView) refresh() {
 ********************/
 
 func (f *FunkView) loadEvents() {
-	f.emiter.OnEmit(OnUpdate, f.EventUpdate)
-	f.emiter.OnEmit(OnCreate, f.EventCreate)
-	f.emiter.OnEmit(OnModification, f.EventModification)
-	f.emiter.OnEmit(OnDelete, f.EventDelete)
-	f.emiter.OnEmit(OnRedo, f.EventRedo)
-	f.emiter.OnEmit(OnUndo, f.EventUndo)
-	f.emiter.OnEmit(OnSort, f.EventSort)
-	f.emiter.OnEmit(OnMenuOpen, f.EventMenuOpen)
-
-	f.emiter.OnEmit(OnSelectNext, handleSelectNext(f))
-	f.emiter.OnEmit(OnSelectPrev, handleSelectPrev(f))
-	f.emiter.OnEmit(OnSearchBy, handleSearchBy(f))
-	f.emiter.OnEmit(OnSearch, f.EventSearch)
+	f.emiter.OnEvent(OnUpdate, handleUpdate(f))
+	f.emiter.OnEvent(OnCreate, handleCreate(f))
+	f.emiter.OnEvent(OnModification, handleModification(f))
+	f.emiter.OnEvent(OnDelete, handleDelete(f))
+	f.emiter.OnEvent(OnRedo, handleRedo(f))
+	f.emiter.OnEvent(OnUndo, handleUndo(f))
+	f.emiter.OnEvent(OnSort, handleSort(f))
+	f.emiter.OnEvent(OnMenuOpen, handleMenuOpen(f))
+	f.emiter.OnEvent(OnSelectNext, handleSelectNext(f))
+	f.emiter.OnEvent(OnSelectPrev, handleSelectPrev(f))
+	f.emiter.OnEvent(OnSearchBy, handleSearchBy(f))
+	f.emiter.OnEvent(OnSearch, handleSearch(f))
 }
 
 func handleSelectNext(f *FunkView) func(any) {
@@ -134,27 +133,29 @@ func handleSearch(f *FunkView) func(any) {
 		if !ok {
 			panic("given invalid data for Search event")
 		}
-		field := searching
+		f.controller.List.SetSearchPattern(pattern)
 	}
 }
 
 func handleMenuOpen(f *FunkView) func(any) {
 	return func(data any) {
-		f.ShowMenu
+		f.ShowMenu()
 	}
 }
 
 func handleModification(f *FunkView) func(any) {
-	err := f.controller.List.Update()
-	if err != nil {
-		f.displayError(err)
-		return
+	return func(_ any) {
+		err := f.controller.List.Update()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.refresh()
 	}
-	f.refresh()
 }
 func handleSort(f *FunkView) func(any) {
 	return func(data any) {
-		err := f.controller.BookList.Update()
+		err := f.controller.List.Update()
 		if err != nil {
 			f.displayError(err)
 			return
@@ -170,7 +171,7 @@ func handleRedo(f *FunkView) func(any) {
 			f.displayError(err)
 			return
 		}
-		f.emiter.Emit(OnModification)
+		f.emiter.Emit(OnModification, nil)
 	}
 }
 
@@ -181,27 +182,27 @@ func handleUndo(f *FunkView) func(any) {
 			f.displayError(err)
 			return
 		}
-		f.emiter.Emit(OnModification)
+		f.emiter.Emit(OnModification, nil)
 	}
 }
 
-func handleDelete() func(any) {
+func handleDelete(f *FunkView) func(any) {
 	return func(data any) {
-		bookLoan, err := f.controller.BookList.Selected()
+		bookLoan, err := f.controller.List.Selected()
 		if err != nil {
 			f.displayError(err)
 			return
 		}
 		builder := controller.NewBuilderWithBookLoan(bookLoan)
 		builder.Type = controller.Deleting
-		f.controller.BookEditor.Submit(builder)
-		f.emiter.Emit(OnModification)
+		f.controller.Editor.Submit(builder)
+		f.emiter.Emit(OnModification, nil)
 	}
 }
 
-func handleUpdate() func(any) {
+func handleUpdate(f *FunkView) func(any) {
 	return func(data any) {
-		bookLoan, err := f.controller.BookList.Selected()
+		bookLoan, err := f.controller.List.Selected()
 		if err != nil {
 			f.displayError(err)
 			return 
@@ -211,7 +212,7 @@ func handleUpdate() func(any) {
 	}
 }
 
-func handleCreate() func(any) {
+func handleCreate(f *FunkView) func(any) {
 	return func (_ any) {
 		builder := controller.NewBookLoanBuilder()
 		f.ShowEdit(builder)
