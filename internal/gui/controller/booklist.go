@@ -2,15 +2,12 @@ package controller
 
 import (
 	"errors"
+	"log"
 	
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/searching"
 )
-
-/*************************
-	Book List
-**************************/
 
 const UnselectIndex int = -1
 
@@ -29,8 +26,24 @@ func NewBookList(a app.BookLoaning) *BookList {
 		list:          make([]app.BookLoan, 0),
 		SelectedIndex: UnselectIndex,
 		app:           a,
+		selection:     searching.NewRangeRing(0),
 	}
 	return b
+}
+
+func (l *BookList) Update() error {
+	bookLoans, err := l.app.GetBookLoans()
+	if err != nil {
+		return err
+	}
+	l.list = bookLoans
+	l.Unselect()
+	l.selection = searching.NewRangeRing(len(bookLoans))
+	return nil
+}
+
+func (l *BookList) Len() int {
+	return len(l.list)
 }
 
 func (l *BookList) SetOrderBy(by listing.OrderBy) {
@@ -42,19 +55,28 @@ func (l *BookList) SetOrdering(o listing.Ordering) {
 	l.ordering = o
 }
 
-func (l *BookList) Update() error {
-	bookLoans, err := l.app.GetBookLoans()
-	if err != nil {
-		return err
-	}
-	l.list = bookLoans
-	l.Unselect()
-	return nil
+func (l *BookList) SetSearchPattern(pattern string) {
+	l.searchPattern = pattern
 }
 
-func (l *BookList) Len() int {
-	return len(l.list)
+func (l *BookList) SetSearchBy(by searching.Field) {
+	l.searchBy = by
 }
+
+func (l *BookList) Search() bool {
+	if l.searchPattern == "" {
+		l.selection = searching.NewRangeRing(len(l.list))
+		return true
+	}
+	selection := searching.SearchBookLoans(l.list, l.searchBy, l.searchPattern)
+	if len(selection) != 0 {
+		l.selection = searching.NewSelectionRing(selection)
+		return true
+	}
+	return false
+} 
+
+
 
 func (l *BookList) Select(index int) error {
 	if err := l.ValidateIndex(index); err != nil {
@@ -76,7 +98,7 @@ func (l *BookList) ValidateIndex(index int) error {
 }
 
 func (l *BookList) IsSelected() bool {
-	return l.SelectedIndex != UnselectIndex
+	return l.SelectedIndex > UnselectIndex
 }
 
 func (l *BookList) Selected() (*app.BookLoan, error) {
@@ -99,44 +121,26 @@ func (l *BookList) Get(index int) (*listing.BookLoan, error) {
 	return bookView, nil
 }
 
-
-func (l *BookList) SetSearchPattern(pattern string) {
-	l.searchPattern = pattern
-}
-
-func (l *BookList) Search() bool {
-	if l.searchPattern == "" {
-		l.selection = searching.NewRangeRing(len(l.list))
-		return true
-	}
-	selection := searching.SearchBookLoans(l.list, l.searchBy, l.searchPattern)
-	if len(selection) != 0 {
-		l.selection = searching.NewSelectionRing(selection)
-		return true
-	}
-	return false
-} 
-
-func (l *BookList) SetSearchBy(by searching.Field) {
-	l.searchBy = by
-}
-
 func (l *BookList) SelectNext() {
+	var err error
 	if !l.IsSelected() {
-		err := l.Select(0)
-		if err != nil {
-			return 
-		}
+		err = l.Select(0)
+	} else {
+		err = l.Select(l.selection.Next())
 	}
-	l.Select(l.selection.Next())
+	if err != nil {
+		log.Println("booklist: unexpected error: ", err)
+	}
 }
 
 func (l *BookList) SelectPrev() {
+	var err error
 	if !l.IsSelected() {
-		err := l.Select(0)
-		if err != nil {
-			return
-		}
+		err = l.Select(0)
+	} else {
+		err = l.Select(l.selection.Prev())
 	}
-	l.Select(l.selection.Prev())
+	if err != nil {
+		log.Println("booklist: unexpected error: ", err)
+	}
 }

@@ -102,6 +102,7 @@ func (f *FunkView) loadEvents() {
 	f.emiter.OnEvent(OnMenuOpen, handleMenuOpen(f))
 	f.emiter.OnEvent(OnSelectNext, handleSelectNext(f))
 	f.emiter.OnEvent(OnSelectPrev, handleSelectPrev(f))
+	//f.emiter.OnEvent(OnSelected, handleSelected(f))
 	f.emiter.OnEvent(OnSearchBy, handleSearchBy(f))
 	f.emiter.OnEvent(OnSearch, handleSearch(f))
 }

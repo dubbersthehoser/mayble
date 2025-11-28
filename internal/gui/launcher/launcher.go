@@ -69,7 +69,6 @@ func Run(options ...Option) {
 	} else {
 		logGrid.Append("- storage: success")
 	}
-	 
 
 	 _ = storage
 

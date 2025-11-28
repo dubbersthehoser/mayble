@@ -26,6 +26,9 @@ func (rr *RangeRing) Selected() int {
 	return rr.selected
 }
 func (rr *RangeRing) Next() int {
+	if rr.max <= 0 {
+		return -1
+	}
 	idx := (rr.selected+1) % rr.max
 	rr.selected = idx
 	return idx

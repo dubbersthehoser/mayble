@@ -79,7 +79,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 
 
 	/***************************
-		List's Methods
+		List's Functions
 	****************************/
 	OnListLength := func() int {
 		n := f.controller.List.Len()

@@ -4,53 +4,48 @@ import (
 	"time"
 	"log"
 
-	"github.com/dubbersthehoser/mayble/internal/data"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 type App struct {}
 
-func (a *App) CreateBookLoan(bl *data.BookLoan) error {
+func (a *App) CreateBookLoan(bl *app.BookLoan) error {
 	log.Printf("appstub: create: %#v", bl)
 	return nil
 }
 
-func (a *App) DeleteBookLoan(bl *data.BookLoan) error {
+func (a *App) DeleteBookLoan(bl *app.BookLoan) error {
 	log.Printf("appstub: delete: %#v", bl)
 	return nil
 }
 
-func (a *App) UpdateBookLoan(bl *data.BookLoan) error {
+func (a *App) UpdateBookLoan(bl *app.BookLoan) error {
 	log.Printf("appstub: update: %#v", bl)
 	return nil
 }
-func (a *App) GetBookLoans() ([]data.BookLoan, error) {
-	stubBookLoans := []data.BookLoan{
-		data.BookLoan{
-			Book: data.Book{
-				Title: "placeholder_title",
-				Author: "placeholder_author",
-				Genre: "placeholder_genre",
-				Ratting: 0,
-			},
-			Loan: &data.Loan{
-				Borrower: "placeholder_borrower",
-				Date: time.Date(2000, time.Month(9), 15, 0, 0, 0, 0, time.UTC),
-			},
+func (a *App) GetBookLoans() ([]app.BookLoan, error) {
+	stubBookLoans := []app.BookLoan{
+		app.BookLoan{
+			Title: "placeholder_title",
+			Author: "placeholder_author",
+			Genre: "placeholder_genre",
+			Ratting: 0,
+			IsOnLoan: true,
+			Borrower: "placeholder_borrower",
+			Date: time.Date(2000, time.Month(9), 15, 0, 0, 0, 0, time.UTC),
 		},
-		data.BookLoan{
-			Book: data.Book{
-				Title: "placeholder_title",
-				Author: "placeholder_author",
-				Genre: "placeholder_genre",
-				Ratting: 5,
-			},
+		app.BookLoan{
+			Title: "placeholder_title",
+			Author: "placeholder_author",
+			Genre: "placeholder_genre",
+			Ratting: 5,
 		},
 	}
 	log.Printf("appstub: get book loans")
 	return stubBookLoans, nil
 }
 
-func (a *App) ImportBookLoans(bl []data.BookLoan) error {
+func (a *App) ImportBookLoans(bl []app.BookLoan) error {
 	log.Printf("appstub: importing book loans: %#v", bl)
 	return nil
 } 
