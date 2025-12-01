@@ -26,19 +26,25 @@ func (a *App) UpdateBookLoan(bl *app.BookLoan) error {
 func (a *App) GetBookLoans() ([]app.BookLoan, error) {
 	stubBookLoans := []app.BookLoan{
 		app.BookLoan{
-			Title: "placeholder_title",
-			Author: "placeholder_author",
-			Genre: "placeholder_genre",
+			Title: "placeholder_title_A",
+			Author: "placeholder_author_A",
+			Genre: "placeholder_genre_A",
 			Ratting: 0,
 			IsOnLoan: true,
-			Borrower: "placeholder_borrower",
+			Borrower: "placeholder_borrower_A",
 			Date: time.Date(2000, time.Month(9), 15, 0, 0, 0, 0, time.UTC),
 		},
 		app.BookLoan{
-			Title: "placeholder_title",
-			Author: "placeholder_author",
-			Genre: "placeholder_genre",
+			Title: "placeholder_title_B",
+			Author: "placeholder_author_B",
+			Genre: "placeholder_genre_B",
 			Ratting: 5,
+		},
+		app.BookLoan{
+			Title: "placeholder_title_C",
+			Author: "placeholder_author_C",
+			Genre: "placeholder_genre_C",
+			Ratting: 3,
 		},
 	}
 	log.Printf("appstub: get book loans")

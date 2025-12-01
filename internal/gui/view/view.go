@@ -1,7 +1,7 @@
 package view
 
 import (
-	//"fmt"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -11,35 +11,9 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/searching"
-	//"github.com/dubbersthehoser/mayble/internal/listing"
+	"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
-const (
-	OnSave string  = "ON_SAVE"
-	OnExport       = "ON_EXPORT"
-
-	OnCreate       = "ON_CREATE"
-	OnUpdate       = "ON_UPDATE"
-	OnDelete       = "ON_DELETE"
-
-	OnUndo         = "ON_UNDO"
-	OnRedo         = "ON_REDO"
-
-	OnSort         = "ON_SORT"
-	OnSearch       = "ON_SEARCH"
-	OnSearchBy     = "ON_SEARCH_BY"
-
-	OnSelectNext   = "ON_SELECT_NEXT"
-	OnSelectPrev   = "ON_SELECT_PREV"
-
-	OnSelected     = "ON_SELECTED"
-	OnUnselected   = "ON_UNSELECTED"
-
-	OnModification = "ON_MODIFICATION"
-
-	OnMenuOpen     = "ON_MENU_OPEN"
-	OnMenuClose    = "ON_MENU_CLOSE"
-)
 
 
 /***********************
@@ -62,7 +36,7 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 		window: window,
 	}
 
-	f.loadEvents()
+	loadOnEventHandlers(&f)
 
 	f.View = f.Body()
 	f.emiter.Emit(OnSort, nil)
@@ -91,20 +65,94 @@ func (f *FunkView) refresh() {
 	Events
 ********************/
 
-func (f *FunkView) loadEvents() {
+const (
+	OnSave string  = "ON_SAVE"
+	OnExport       = "ON_EXPORT"
+
+	OnCreate       = "ON_CREATE"
+	OnUpdate       = "ON_UPDATE"
+	OnDelete       = "ON_DELETE"
+
+	OnUndo         = "ON_UNDO"
+	OnRedo         = "ON_REDO"
+
+	OnSort         = "ON_SORT"
+	OnSearch       = "ON_SEARCH"
+	OnSearchBy     = "ON_SEARCH_BY"
+
+	OnSetOrdering  = "ON_SET_ORDERING"
+	OnSetOrderBy   = "ON_SET_ORDER_BY"
+
+	OnSelectNext   = "ON_SELECT_NEXT"
+	OnSelectPrev   = "ON_SELECT_PREV"
+
+	OnSelected     = "ON_SELECTED"
+	OnUnselected   = "ON_UNSELECTED"
+
+	OnModification = "ON_MODIFICATION"
+
+	OnMenuOpen     = "ON_MENU_OPEN"
+	OnMenuClose    = "ON_MENU_CLOSE"
+)
+
+func loadOnEventHandlers(f *FunkView) {
 	f.emiter.OnEvent(OnUpdate, handleUpdate(f))
 	f.emiter.OnEvent(OnCreate, handleCreate(f))
 	f.emiter.OnEvent(OnModification, handleModification(f))
 	f.emiter.OnEvent(OnDelete, handleDelete(f))
 	f.emiter.OnEvent(OnRedo, handleRedo(f))
 	f.emiter.OnEvent(OnUndo, handleUndo(f))
-	f.emiter.OnEvent(OnSort, handleSort(f))
 	f.emiter.OnEvent(OnMenuOpen, handleMenuOpen(f))
 	f.emiter.OnEvent(OnSelectNext, handleSelectNext(f))
 	f.emiter.OnEvent(OnSelectPrev, handleSelectPrev(f))
-	//f.emiter.OnEvent(OnSelected, handleSelected(f))
+	f.emiter.OnEvent(OnSelected, handleSelected(f))
 	f.emiter.OnEvent(OnSearchBy, handleSearchBy(f))
 	f.emiter.OnEvent(OnSearch, handleSearch(f))
+	f.emiter.OnEvent(OnSetOrdering, handleSetOrdering(f))
+	f.emiter.OnEvent(OnSetOrderBy, handleSetOrderBy(f))
+}
+
+func handleSetOrdering(f *FunkView) func(any) {
+	return func(data any) {
+		o, ok := data.(listing.Ordering)
+		if !ok {
+			panic("invalid data to OnOrdering event")
+		}
+		fmt.Println("view: set ordering: ", o)
+		f.controller.List.SetOrdering(o)
+		f.emiter.Emit(OnModification, nil)
+	}
+}
+
+func handleSetOrderBy(f *FunkView) func(any) {
+	return func(data any) {
+		var by listing.OrderBy
+		switch v := data.(type) {
+		case string:
+			by = listing.MustStringToOrderBy(v)
+		case listing.OrderBy:
+			by = v
+		default:
+			panic("invalid data to OnOrderBy event")
+		}
+		fmt.Println("view: set order by: ", by)
+		f.controller.List.SetOrderBy(by)
+	}
+}
+
+func handleSelected(f *FunkView) func(any) {
+	return func(data any) {
+		index, ok := data.(int)
+		if !ok {
+			panic("given invalid data for Selected event")
+		}
+
+		err := f.controller.List.Select(index)
+		if err != nil {
+			f.displayError(err)
+		}
+		f.emiter.Emit(OnSort, nil)
+	}
 }
 
 func handleSelectNext(f *FunkView) func(any) {
@@ -115,6 +163,12 @@ func handleSelectNext(f *FunkView) func(any) {
 func handleSelectPrev(f *FunkView) func(any) {
 	return func(data any) {
 		f.controller.List.SelectPrev()
+	}
+}
+
+func handleUnselect(f *FunkView) func(any) {
+	return func(_ any) {
+		f.controller.List.Unselect()
 	}
 }
 
@@ -154,16 +208,6 @@ func handleModification(f *FunkView) func(any) {
 		f.refresh()
 	}
 }
-func handleSort(f *FunkView) func(any) {
-	return func(data any) {
-		err := f.controller.List.Update()
-		if err != nil {
-			f.displayError(err)
-			return
-		}
-		f.refresh()
-	}
-} 
 
 func handleRedo(f *FunkView) func(any) {
 	return func(data any) {

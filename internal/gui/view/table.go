@@ -12,71 +12,116 @@ import (
 	_ "fyne.io/fyne/v2/canvas"
 
 	"github.com/dubbersthehoser/mayble/internal/listing"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
+
+type HeaderButton struct {
+	label string
+	button *widget.Button
+	emiter *emiter.Emiter
+}
+
+func NewHeaderButton(e *emiter.Emiter, label string) *HeaderButton {
+	hb := &HeaderButton{
+		label: label,
+		emiter: e,
+	}
+	hb.button = widget.NewButton("", hb.OnTapped)
+	hb.Reset()
+	return hb
+}
+
+func (hb *HeaderButton) OnTapped() {
+	var (
+		IsNormal bool = hb.button.Text == hb.LabelNormal()
+		IsASC    bool = hb.button.Text == hb.LabelASC()
+		IsDESC   bool = hb.button.Text == hb.LabelDESC() 
+	)
+	switch {
+	case IsNormal:
+		hb.button.SetText(hb.LabelASC())
+		hb.emiter.Emit(OnSetOrderBy, hb.label)
+		hb.emiter.Emit(OnSetOrdering, listing.ASC)
+
+	case IsASC:
+		hb.button.SetText(hb.LabelDESC())
+		hb.emiter.Emit(OnSetOrdering, listing.DESC)
+
+	case IsDESC:
+		hb.button.SetText(hb.LabelASC())
+		hb.emiter.Emit(OnSetOrdering, listing.ASC)
+	}
+}
+
+func (hb *HeaderButton) SetOrdering(o listing.Ordering) {
+	switch o {
+	case listing.ASC:
+		hb.button.SetText(hb.LabelASC())
+	case listing.DESC:
+		hb.button.SetText(hb.LabelDESC())
+	}
+}
+
+func (hb *HeaderButton) LabelNormal() string {
+	return "- " + hb.label
+}
+func (hb *HeaderButton) LabelASC() string {
+	return "↑ " + hb.label
+}
+func (hb *HeaderButton) LabelDESC() string {
+	return "↓ " + hb.label
+}
+func (hb *HeaderButton) Reset() {
+	hb.button.SetText(hb.LabelNormal())
+}
+
+type Header struct {
+	buttons []*HeaderButton
+	view    fyne.CanvasObject
+}
+
+func (h *Header) OnSetOrderBy(data any) {
+	var orderBy listing.OrderBy
+	switch v := data.(type) {
+	case string:
+		orderBy = listing.MustStringToOrderBy(v)
+	case listing.OrderBy:
+		orderBy = v
+	default:
+		panic("invalid data OnOrderBy event")
+	}
+	for _, btn := range h.buttons {
+		if btn.label != string(orderBy) {
+			btn.Reset()
+		}
+	}
+}
+
+func NewHeader(e *emiter.Emiter, by listing.OrderBy, o listing.Ordering) *Header {
+	h := &Header{
+		buttons: make([]*HeaderButton, 0),
+	}
+	labels := listing.SortByList()
+	fields := make([]fyne.CanvasObject, 0)
+	for _, label := range labels {
+		btn := NewHeaderButton(e, label)
+		if by == listing.MustStringToOrderBy(label) {// synced to booklist state
+			btn.SetOrdering(o)
+		}
+		h.buttons = append(h.buttons, btn)
+		fields = append(fields, btn.button)
+	}
+	e.OnEvent(OnSetOrderBy, h.OnSetOrderBy)
+
+
+	h.view = container.New(layout.NewGridLayout(len(fields)), fields...)
+	return h
+}
+
 
 func (f *FunkView) Table() fyne.CanvasObject {
 
-	/*************************
-		Table Header
-	**************************/
-
-	// the labelResets, newLabelReset, and resetHeaderLabel is for helping with switching button text.
-	labelResets := make([]func(), 0)
-	newLabelReset := func(button *widget.Button, label string) func() {
-		return func() {
-			button.SetText("- " + label)
-		}
-	} 
-	resetHeaderLabels := func() {
-		for _, fn := range labelResets {
-			fn()
-		}
-	}
-	newSortByButtonAndLabel := func(label string) fyne.CanvasObject {
-
-		labelAsc := "↑ " + label
-		labelDesc := "↓ " + label
-		labelNormal := "- " + label
-
-		button := widget.NewButton(
-			labelNormal, 
-			nil,
-		)
-		button.Importance = widget.LowImportance
-		button.OnTapped = func() {
-			if button.Text == labelNormal {
-				resetHeaderLabels()
-			}
-			if button.Text != labelDesc {
-				button.SetText(labelDesc)
-				f.controller.List.SetOrdering(listing.DEC)
-			} else {
-				button.SetText(labelAsc)
-				f.controller.List.SetOrdering(listing.ASC)
-			}
-			button.Refresh()
-			by := listing.MustStringToOrderBy(label)
-			f.controller.List.SetOrderBy(by)
-			f.emiter.Emit(OnSort, nil)
-		}
-		//f.emiter.On(OnModification, func() {
-		//	button.SetText(labelNormal)
-		//})
-		return button
-	}
-	fields := make([]fyne.CanvasObject, 0)
-	labels := listing.SortByList()
-	for _, label := range labels {
-		obj := newSortByButtonAndLabel(label)
-		labelResets = append(labelResets, newLabelReset(obj.(*widget.Button), label))
-		fields = append(fields, obj)
-	}
-
-	// setting the the title field to be sorted
-	//fields[0].(*widget.Button).OnTapped() /* COULD CAUSE UNWANTED STATE CHANGE */
-
-	Heading := container.New(layout.NewGridLayout(len(fields)), fields...)
-
+	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
 
 	/***************************
 		List's Functions
@@ -134,6 +179,7 @@ func (f *FunkView) Table() fyne.CanvasObject {
 			f.displayError(err)
 			return
 		}
+		println(book.Title)
 		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
 		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
 		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
@@ -143,17 +189,9 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	} 
 
 	OnSelect := func(index int) {
-		fmt.Println("Selected book")
-		err := f.controller.List.Select(index)
-		if err != nil {
-			f.displayError(err)
-			return
-		}
-		f.emiter.Emit(OnSelected, nil)
+		f.emiter.Emit(OnSelected, index)
 	}
 	OnUnselect := func(index int) {
-		fmt.Println("Unselected book")
-		f.controller.List.Unselect()
 		f.emiter.Emit(OnUnselected, nil)
 	}
 
@@ -174,6 +212,11 @@ func (f *FunkView) Table() fyne.CanvasObject {
 		idx := f.controller.List.SelectedIndex
 		List.Select(widget.ListItemID(idx))
 	}
+	listOnSort := func(_ any) {
+		println("table sort")
+		List.Refresh()
+	}
+
 	listOnSelectNext := listOnSearch
 	listOnSelectPrev := listOnSearch
 
@@ -181,9 +224,9 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	f.emiter.OnEvent(OnSearch, listOnSearch)
 	f.emiter.OnEvent(OnSelectNext, listOnSelectNext)
 	f.emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
-
+	f.emiter.OnEvent(OnSort, listOnSort)
 
 	// Table
-	table := container.New(layout.NewBorderLayout(Heading, nil, nil, nil), Heading, List)
+	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, List)
 	return table
 }

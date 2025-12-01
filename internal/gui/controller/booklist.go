@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"log"
+	//"fmt"
 	
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/listing"
@@ -27,7 +28,13 @@ func NewBookList(a app.BookLoaning) *BookList {
 		SelectedIndex: UnselectIndex,
 		app:           a,
 		selection:     searching.NewRangeRing(0),
+
+		// needs to be the same to the init state of table header
+		ordering: listing.ASC,   
+		orderBy:  listing.ByTitle,
+
 	}
+	b.Update()
 	return b
 }
 
@@ -36,7 +43,7 @@ func (l *BookList) Update() error {
 	if err != nil {
 		return err
 	}
-	l.list = bookLoans
+	l.list = listing.OrderBookLoans(bookLoans, l.orderBy, l.ordering)
 	l.Unselect()
 	l.selection = searching.NewRangeRing(len(bookLoans))
 	return nil
@@ -48,11 +55,16 @@ func (l *BookList) Len() int {
 
 func (l *BookList) SetOrderBy(by listing.OrderBy) {
 	l.orderBy = by
-	l.Search()
+}
+func (l *BookList) OrderBy() listing.OrderBy {
+	return l.orderBy
 }
 
 func (l *BookList) SetOrdering(o listing.Ordering) {
 	l.ordering = o
+}
+func (l *BookList) Ordering() listing.Ordering {
+	return l.ordering
 }
 
 func (l *BookList) SetSearchPattern(pattern string) {

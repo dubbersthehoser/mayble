@@ -70,7 +70,7 @@ type Ordering int
 
 const (
 	ASC Ordering = iota
-	DEC
+	DESC
 )
 
 func OrderBookLoans(s []app.BookLoan, by OrderBy, order Ordering) []app.BookLoan {
@@ -129,7 +129,7 @@ func OrderBookLoans(s []app.BookLoan, by OrderBy, order Ordering) []app.BookLoan
 		case ByNothing:
 			result = Equal
 		}
-		if order == DEC {
+		if order == DESC {
 			result = result * -1
 		}
 		return result

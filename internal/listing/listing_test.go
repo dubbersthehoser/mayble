@@ -3,6 +3,7 @@ package listing
 import (
 	"testing"
 	"time"
+	"slices"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 )
@@ -435,9 +436,9 @@ func TestOrderBookLoans(t *testing.T) {
 				},
 			},
 		},
-		{ // by date DEC
+		{ // by date DESC
 			input: Input{
-				order: DEC,
+				order: DESC,
 				by: ByDate,
 				items: []app.BookLoan{
 					app.BookLoan{
@@ -572,7 +573,7 @@ func TestOrderBookLoans(t *testing.T) {
 	for i, test := range tests {
 		input := test.input
 		actual := OrderBookLoans(input.items, input.by, input.order)
-		expect := test.expect
+		expect := slices.Clone(test.expect)
 
 		if len(expect) != len(actual) {
 			t.Fatalf("case %d, expect length %d, got %d", i, len(expect), len(actual))
