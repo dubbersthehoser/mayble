@@ -39,7 +39,6 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 	loadOnEventHandlers(&f)
 
 	f.View = f.Body()
-	f.emiter.Emit(OnSort, nil)
 	return f, nil
 }
 
@@ -66,7 +65,8 @@ func (f *FunkView) refresh() {
 ********************/
 
 const (
-	OnSave string  = "ON_SAVE"
+	OnError string = "ON_ERR"
+	OnSave         = "ON_SAVE"
 	OnExport       = "ON_EXPORT"
 
 	OnCreate       = "ON_CREATE"
@@ -76,7 +76,6 @@ const (
 	OnUndo         = "ON_UNDO"
 	OnRedo         = "ON_REDO"
 
-	OnSort         = "ON_SORT"
 	OnSearch       = "ON_SEARCH"
 	OnSearchBy     = "ON_SEARCH_BY"
 
@@ -110,6 +109,7 @@ func loadOnEventHandlers(f *FunkView) {
 	f.emiter.OnEvent(OnSearch, handleSearch(f))
 	f.emiter.OnEvent(OnSetOrdering, handleSetOrdering(f))
 	f.emiter.OnEvent(OnSetOrderBy, handleSetOrderBy(f))
+	f.emiter.OnEvent(OnError, handleError(f))
 }
 
 func handleSetOrdering(f *FunkView) func(any) {
@@ -151,7 +151,16 @@ func handleSelected(f *FunkView) func(any) {
 		if err != nil {
 			f.displayError(err)
 		}
-		f.emiter.Emit(OnSort, nil)
+	}
+}
+
+func handleError(f *FunkView) func(any) {
+	return func(data any) {
+		err, ok := data.(error)
+		if !ok {
+			panic("given invalid data for Error event")
+		}
+		f.displayError(err)
 	}
 }
 

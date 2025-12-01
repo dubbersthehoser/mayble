@@ -176,7 +176,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	resetSearchText := func(_ any) {
 		searchEnt.SetText("")
 	}
-	f.emiter.OnEvent(OnSort, resetSearchText)
 	f.emiter.OnEvent(OnSearchBy, resetSearchText)
 
 	// Next Item

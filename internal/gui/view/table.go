@@ -1,7 +1,6 @@
 package view
 
 import (
-	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
 type HeaderButton struct {
@@ -119,114 +119,115 @@ func NewHeader(e *emiter.Emiter, by listing.OrderBy, o listing.Ordering) *Header
 }
 
 
-func (f *FunkView) Table() fyne.CanvasObject {
 
-	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
+type TableList struct {
+	Emiter     *emiter.Emiter
+	List       *widget.List
+	Controller *controller.BookList
+}
 
-	/***************************
-		List's Functions
-	****************************/
-	OnListLength := func() int {
-		n := f.controller.List.Len()
-		return n
+func (tl *TableList) OnSelect(index int) {
+	tl.Emiter.Emit(OnSelected, index)
+}
+func (tl *TableList) OnUnselect(index int) {
+	tl.Emiter.Emit(OnUnselected, nil)
+}
+
+func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList {
+	tl := &TableList{
+		Emiter: e,
+		Controller: controller,
 	}
+	tl.List = widget.NewList(tl.OnListLength, tl.OnCanvasCreation, tl.OnCanvasInit)
+	tl.List.HideSeparators = false
 
-	OnCanvasCreation := func() fyne.CanvasObject {
-
-		titleLabel := widget.NewLabel("")
-		authorLabel := widget.NewLabel("")
-		genreLabel := widget.NewLabel("")
-		rattingLabel := widget.NewLabel("")
-		onLoanName := widget.NewLabel("")
-		onLoanDate := widget.NewLabel("")
-
-		titleLabel.Wrapping = fyne.TextWrapWord
-		authorLabel.Wrapping = fyne.TextWrapWord
-		genreLabel.Wrapping = fyne.TextWrapWord
-		rattingLabel.Wrapping = fyne.TextWrapWord
-		onLoanName.Wrapping = fyne.TextWrapWord
-		onLoanDate.Wrapping = fyne.TextWrapWord
-		
-
-		titleLabel.Truncation = fyne.TextTruncateEllipsis
-		authorLabel.Truncation = fyne.TextTruncateEllipsis
-		genreLabel.Truncation = fyne.TextTruncateEllipsis
-		rattingLabel.Truncation = fyne.TextTruncateEllipsis
-		onLoanName.Truncation = fyne.TextTruncateEllipsis
-		onLoanDate.Truncation = fyne.TextTruncateEllipsis
-
-		titleLabel.Selectable = false
-		authorLabel.Selectable = false
-		genreLabel.Selectable = false
-		rattingLabel.Selectable = false
-		onLoanName.Selectable = false
-		onLoanDate.Selectable = false
-
-		fields := []fyne.CanvasObject{
-			titleLabel,
-			authorLabel,
-			genreLabel,
-			rattingLabel,
-			onLoanName,
-			onLoanDate,
-		}
-		entry := container.New(layout.NewGridLayout(len(fields)), fields...)
-		return entry
-	}   
-	OnCanvasInit := func(index int, o fyne.CanvasObject) {
-		book, err := f.controller.List.Get(index)
-		if err != nil {
-			f.displayError(err)
-			return
-		}
-		println(book.Title)
-		o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
-		o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
-		o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
-		o.(*fyne.Container).Objects[3].(*widget.Label).SetText(book.Ratting)
-		o.(*fyne.Container).Objects[4].(*widget.Label).SetText(book.Borrower)
-		o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.Date)
-	} 
-
-	OnSelect := func(index int) {
-		f.emiter.Emit(OnSelected, index)
-	}
-	OnUnselect := func(index int) {
-		f.emiter.Emit(OnUnselected, nil)
-	}
-
-	/*******************
-		List
-	********************/
-	List := widget.NewList(OnListLength, OnCanvasCreation, OnCanvasInit)
-	List.HideSeparators = false
-	List.OnSelected = OnSelect
-	List.OnUnselected = OnUnselect
+	tl.List.OnSelected = tl.OnSelect
+	tl.List.OnUnselected = tl.OnUnselect
 
 	listOnModification := func(_ any) {
-		List.UnselectAll()
+		tl.List.UnselectAll()
 	}
 
 	listOnSearch := func(_ any) {
-		fmt.Println("list on search")
-		idx := f.controller.List.SelectedIndex
-		List.Select(widget.ListItemID(idx))
-	}
-	listOnSort := func(_ any) {
-		println("table sort")
-		List.Refresh()
+		idx := tl.Controller.SelectedIndex
+		tl.List.Select(widget.ListItemID(idx))
 	}
 
 	listOnSelectNext := listOnSearch
 	listOnSelectPrev := listOnSearch
 
-	f.emiter.OnEvent(OnModification, listOnModification)
-	f.emiter.OnEvent(OnSearch, listOnSearch)
-	f.emiter.OnEvent(OnSelectNext, listOnSelectNext)
-	f.emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
-	f.emiter.OnEvent(OnSort, listOnSort)
+	tl.Emiter.OnEvent(OnModification, listOnModification)
+	tl.Emiter.OnEvent(OnSearch, listOnSearch)
+	tl.Emiter.OnEvent(OnSelectNext, listOnSelectNext)
+	tl.Emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
+	return tl
+}
+
+func (tl *TableList) OnCanvasCreation() fyne.CanvasObject {
+	titleLabel := widget.NewLabel("")
+	authorLabel := widget.NewLabel("")
+	genreLabel := widget.NewLabel("")
+	rattingLabel := widget.NewLabel("")
+	onLoanName := widget.NewLabel("")
+	onLoanDate := widget.NewLabel("")
+
+	titleLabel.Wrapping = fyne.TextWrapWord
+	authorLabel.Wrapping = fyne.TextWrapWord
+	genreLabel.Wrapping = fyne.TextWrapWord
+	rattingLabel.Wrapping = fyne.TextWrapWord
+	onLoanName.Wrapping = fyne.TextWrapWord
+	onLoanDate.Wrapping = fyne.TextWrapWord
+	
+
+	titleLabel.Truncation = fyne.TextTruncateEllipsis
+	authorLabel.Truncation = fyne.TextTruncateEllipsis
+	genreLabel.Truncation = fyne.TextTruncateEllipsis
+	rattingLabel.Truncation = fyne.TextTruncateEllipsis
+	onLoanName.Truncation = fyne.TextTruncateEllipsis
+	onLoanDate.Truncation = fyne.TextTruncateEllipsis
+
+	titleLabel.Selectable = false
+	authorLabel.Selectable = false
+	genreLabel.Selectable = false
+	rattingLabel.Selectable = false
+	onLoanName.Selectable = false
+	onLoanDate.Selectable = false
+
+	fields := []fyne.CanvasObject{
+		titleLabel,
+		authorLabel,
+		genreLabel,
+		rattingLabel,
+		onLoanName,
+		onLoanDate,
+	}
+	entry := container.New(layout.NewGridLayout(len(fields)), fields...)
+	return entry
+}
+func (tl *TableList) OnCanvasInit(index int, o fyne.CanvasObject) {
+	book, err := tl.Controller.Get(index)
+	if err != nil {
+		tl.Emiter.Emit(OnError, err)
+		return
+	}
+	println(book.Title)
+	o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
+	o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
+	o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
+	o.(*fyne.Container).Objects[3].(*widget.Label).SetText(book.Ratting)
+	o.(*fyne.Container).Objects[4].(*widget.Label).SetText(book.Borrower)
+	o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.Date)
+}
+func (tl *TableList) OnListLength() int {
+	return tl.Controller.Len()
+}
+
+func (f *FunkView) Table() fyne.CanvasObject {
+
+	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
+	listTable := NewTableList(f.emiter, f.controller.List)
 
 	// Table
-	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, List)
+	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, listTable.List)
 	return table
 }
