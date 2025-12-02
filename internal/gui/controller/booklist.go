@@ -81,6 +81,7 @@ func (l *BookList) Search() bool {
 		return true
 	}
 	selection := searching.SearchBookLoans(l.list, l.searchBy, l.searchPattern)
+	println(selection)
 	if len(selection) != 0 {
 		l.selection = searching.NewSelectionRing(selection)
 		return true
@@ -135,10 +136,11 @@ func (l *BookList) Get(index int) (*listing.BookLoan, error) {
 
 func (l *BookList) SelectNext() {
 	var err error
-	if !l.IsSelected() {
-		err = l.Select(0)
+	if !l.IsSelected()  {
+		err = l.Select(l.selection.Selected())
 	} else {
 		err = l.Select(l.selection.Next())
+		println(l.SelectedIndex)
 	}
 	if err != nil {
 		log.Println("booklist: unexpected error: ", err)
@@ -148,7 +150,7 @@ func (l *BookList) SelectNext() {
 func (l *BookList) SelectPrev() {
 	var err error
 	if !l.IsSelected() {
-		err = l.Select(0)
+		err = l.Select(l.selection.Selected())
 	} else {
 		err = l.Select(l.selection.Prev())
 	}

@@ -1,32 +1,12 @@
 package controller
 
 import (
-	"fmt"
 	"time"
 	"errors"
 )
 
-func GetRattingStrings() []string {
-	return []string{"TBR", "⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"}
-}
 
-func RattingToInt(ratting string) int {
-	for i, str := range GetRattingStrings() {
-		if str == ratting {
-			return i
-		}
-	}
-	panic("invalid ratting string was passed")
-}
-
-func rattingToString(i int) string {
-	str := GetRattingStrings()[i]
-	return str
-}
-
-func dateToString(date *time.Time) string {
-	return fmt.Sprintf("%d/%d/%d", date.Day(), date.Month(), date.Year())
-}
+// TODO move validation to a core, or app package
 
 func ValidateTitle(title string) error {
 	if title == "" {

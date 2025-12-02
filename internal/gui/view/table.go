@@ -1,19 +1,25 @@
 package view
 
 import (
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
-	_"fyne.io/fyne/v2/data/binding"
-	_"fyne.io/fyne/v2/theme"
-	_ "fyne.io/fyne/v2/canvas"
 
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
+
+func (f *FunkView) Table() fyne.CanvasObject {
+
+	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
+	listTable := NewTableList(f.emiter, f.controller.List)
+
+	// Table
+	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, listTable.List)
+	return table
+}
 
 type HeaderButton struct {
 	label string
@@ -113,7 +119,6 @@ func NewHeader(e *emiter.Emiter, by listing.OrderBy, o listing.Ordering) *Header
 	}
 	e.OnEvent(OnSetOrderBy, h.OnSetOrderBy)
 
-
 	h.view = container.New(layout.NewGridLayout(len(fields)), fields...)
 	return h
 }
@@ -129,9 +134,6 @@ type TableList struct {
 func (tl *TableList) OnSelect(index int) {
 	tl.Emiter.Emit(OnSelected, index)
 }
-func (tl *TableList) OnUnselect(index int) {
-	tl.Emiter.Emit(OnUnselected, nil)
-}
 
 func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList {
 	tl := &TableList{
@@ -142,7 +144,6 @@ func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList 
 	tl.List.HideSeparators = false
 
 	tl.List.OnSelected = tl.OnSelect
-	tl.List.OnUnselected = tl.OnUnselect
 
 	listOnModification := func(_ any) {
 		tl.List.UnselectAll()
@@ -160,6 +161,9 @@ func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList 
 	tl.Emiter.OnEvent(OnSearch, listOnSearch)
 	tl.Emiter.OnEvent(OnSelectNext, listOnSelectNext)
 	tl.Emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
+	tl.Emiter.OnEvent(OnUnselected, func(_ any) {
+		tl.List.UnselectAll()
+	})
 	return tl
 }
 
@@ -207,10 +211,9 @@ func (tl *TableList) OnCanvasCreation() fyne.CanvasObject {
 func (tl *TableList) OnCanvasInit(index int, o fyne.CanvasObject) {
 	book, err := tl.Controller.Get(index)
 	if err != nil {
-		tl.Emiter.Emit(OnError, err)
+		tl.Emiter.Emit(OnShowError, err)
 		return
 	}
-	println(book.Title)
 	o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
 	o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
 	o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
@@ -222,12 +225,3 @@ func (tl *TableList) OnListLength() int {
 	return tl.Controller.Len()
 }
 
-func (f *FunkView) Table() fyne.CanvasObject {
-
-	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
-	listTable := NewTableList(f.emiter, f.controller.List)
-
-	// Table
-	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, listTable.List)
-	return table
-}

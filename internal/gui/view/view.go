@@ -65,7 +65,7 @@ func (f *FunkView) refresh() {
 ********************/
 
 const (
-	OnError string = "ON_ERR"
+	OnShowError string = "ON_SHOW_ERR"
 	OnSave         = "ON_SAVE"
 	OnExport       = "ON_EXPORT"
 
@@ -76,8 +76,9 @@ const (
 	OnUndo         = "ON_UNDO"
 	OnRedo         = "ON_REDO"
 
-	OnSearch       = "ON_SEARCH"
-	OnSearchBy     = "ON_SEARCH_BY"
+	OnSearch           = "ON_SEARCH"
+	OnSetSearchPattern = "ON_SET_SEARCH_PATTERN"
+	OnSetSearchBy      = "ON_SET_SEARCH_BY"
 
 	OnSetOrdering  = "ON_SET_ORDERING"
 	OnSetOrderBy   = "ON_SET_ORDER_BY"
@@ -105,11 +106,22 @@ func loadOnEventHandlers(f *FunkView) {
 	f.emiter.OnEvent(OnSelectNext, handleSelectNext(f))
 	f.emiter.OnEvent(OnSelectPrev, handleSelectPrev(f))
 	f.emiter.OnEvent(OnSelected, handleSelected(f))
-	f.emiter.OnEvent(OnSearchBy, handleSearchBy(f))
+	f.emiter.OnEvent(OnSetSearchBy, handleSetSearchBy(f))
+	f.emiter.OnEvent(OnSetSearchPattern, handleSetSearchPattern(f))
 	f.emiter.OnEvent(OnSearch, handleSearch(f))
 	f.emiter.OnEvent(OnSetOrdering, handleSetOrdering(f))
 	f.emiter.OnEvent(OnSetOrderBy, handleSetOrderBy(f))
-	f.emiter.OnEvent(OnError, handleError(f))
+	f.emiter.OnEvent(OnShowError, handleShowError(f))
+}
+
+func handleShowError(f *FunkView) func(any) {
+	return func(data any) {
+		err, ok := data.(error)
+		if !ok {
+			panic("given invalid data for Error event")
+		}
+		f.displayError(err)
+	}
 }
 
 func handleSetOrdering(f *FunkView) func(any) {
@@ -120,7 +132,13 @@ func handleSetOrdering(f *FunkView) func(any) {
 		}
 		fmt.Println("view: set ordering: ", o)
 		f.controller.List.SetOrdering(o)
-		f.emiter.Emit(OnModification, nil)
+		err := f.controller.List.Update()
+		if err != nil {
+			f.displayError(err)
+			return
+		}
+		f.emiter.Emit(OnUnselected, nil)
+		f.refresh()
 	}
 }
 
@@ -137,6 +155,7 @@ func handleSetOrderBy(f *FunkView) func(any) {
 		}
 		fmt.Println("view: set order by: ", by)
 		f.controller.List.SetOrderBy(by)
+
 	}
 }
 
@@ -154,15 +173,6 @@ func handleSelected(f *FunkView) func(any) {
 	}
 }
 
-func handleError(f *FunkView) func(any) {
-	return func(data any) {
-		err, ok := data.(error)
-		if !ok {
-			panic("given invalid data for Error event")
-		}
-		f.displayError(err)
-	}
-}
 
 func handleSelectNext(f *FunkView) func(any) {
 	return func(data any) {
@@ -181,7 +191,7 @@ func handleUnselect(f *FunkView) func(any) {
 	}
 }
 
-func handleSearchBy(f *FunkView) func(any) {
+func handleSetSearchBy(f *FunkView) func(any) {
 	return func(data any) {
 		by, ok := data.(string)
 		if !ok {
@@ -191,13 +201,18 @@ func handleSearchBy(f *FunkView) func(any) {
 		f.controller.List.SetSearchBy(field)
 	}
 }
-func handleSearch(f *FunkView) func(any) {
+func handleSetSearchPattern(f *FunkView) func(any) {
 	return func(data any) {
 		pattern, ok := data.(string)
 		if !ok {
 			panic("given invalid data for Search event")
 		}
 		f.controller.List.SetSearchPattern(pattern)
+	}
+}
+func handleSearch(f *FunkView) func(any) {
+	return func(_ any) {
+		f.controller.List.Search()
 	}
 }
 

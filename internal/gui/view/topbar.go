@@ -156,7 +156,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	selectSearchBy := widget.NewSelect(
 		[]string{"Title", "Author", "Genre", "Borrower"},
 		func(s string) {
-			f.emiter.Emit(OnSearchBy, s)
+			f.emiter.Emit(OnSetSearchBy, s)
 		},
 	)
 	selectSearchBy.PlaceHolder = "Search By"
@@ -166,7 +166,8 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	searchEnt := widget.NewEntry()
 	searchEnt.PlaceHolder = "Search"
 	searchEnt.OnChanged = func(s string) {
-		f.emiter.Emit(OnSearch, s)
+		f.emiter.Emit(OnSetSearchPattern, s)
+		f.emiter.Emit(OnSearch, nil)
 	}
 
 	searchEnt.OnSubmitted = func(s string) {
@@ -176,7 +177,9 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	resetSearchText := func(_ any) {
 		searchEnt.SetText("")
 	}
-	f.emiter.OnEvent(OnSearchBy, resetSearchText)
+	f.emiter.OnEvent(OnSetSearchBy, resetSearchText)
+	f.emiter.OnEvent(OnSetOrdering, resetSearchText)
+
 
 	// Next Item
 	//-----------

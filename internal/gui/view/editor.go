@@ -13,6 +13,7 @@ import (
 	_ "fyne.io/fyne/v2/canvas"
 
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
+	"github.com/dubbersthehoser/mayble/internal/listing"
 )
 
 
@@ -28,7 +29,7 @@ func getDialogSize(size fyne.Size) fyne.Size {
 
 func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
 
-	rattings := controller.GetRattingStrings()
+	rattings := listing.GetRattingStrings()
 
 	type EntryField struct { // container for entry form items
 		Entry fyne.CanvasObject
