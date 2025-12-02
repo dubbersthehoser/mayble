@@ -45,6 +45,7 @@ func (hb *HeaderButton) OnTapped() {
 	)
 	switch {
 	case IsNormal:
+		hb.button.Importance = widget.MediumImportance
 		hb.button.SetText(hb.LabelASC())
 		hb.emiter.Emit(OnSetOrderBy, hb.label)
 		hb.emiter.Emit(OnSetOrdering, listing.ASC)
@@ -78,6 +79,7 @@ func (hb *HeaderButton) LabelDESC() string {
 	return "↓ " + hb.label
 }
 func (hb *HeaderButton) Reset() {
+	hb.button.Importance = widget.LowImportance
 	hb.button.SetText(hb.LabelNormal())
 }
 
@@ -113,6 +115,7 @@ func NewHeader(e *emiter.Emiter, by listing.OrderBy, o listing.Ordering) *Header
 		btn := NewHeaderButton(e, label)
 		if by == listing.MustStringToOrderBy(label) {// synced to booklist state
 			btn.SetOrdering(o)
+			btn.button.Importance = widget.MediumImportance
 		}
 		h.buttons = append(h.buttons, btn)
 		fields = append(fields, btn.button)

@@ -34,3 +34,69 @@ func (e *Emiter) Emit(key string, data any) error {
 	return nil
 }
 
+
+type Event struct {
+	Name  string
+	Data interface{}
+}
+
+type Listener struct {
+	Handler func(*Event)
+	id      int
+}
+
+type Broker struct {
+	idCount int
+	items map[string][]*Listener
+}
+
+func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
+
+	if b.items == nil {
+		b.items = make(map[string][]*Listener)
+	}
+	b.idCount++
+	
+	for _, e := range events {
+		_, ok := b.items[e]
+		if !ok {
+			b.items[e] = make([]*Listener, 0)
+		}
+		l.id = b.idCount
+		b.items[e] = append(b.items[e], l)
+	}
+	return l.id
+
+}
+
+func (b *Broker) Unsubscribe(id int, events ...string) error {
+	for _, e := range events {
+		listeners, ok := b.items[e]
+		if !ok {
+			continue
+		}
+		for i, l := range listeners {
+			if l.id == id {
+				listeners = append(listeners[:i], listeners[i+1:]...)
+				b.items[e] = listeners
+				break
+			}
+		}
+	}
+	return nil
+}
+
+func (b *Broker) Notify(e Event) error {
+	listeners, ok := b.items[e.Name]
+	if !ok {
+		return errors.New("event name not found: " + e.Name)
+	}
+	for _, l := range listeners {
+		l.Handler(&e)
+	}
+	return nil
+}
+
+
+
+

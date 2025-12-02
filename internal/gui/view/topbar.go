@@ -12,6 +12,7 @@ import (
 	_ "fyne.io/fyne/v2/canvas"
 
 	//"github.com/dubbersthehoser/mayble/internal/searching"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
@@ -153,33 +154,11 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	//
 	// Search By
 	//-----------
-	selectSearchBy := widget.NewSelect(
-		[]string{"Title", "Author", "Genre", "Borrower"},
-		func(s string) {
-			f.emiter.Emit(OnSetSearchBy, s)
-		},
-	)
-	selectSearchBy.PlaceHolder = "Search By"
+	selectSearchBy := NewSearchBySelect(f.emiter)
 
 	// Search Entry
 	//--------------
-	searchEnt := widget.NewEntry()
-	searchEnt.PlaceHolder = "Search"
-	searchEnt.OnChanged = func(s string) {
-		f.emiter.Emit(OnSetSearchPattern, s)
-		f.emiter.Emit(OnSearch, nil)
-	}
-
-	searchEnt.OnSubmitted = func(s string) {
-		f.emiter.Emit(OnSelectNext, nil)
-	}
-
-	resetSearchText := func(_ any) {
-		searchEnt.SetText("")
-	}
-	f.emiter.OnEvent(OnSetSearchBy, resetSearchText)
-	f.emiter.OnEvent(OnSetOrdering, resetSearchText)
-
+	searchEnt := NewSearchEntry(f.emiter)
 
 	// Next Item
 	//-----------
@@ -234,3 +213,55 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	right.Hide()
 	return container.New(layout.NewBorderLayout(nil, nil, o, nil), o, selectSearchBy)
 }
+
+
+type SearchEntry struct {
+	widget.Entry
+	emiter *emiter.Emiter
+}
+func NewSearchEntry(e *emiter.Emiter) *SearchEntry {
+	se := &SearchEntry{}
+	se.ExtendBaseWidget(se)
+	se.emiter = e
+	se.Entry.PlaceHolder = "Search"
+	se.Entry.OnChanged = se.Search
+	se.Entry.OnSubmitted = se.Submit
+	se.emiter.OnEvent(OnSetSearchBy, func(_ any) {se.Reset()})
+	se.emiter.OnEvent(OnSetOrdering, func(_ any) {se.Reset()})
+	return se
+}
+func (se *SearchEntry) Search(s string) {
+	se.emiter.Emit(OnSetSearchPattern, s)
+	se.emiter.Emit(OnSearch, nil)
+}
+func (se *SearchEntry) Submit(s string) {
+	se.emiter.Emit(OnSelectNext, nil)
+}
+func (se *SearchEntry) Reset() {
+	se.Entry.SetText("")
+}
+
+
+type SearchBySelect struct {
+	widget.Select
+	emiter *emiter.Emiter
+}
+func NewSearchBySelect(e *emiter.Emiter) *SearchBySelect {
+	sb := &SearchBySelect{}
+	sb.ExtendBaseWidget(sb)
+	sb.emiter = e
+	sb.SetOptions([]string{"Title", "Author", "Genre", "Borrower"})
+	sb.PlaceHolder = "Search By"
+	sb.OnChanged = sb.OnSelected
+	return sb
+}
+func (sb *SearchBySelect) OnSelected(s string) {
+	sb.emiter.Emit(OnSetSearchBy, s)
+}
+
+
+
+
+
+
+
