@@ -7,7 +7,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
 	
-	//myapp "github.com/dubbersthehoser/mayble/internal/app"
+	myapp "github.com/dubbersthehoser/mayble/internal/app"
 	appStub "github.com/dubbersthehoser/mayble/internal/app/stub"
 	storeDriver "github.com/dubbersthehoser/mayble/internal/storage/driver"
 
@@ -72,7 +72,8 @@ func Run(options ...Option) {
 
 	 _ = storage
 
-	app := &appStub.App{}
+	app := myapp.Mayble(&appStub.App{})
+	app, err = myapp.New(storage)
 	//core, err := core.New(storage)
 	//if err != nil && !Errored {
 	//	logGrid.Append(fmt.Sprintf("- core failed: %s", err.Error()))

@@ -15,176 +15,29 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
 
+
 func (f *FunkView) TopBar() fyne.CanvasObject {
 
-	// Save
-	//------
-	OnSaveItem := func() {
-		f.emiter.Emit(OnSave, nil)
-	}
-
-	saveItem := &widget.ToolbarAction{
-		Icon: theme.DocumentSaveIcon(),
-		OnActivated: OnSaveItem,
-	}
-
+	saveItem := NewToolbarSave(f.emiter)
 	saveItem.Disable()
 
-	// Events
-	EnableSaveItem := func(_ any) {
-		saveItem.Enable()
-	}
-	DisableSaveItem := func(_ any) {
-		saveItem.Disable()
-	}
+	menuItem := NewToolbarMenu(f.emiter)
+	createItem := NewToolbarCreate(f.emiter)
+	updateItem := NewToolbarUpdate(f.emiter)
+	deleteItem := NewToolbarDelete(f.emiter)
 
-	f.emiter.OnEvent(OnModification, EnableSaveItem)
-	f.emiter.OnEvent(OnSave, DisableSaveItem)
+	undoItem := NewToolbarUndo(f.emiter)
+	redoItem := NewToolbarRedo(f.emiter)
+	undoItem.Disable()
+	redoItem.Disable()
 
+	nextItem := NewToolbarNext(f.emiter)
+	prevItem := NewToolbarPrev(f.emiter)
 
-	// Menu
-	//------
-	OnMenuItem := func() {
-		f.emiter.Emit(OnMenuOpen, nil)
-	}
-	menuItem := &widget.ToolbarAction{
-		Icon: theme.MenuIcon(),
-		OnActivated: OnMenuItem,
-	}
-
-
-
-	// Create 
-	//--------
-	OnCreateItem := func() {
-		f.emiter.Emit(OnCreate, nil)
-	}
-	createItem := &widget.ToolbarAction{
-		Icon: theme.ContentAddIcon(),
-		OnActivated: OnCreateItem,
-	}
-
-
-	// Update
-	//--------
-	OnUpdateItem := func() {
-		f.emiter.Emit(OnUpdate, nil)
-	}
-	updateItem := &widget.ToolbarAction{
-		Icon: theme.DocumentCreateIcon(),
-		OnActivated: OnUpdateItem,
-	}
-
-	// Delete
-	//--------
-	OnDeleteItem := func() {
-		f.emiter.Emit(OnDelete, nil)
-	}
-	deleteItem := &widget.ToolbarAction{
-		Icon: theme.DeleteIcon(),
-		OnActivated: OnDeleteItem, 
-	}
-
-
-	// Events
-	DisableItemOnMod := func(_ any) {
-		updateItem.Disable()
-		deleteItem.Disable()
-	}
-	EnableItemOnMod := func(_ any) {
-		updateItem.Enable()
-		deleteItem.Enable()
-	}
-	updateItem.Disable()
-	deleteItem.Disable()
-	
-	f.emiter.OnEvent(OnSelected, EnableItemOnMod)
-	f.emiter.OnEvent(OnUnselected, DisableItemOnMod)
-
-	// Undo Redo
-	//-----------
-	//
-	// Undo
-	//------
-	OnUndoItem := func() {
-		f.emiter.Emit(OnUndo, nil)
-	}
-	undoItem := &widget.ToolbarAction{
-		Icon: theme.ContentUndoIcon(),
-		OnActivated: OnUndoItem,
-	}
-
-	// Redo
-	//------
-	OnRedoItem := func() {
-		f.emiter.Emit(OnRedo, nil)
-	}
-	redoItem := &widget.ToolbarAction{
-		Icon: theme.ContentRedoIcon(),
-		OnActivated: OnRedoItem,
-	}
-
-	checkUndoBtn := func() {
-		if f.controller.App.UndoIsEmpty() {
-			undoItem.Enable()
-		} else {
-			undoItem.Disable()
-		}
-	}
-	checkRedoBtn := func() {
-		if f.controller.App.RedoIsEmpty() {
-			redoItem.Enable()
-		} else {
-			redoItem.Disable()
-		}
-	}
-
-	f.emiter.OnEvent(OnModification, func(_ any) {
-		checkRedoBtn()
-		checkUndoBtn()
-	})
-
-	checkRedoBtn()
-	checkUndoBtn()
-
-
-
-	// Search
-	//---------
-	//
-	// Search By
-	//-----------
 	selectSearchBy := NewSearchBySelect(f.emiter)
 
-	// Search Entry
-	//--------------
 	searchEnt := NewSearchEntry(f.emiter)
 
-	// Next Item
-	//-----------
-	onNextItem := func() {
-		f.emiter.Emit(OnSelectNext, nil)
-	}
-
-	nextItemItem := &widget.ToolbarAction{
-		Icon: theme.MoveDownIcon() ,
-		OnActivated: onNextItem,
-	}
-
-	// Previous Item
-	// --------------
-	onPrevItem := func() {
-		f.emiter.Emit(OnSelectPrev, nil)
-	}
-
-	prevItemItem := &widget.ToolbarAction{
-		Icon: theme.MoveUpIcon(),
-		OnActivated: onPrevItem,
-	}
-
-
-	// Toolbar Items
-	//---------------
 	items := []widget.ToolbarItem{
 		menuItem,
 		saveItem,
@@ -196,22 +49,17 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		undoItem,
 		redoItem,
 		widget.NewToolbarSeparator(),
-		nextItemItem,
-		prevItemItem,
+		nextItem,
+		prevItem,
 	}
 	toolBar := widget.NewToolbar(items...)
 	
-
-	// Canvas
-	//--------
 	boxes := []fyne.CanvasObject{
 		toolBar,
 		searchEnt,
+		selectSearchBy,
 	}
-	o := container.New(layout.NewGridLayout(len(boxes)), boxes...)
-	right := widget.NewSeparator()
-	right.Hide()
-	return container.New(layout.NewBorderLayout(nil, nil, o, nil), o, selectSearchBy)
+	return container.New(layout.NewHBoxLayout(), boxes...)
 }
 
 
@@ -241,6 +89,12 @@ func (se *SearchEntry) Reset() {
 	se.Entry.SetText("")
 }
 
+func (se *SearchEntry) MinSize() fyne.Size {
+	size := se.Entry.MinSize()
+	size.Width += 350.0 // set horizontal size for vBox
+	return size
+}
+
 
 type SearchBySelect struct {
 	widget.Select
@@ -259,9 +113,130 @@ func (sb *SearchBySelect) OnSelected(s string) {
 	sb.emiter.Emit(OnSetSearchBy, s)
 }
 
+/*****************************
+        Toolbar Items
+******************************/
 
+func NewToolbarSave(e *emiter.Emiter) *widget.ToolbarAction {
+	ts := &widget.ToolbarAction{
+		Icon: theme.DocumentSaveIcon(),
+		OnActivated: func() {
+			e.Emit(OnSave, nil)
+		},
+	}
+	e.OnEvent(OnModification, func(_ any) {
+		ts.Enable()
+	})
+	e.OnEvent(OnSave, func(_ any){
+		ts.Disable()
+	})
+	return ts
+}
 
+func NewToolbarMenu(e *emiter.Emiter) *widget.ToolbarAction {
+	tm := &widget.ToolbarAction{
+		Icon: theme.MenuIcon(),
+		OnActivated: func() {
+			e.Emit(OnMenuOpen, nil)
+		},
+	}
+	return tm
 
+}
+
+func NewToolbarCreate(e *emiter.Emiter) *widget.ToolbarAction {
+	tc := &widget.ToolbarAction{
+		Icon: theme.ContentAddIcon(),
+		OnActivated: func() {
+			e.Emit(OnCreate, nil)
+		},
+	}
+	return tc
+}
+
+func NewToolbarUpdate(e *emiter.Emiter) *widget.ToolbarAction {
+	tu := &widget.ToolbarAction{
+		Icon: theme.DocumentCreateIcon(),
+		OnActivated: func() {
+			e.Emit(OnUpdate, nil)
+		},
+	}
+	e.OnEvent(OnSelected, func(_ any) {
+		tu.Enable()
+	})
+	e.OnEvent(OnUnselected, func(_ any) {
+		tu.Disable()
+	})
+	return tu
+}
+
+func NewToolbarDelete(e *emiter.Emiter) *widget.ToolbarAction {
+	td := &widget.ToolbarAction{
+		Icon: theme.DeleteIcon(),
+		OnActivated: func() {
+			e.Emit(OnDelete, nil)
+		}, 
+	}
+	e.OnEvent(OnSelected, func(_ any) {
+		td.Enable()
+	})
+	e.OnEvent(OnUnselected, func(_ any) {
+		td.Disable()
+	})
+	return td
+}
+
+func NewToolbarUndo(e *emiter.Emiter) *widget.ToolbarAction {
+	tu := &widget.ToolbarAction{
+		Icon: theme.ContentUndoIcon(),
+		OnActivated: func() {
+			e.Emit(OnUndo, nil)
+		},
+	}
+
+	e.OnEvent(OnUndoEmpty, func(_ any){
+		tu.Disable()
+	})
+
+	e.OnEvent(OnUndoReady, func(_ any) {
+		tu.Enable()
+	})
+	return tu
+}
+func NewToolbarRedo(e *emiter.Emiter) *widget.ToolbarAction {
+	tr := &widget.ToolbarAction{
+		Icon: theme.ContentRedoIcon(),
+		OnActivated: func() {
+			e.Emit(OnRedo, nil)
+		},
+	}
+	e.OnEvent(OnRedoEmpty, func(_ any){
+		tr.Disable()
+	})
+	e.OnEvent(OnRedoReady, func(_ any) {
+		tr.Enable()
+	})
+	return tr
+}
+
+func NewToolbarNext(e *emiter.Emiter) *widget.ToolbarAction {
+	tn := &widget.ToolbarAction{
+		Icon: theme.MoveDownIcon() ,
+		OnActivated: func() {
+			e.Emit(OnSelectNext, nil)
+		},
+	}
+	return tn
+}
+func NewToolbarPrev(e *emiter.Emiter) *widget.ToolbarAction {
+	tp := &widget.ToolbarAction{
+		Icon: theme.MoveUpIcon(),
+		OnActivated: func() {
+			e.Emit(OnSelectPrev, nil)
+		},
+	}
+	return tp
+}
 
 
 

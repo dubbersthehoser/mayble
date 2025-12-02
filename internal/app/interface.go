@@ -15,6 +15,14 @@ type BookLoan struct {
 	Date     time.Time
 }
 
+type Mayble interface {
+	BookLoaning
+	Importable
+	Redoable
+	Undoable
+	Savable
+}
+
 type BookLoaning interface {
 	CreateBookLoan(*BookLoan) error
 	UpdateBookLoan(*BookLoan) error
@@ -25,15 +33,6 @@ type BookLoaning interface {
 type Importable interface {
 	ImportBookLoans([]BookLoan) error
 }
-
-type Mayble interface {
-	BookLoaning
-	Importable
-	Redoable
-	Undoable
-	Savable
-}
-
 
 type Redoable interface {
 	Redo() error

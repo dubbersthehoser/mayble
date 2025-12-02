@@ -74,7 +74,11 @@ const (
 	OnDelete       = "ON_DELETE"
 
 	OnUndo         = "ON_UNDO"
+	OnUndoEmpty    = "ON_UNDO_EMPTY"
+	OnUndoReady    = "ON_UNDO_READY"
 	OnRedo         = "ON_REDO"
+	OnRedoEmpty    = "ON_REDO_EMPTY"
+	OnRedoReady    = "ON_REDO_READY"
 
 	OnSearch           = "ON_SEARCH"
 	OnSetSearchPattern = "ON_SET_SEARCH_PATTERN"
@@ -230,6 +234,18 @@ func handleModification(f *FunkView) func(any) {
 			return
 		}
 		f.refresh()
+
+		if f.controller.App.RedoIsEmpty() {
+			f.emiter.Emit(OnRedoEmpty, nil)
+		} else {
+			f.emiter.Emit(OnRedoReady, nil)
+		}
+
+		if f.controller.App.UndoIsEmpty() {
+			f.emiter.Emit(OnUndoEmpty, nil)
+		} else {
+			f.emiter.Emit(OnRedoReady, nil)
+		}
 	}
 }
 
