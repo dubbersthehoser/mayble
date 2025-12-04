@@ -27,6 +27,7 @@ type FunkView struct {
 	controller *controller.Controller
 	View       fyne.CanvasObject
 	emiter     *emiter.Emiter
+	broker     *emiter.Broker
 }
 
 func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, error) {
@@ -34,6 +35,7 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 		controller: control,
 		emiter: emiter.NewEmiter(),
 		window: window,
+		broker: &emiter.Broker{},
 	}
 
 	loadOnEventHandlers(&f)

@@ -15,7 +15,7 @@ type BookLoan struct {
 	Date     time.Time
 }
 
-type Mayble interface {
+type API interface {
 	BookLoaning
 	Importable
 	Redoable
@@ -38,6 +38,7 @@ type Redoable interface {
 	Redo() error
 	RedoIsEmpty()  bool
 }
+
 type Undoable interface {
 	Undo() error
 	UndoIsEmpty() bool
@@ -46,4 +47,18 @@ type Undoable interface {
 type Savable interface {
 	Save() error
 }
+
+// AppListerner defines avaliable event to listen to from application.
+type AppListerner interface {
+	SubscribeRedoUndoables
+}
+
+type SubscribeRedoUndoables {
+	// SubscribeToRedos listen to DocumentRedo, and DocumentRedoEmpty from application document.
+	SubscribeToUndos(func(*emiter.Event)
+
+	// SubscribeToUndos listen to DocumentUndo, and DocumentUndoEmpty from application document.
+	SubscribeToRedos(func(*emiter.Event))
+}
+
 

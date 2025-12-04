@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
 
 var (
@@ -20,6 +21,8 @@ type App struct {
 
 	memory   *memory.Storage
 	memMgr   *manager 
+
+	broker   *emiter.Broker
 }
 
 func New(store storage.BookLoanStore) (*App, error) {
@@ -28,6 +31,7 @@ func New(store storage.BookLoanStore) (*App, error) {
 	a.storeMgr = newManager()
 	a.memory = memory.NewStorage()
 	a.memMgr = newManager()
+	a.broker = &emiter.Broker{}
 	if err := a.load(); err != nil {
 		return nil, err
 	}
@@ -66,7 +70,15 @@ func (a *App) Save() error {
 		}
 	}
 	a.storeMgr.undos.Clear() // clear undos from executed commands
-	return a.load()
+	
+	err := a.load()
+	if err != nil {
+		return err
+	}
+	a.broker.Notify(emiter.Event{
+		Name: DocumentSaved,
+	})
+	return nil
 }
 
 func (a *App) GetBookLoans() ([]BookLoan, error) {
@@ -87,6 +99,9 @@ func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
 		return err
 	}
 	a.storeMgr.enqueue(cmd(a.storage))
+	a.broker.Notify(emiter.Event{
+		Name: DocumentImported,
+	})
 	return nil
 }
 
@@ -101,6 +116,10 @@ func (a *App) CreateBookLoan(book *BookLoan) error {
 		return err
 	}
 	a.storeMgr.enqueue(cmd(a.storage))
+	a.broker.Notify(emiter.Event{
+		Name: DocumentEntryCreated,
+		Data: book,
+	})
 	return nil
 }
 
@@ -114,6 +133,10 @@ func (a *App) UpdateBookLoan(book *BookLoan) error {
 		return err
 	}
 	a.storeMgr.enqueue(cmd(a.storage))
+	a.broker.Notify(emiter.Event{
+		Name: DocumentEntryUpdated,
+		Data: book,
+	})
 	return nil
 }
 
@@ -127,22 +150,77 @@ func (a *App) DeleteBookLoan(book *BookLoan) error {
 		return err
 	}
 	a.storeMgr.enqueue(cmd(a.storage))
+	a.broker.Notify(emiter.Event{
+		Name: DocumentEntryDeleted,
+		Data: book,
+	})
 	return nil
 }
 
+
+
+
 func (a *App) Undo() error {
-	return a.memMgr.unExecute()
+	if err := a.memMgr.unExecute(); err != nil {
+		return err
+	}
+	a.broker.Notify(emiter.Event{
+		Name: DocumentUndo,
+	})
+	if !a.UndoIsEmpty() {
+		return nil
+	}
+	a.broker.Notify(emiter.Event{
+		Name: DocumentUndoEmpty,
+	})
+	return nil
 }
+
 func (a *App) UndoIsEmpty() bool {
 	return a.memMgr.undos.Length() == 0
 }
 
+
+
+
 func (a *App) Redo() error {
-	return a.memMgr.reExecute()
+	if err := a.memMgr.reExecute(); err != nil {
+		return err
+	}
+	a.broker.Notify(emiter.Event{
+		Name: DocumentRedo,
+	})
+	if !a.RedoEmpty() {
+		return nil
+	}
+	a.broker.Notify(emiter.Event{
+		Name: DocumentRedoEmpty,
+	})
+
 }
+
 func (a *App) RedoIsEmpty() bool {
 	return a.memMgr.redos.Length() == 0
 }
+
+
+
+
+func (a *App) SubscribeToRedos(fn func(*emiter.Event)) {
+	l := emiter.Listener{
+		Handler: fn,
+	}
+	a.broker.Subscribe(&l, DocumentRedo, DocumentRedoEmpty)
+}
+
+func (a *App) SubscribeToUndos(fn func(*emiter.Event)) {
+	l := emiter.Listener{
+		Handler: fn,
+	}
+	a.broker.Subscribe(&l, DocumentUndo, DocumentUndoEmpty)
+
+
+
 
 
 func createBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) (int64, error) {

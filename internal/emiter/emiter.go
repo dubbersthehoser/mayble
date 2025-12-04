@@ -2,11 +2,13 @@ package emiter
 
 import (
 	"errors"
+	"sync"
 )
 
 
 type Emiter struct {
 	event map[string][]func(any)
+	mu sync.RWMutex
 }
 
 func NewEmiter() *Emiter {
@@ -16,6 +18,8 @@ func NewEmiter() *Emiter {
 }
 
 func (e *Emiter) OnEvent(key string, handler func(any)) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	_, ok := e.event[key]
 	if !ok {
 		e.event[key] = make([]func(any), 0)
@@ -24,6 +28,8 @@ func (e *Emiter) OnEvent(key string, handler func(any)) {
 }
 
 func (e *Emiter) Emit(key string, data any) error {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	handlers, ok := e.event[key]
 	if !ok {
 		return errors.New("emiter: key not found")

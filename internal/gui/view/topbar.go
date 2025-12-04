@@ -18,7 +18,7 @@ import (
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
 
-	saveItem := NewToolbarSave(f.emiter)
+	saveItem := NewToolbarSave(f.broker)
 	saveItem.Disable()
 
 	menuItem := NewToolbarMenu(f.emiter)
@@ -26,10 +26,8 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	updateItem := NewToolbarUpdate(f.emiter)
 	deleteItem := NewToolbarDelete(f.emiter)
 
-	undoItem := NewToolbarUndo(f.emiter)
-	redoItem := NewToolbarRedo(f.emiter)
-	undoItem.Disable()
-	redoItem.Disable()
+	undoItem := NewToolbarUndo(f.broker)
+	redoItem := NewToolbarRedo(f.broker)
 
 	nextItem := NewToolbarNext(f.emiter)
 	prevItem := NewToolbarPrev(f.emiter)
@@ -117,19 +115,27 @@ func (sb *SearchBySelect) OnSelected(s string) {
         Toolbar Items
 ******************************/
 
-func NewToolbarSave(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarSave(b *emiter.Broker) *widget.ToolbarAction {
 	ts := &widget.ToolbarAction{
 		Icon: theme.DocumentSaveIcon(),
 		OnActivated: func() {
-			e.Emit(OnSave, nil)
+			b.Notify(emiter.Event{
+				Name: EventSave,
+			})
 		},
 	}
-	e.OnEvent(OnModification, func(_ any) {
-		ts.Enable()
-	})
-	e.OnEvent(OnSave, func(_ any){
-		ts.Disable()
-	})
+	l := emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case EventSaveDisable:
+				ts.Disable()
+
+			case EventSaveEnable:
+				ts.Enable()
+			}
+		},
+	}
+	b.Subscribe(&l, EventSaveDisable, EventSaveEnable)
 	return ts
 }
 
@@ -186,36 +192,51 @@ func NewToolbarDelete(e *emiter.Emiter) *widget.ToolbarAction {
 	return td
 }
 
-func NewToolbarUndo(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarUndo(b *emiter.Broker) *widget.ToolbarAction {
 	tu := &widget.ToolbarAction{
 		Icon: theme.ContentUndoIcon(),
 		OnActivated: func() {
-			e.Emit(OnUndo, nil)
+			b.Notify(emiter.Event{
+				Name: EventUndo,
+			})
 		},
 	}
 
-	e.OnEvent(OnUndoEmpty, func(_ any){
-		tu.Disable()
-	})
+	l := emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case EventUndoEmpty:
+				tu.Disable()
+			case EventUndoReady:
+				tu.Enable()
+			}
+		}
+	}
+	b.Subscribe(&l, EventUndoEmpty, EventUndoReady)
+	println("undo listen with id: ", l.id)
 
-	e.OnEvent(OnUndoReady, func(_ any) {
-		tu.Enable()
-	})
-	return tu
 }
-func NewToolbarRedo(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarRedo(b *emiter.Broker) *widget.ToolbarAction {
 	tr := &widget.ToolbarAction{
 		Icon: theme.ContentRedoIcon(),
 		OnActivated: func() {
-			e.Emit(OnRedo, nil)
+			b.Notify(emiter.Event{
+				Name: EventRedo,
+			})
 		},
 	}
-	e.OnEvent(OnRedoEmpty, func(_ any){
-		tr.Disable()
-	})
-	e.OnEvent(OnRedoReady, func(_ any) {
-		tr.Enable()
-	})
+	l := emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case EventUndoEmpty:
+				tu.Disable()
+			case EventUndoReady:
+				tu.Enable()
+			}
+		}
+	}
+	b.Subscribe(&l, EventRedoEmpty, EventRedoReady)
+	println("redo listen with id: ", l.id)
 	return tr
 }
 

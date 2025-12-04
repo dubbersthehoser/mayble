@@ -4,7 +4,7 @@ import (
 	"fmt"
 	
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
+	fyneApp "fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
 	
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
@@ -27,7 +27,9 @@ func SetupTextGrid() *widget.TextGrid {
 	return textgrid
 }
 
-func Run(options ...Option) {
+
+
+func Run(options ...Option) error {
 
 	s := settings.Settings{}
 	for _, option := range options {
@@ -39,8 +41,8 @@ func Run(options ...Option) {
 	defaultDBDriver(&s)
 	defaultDBPath(&s)
 	
-	App := app.NewWithID("app.dubbersthehoser.mayble")
-	window := App.NewWindow("Mayble Launcher")
+	guiApp := fyneApp.NewWithID("app.dubbersthehoser.mayble")
+	window := guiApp.NewWindow("Mayble")
 	window.Resize(fyne.NewSize(800, 500))
 	window.CenterOnScreen()
 
@@ -70,22 +72,16 @@ func Run(options ...Option) {
 		logGrid.Append("- storage: success")
 	}
 
-	 _ = storage
+	coreApp := myapp.AppAPI(&appStub.App{})
+	coreApp, err = myapp.New(storage)
+	if err != nil {
+		logGrid.Append(fmt.Sprintf("- app: failed: %s", err))
+	}
 
-	app := myapp.Mayble(&appStub.App{})
-	app, err = myapp.New(storage)
-	//core, err := core.New(storage)
-	//if err != nil && !Errored {
-	//	logGrid.Append(fmt.Sprintf("- core failed: %s", err.Error()))
-	//	Errored = true
-	//} else {
-	//	logGrid.Append("- core: success")
-	//}
-
-	control := controller.New(app)
+	control := controller.New(coreApp)
 	funkView, err := view.NewFunkView(control, window)
 	if err != nil {
-		logGrid.Append(fmt.Sprintf("- view: failed: %s", err.Error()))
+		logGrid.Append(fmt.Sprintf("- view: failed: %s", err))
 		Errored = true
 	}
 
@@ -97,7 +93,9 @@ func Run(options ...Option) {
 
 	window.SetContent(mainView)
 	window.ShowAndRun()
+	return nil
 }
+
 
 
 

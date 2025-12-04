@@ -3,7 +3,6 @@ package launcher
 import (
 	"fmt"
 	"os"
-	//"fmt"
 	"errors"
 	"path/filepath"
 
@@ -19,20 +18,28 @@ func WithDBPath(path string) Option {
 		s.DBPath = path
 	}
 }
-func WithConfigPath(path string) Option {
-	return func(s *settings.Settings) {
-		s.ConfigPath = path
-	}
-}
 func WithDBDriver(driver string) Option {
 	return func(s *settings.Settings) {
 		s.DBDriver = driver
 	}
 }
 
+func WithConfigPath(path string) Option {
+	return func(s *settings.Settings) {
+		s.ConfigPath = path
+	}
+}
+
+func WithConfigDir(dir string) Option {
+	return func(s *settings.Settings) {
+		s.ConfigDir = dir
+	}
+}
+
+
 /* Default Settings */
 
-// defaultConfigDir function must be ran first before other default setting functions
+// defaultConfigDir function must be ran first before other default functions.
 func defaultConfigDir(s *settings.Settings) { 
 	if s.ConfigDir != "" {
 		return

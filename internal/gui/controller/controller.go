@@ -5,7 +5,7 @@ import (
 )
 
 type Controller struct {
-	App        app.Mayble
+	App        app.API
 	BookLoaner app.BookLoaning
 	Redoer     app.Redoable
 	Undoer     app.Undoable
@@ -16,8 +16,13 @@ type Controller struct {
 	Editor    *BookEditor
 }
 
-func New(a app.Mayble) *Controller {
+func New(a app.API) *Controller {
 	var c Controller
+	c.SetApp(a)
+	return &c
+}
+
+func (c *Controller) SetApp(a app.API) {
 	c.App = a
 
 	c.BookLoaner = a
@@ -28,5 +33,4 @@ func New(a app.Mayble) *Controller {
 
 	c.List = NewBookList(app.BookLoaning(a))
 	c.Editor = NewBookEditor(app.BookLoaning(a))
-	return &c
 }

@@ -1,10 +1,16 @@
 package main
 
 import (
-	"github.com/dubbersthehoser/mayble/internal/gui/launcher"
+	"os"
+	"log"
+
+	"github.com/dubbersthehoser/mayble/internal/launcher"
 )
 
 
 func main() {
-	launcher.Run()
+	if err := launcher.Run(); err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(0)
 }
