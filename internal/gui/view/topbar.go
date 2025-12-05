@@ -191,7 +191,7 @@ func NewToolbarCreate(b *emiter.Broker) *widget.ToolbarAction {
 		Icon: theme.ContentAddIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
-				Name: gui.EventEditOpen,
+				Name: gui.EventEditerOpen,
 				Data: gui.EventEntryCreate,
 			})
 		},
@@ -204,7 +204,7 @@ func NewToolbarUpdate(b *emiter.Broker) *widget.ToolbarAction {
 		Icon: theme.DocumentCreateIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
-				Name: gui.EventEditOpen,
+				Name: gui.EventEditerOpen,
 				Data: gui.EventEntryUpdate,
 			})
 		},
@@ -320,6 +320,23 @@ func NewToolbarNext(b *emiter.Broker) *widget.ToolbarAction {
 			})
 		},
 	}
+
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+
+			case gui.EventSelectionNone:
+				tn.Disable()
+
+			case gui.EventSelection:
+				tn.Enable()
+			}
+		},
+	},
+		gui.EventSelectionNone,
+		gui.EventSelection,
+	)
+
 	return tn
 }
 func NewToolbarPrev(b *emiter.Broker) *widget.ToolbarAction {
@@ -331,6 +348,21 @@ func NewToolbarPrev(b *emiter.Broker) *widget.ToolbarAction {
 			})
 		},
 	}
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+
+			case gui.EventSelectionNone:
+				tp.Disable()
+
+			case gui.EventSelection:
+				tp.Enable()
+			}
+		},
+	},
+		gui.EventSelectionNone,
+		gui.EventSelection,
+	)
 	return tp
 }
 

@@ -14,7 +14,7 @@ const (
 	EventUndoEmpty = "ui.undo.empty"
 	EventUndoReady = "ui.undo.ready"
 
-	EventEditOpen    = "ui.editor.open"
+	EventEditerOpen  = "ui.editor.open"
 	EventEntryCreate = "ui.entry.create"
 	EventEntryDelete = "ui.entry.delete"
 	EventEntryUpdate = "ui.entry.update"
@@ -33,6 +33,9 @@ const (
 	EventSearchBy      = "ui.search.by"
 	EventSearchPattern = "ui.search.pattern"
 
+	EventSelection     = "ui.selection"
+	EventSelectionNone = "ui.selection.none"
+	EventSelectionAll  = "ui.selection.all"
 
 	EventDisplayErr    = "ui.display.error"
 )

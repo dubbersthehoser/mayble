@@ -27,7 +27,7 @@ func getDialogSize(size fyne.Size) fyne.Size {
 	return s
 }
 
-func (f *FunkView) ShowEdit(builder *controller.BookLoanBuilder) {
+func (f *FunkView) ShowEditor(builder *controller.BookLoanBuilder) {
 
 	rattings := listing.GetRattingStrings()
 

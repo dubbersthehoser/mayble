@@ -112,9 +112,14 @@ func syncView(f *FunkView) {
 			Name: gui.EventRedoEmpty,
 		})
 	}
-	if !f.controller.Searcher.HasSelected() {
+	if !f.controller.List.HasSelected() {
 		f.broker.Notify(emiter.Event{
 			Name: gui.EventEntryUnselected,
+		})
+	}
+	if !f.controller.Searcher.HasSelection() {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventSelectionNone,
 		})
 	}
 
@@ -159,12 +164,28 @@ func loadOnEventHandlers(f *FunkView) {
 						Name: gui.EventUndoEmpty,
 					})
 				}
+			case gui.EventEditerOpen:
+				subEvent := e.Data.(string)
+				var builder *controller.BookLoanBuilder
+				switch subEvent {
+				case gui.EventEntryCreate:
+					builder = controller.NewBookLoanBuilder()
+
+				case gui.EventEntryUpdate:
+					book := f.controller.List.Selected()
+					builder = controller.NewBuilderWithBookLoan(book)
+				}
+				if builder == nil {
+					panic("unexpected: builder is nil")
+				}
+				f.ShowEditor(builder)
 			}
 		},
 	}, 
 		gui.EventSave,
 		gui.EventRedo,
 		gui.EventUndo,
+		gui.EventEditerOpen,
 	)
 }
 
