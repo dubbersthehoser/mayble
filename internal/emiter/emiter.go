@@ -3,8 +3,8 @@ package emiter
 import (
 	"errors"
 	"sync"
+	"log"
 )
-
 
 type Emiter struct {
 	event map[string][]func(any)
@@ -57,7 +57,6 @@ type Broker struct {
 	mu sync.RWMutex
 }
 
-
 func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -67,6 +66,37 @@ func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
 	b.idCount++
 	
 	for _, e := range events {
+		_, ok := b.items[e]
+		if !ok {
+			b.items[e] = make([]*Listener, 0)
+		}
+		l.id = b.idCount
+		b.items[e] = append(b.items[e], l)
+	}
+	return l.id
+}
+
+func (b *Broker) SubscribeAll(l *Listener, exclude ...string) (int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.items == nil {
+		b.items = make(map[string][]*Listener)
+	}
+	b.idCount++
+
+	for e := range b.items {
+		found := false
+		for _, exclue := range exclude {
+			if exclue == e {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+
 		_, ok := b.items[e]
 		if !ok {
 			b.items[e] = make([]*Listener, 0)
@@ -99,6 +129,7 @@ func (b *Broker) Unsubscribe(id int, events ...string) error {
 func (b *Broker) Notify(e Event) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+	log.Printf("event: (%s, %#v)", e.Name, e.Data)
 	listeners, ok := b.items[e.Name]
 	if !ok {
 		return errors.New("event name not found: " + e.Name)

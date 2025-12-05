@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
 
 type Controller struct {
@@ -12,12 +13,16 @@ type Controller struct {
 	Importer   app.Importable
 	Saver      app.Savable
 
-	List      *BookList
+	List      *BookLoanList
+	Searcher  *BookLoanSearcher
 	Editor    *BookEditor
+
+	Broker    *emiter.Broker
 }
 
 func New(a app.API) *Controller {
 	var c Controller
+	c.Broker = &emiter.Broker{}
 	c.SetApp(a)
 	return &c
 }
@@ -31,6 +36,7 @@ func (c *Controller) SetApp(a app.API) {
 	c.Importer   = a
 	c.Saver      = a
 
-	c.List = NewBookList(app.BookLoaning(a))
+	c.List = NewBookLoanList(app.BookLoaning(a), c.Broker)
+	c.Searcher = NewBookLoanSearcher(c.Broker, &c.List.list)
 	c.Editor = NewBookEditor(app.BookLoaning(a))
 }

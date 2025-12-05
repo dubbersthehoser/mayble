@@ -156,7 +156,7 @@ func (hb *HeaderButton) Reset() {
 type TableList struct {
 	broker     *emiter.Broker
 	List       *widget.List
-	Controller *controller.BookList
+	control *controller.BookLoanList
 }
 
 func (tl *TableList) OnSelect(index int) {
@@ -166,10 +166,10 @@ func (tl *TableList) OnSelect(index int) {
 	})
 }
 
-func NewTableList(b *emiter.Broker, controller *controller.BookList) *TableList {
+func NewTableList(b *emiter.Broker, c *controller.BookLoanList) *TableList {
 	tl := &TableList{
 		broker: b,
-		Controller: controller,
+		control: c,
 	}
 	tl.List = widget.NewList(tl.OnListLength, tl.OnCanvasCreation, tl.OnCanvasInit)
 	tl.List.HideSeparators = false
@@ -244,15 +244,9 @@ func (tl *TableList) OnCanvasCreation() fyne.CanvasObject {
 	entry := container.New(layout.NewGridLayout(len(fields)), fields...)
 	return entry
 }
+
 func (tl *TableList) OnCanvasInit(index int, o fyne.CanvasObject) {
-	book, err := tl.Controller.Get(index)
-	if err != nil {
-		tl.broker.Notify(emiter.Event{
-			Name: gui.EventDisplayErr,
-			Data: err,
-		},)
-		return
-	}
+	book := tl.control.Get(index)
 	o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
 	o.(*fyne.Container).Objects[1].(*widget.Label).SetText(book.Author)
 	o.(*fyne.Container).Objects[2].(*widget.Label).SetText(book.Genre)
@@ -261,6 +255,6 @@ func (tl *TableList) OnCanvasInit(index int, o fyne.CanvasObject) {
 	o.(*fyne.Container).Objects[5].(*widget.Label).SetText(book.Date)
 }
 func (tl *TableList) OnListLength() int {
-	return tl.Controller.Len()
+	return tl.control.Len()
 }
 

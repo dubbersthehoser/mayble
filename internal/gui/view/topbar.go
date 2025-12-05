@@ -79,10 +79,13 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	b.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
+
 			case gui.EventSearchBy:
-				se.Entry.SetText("")
+				se.Entry.SetText("") 
+
 			case gui.EventListOrdering:
 				se.Entry.SetText("")
+
 			default:
 				panic("event not found: " + e.Name)
 			}

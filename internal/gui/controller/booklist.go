@@ -14,7 +14,7 @@ import (
 
 const UnselectIndex int = -1
 
-type Searcher struct {
+type BookLoanSearcher struct {
 	pattern   string
 	by        searching.Field
 	selected  int
@@ -22,6 +22,78 @@ type Searcher struct {
 	list      *[]app.BookLoan
 	broker    *emiter.Broker
 }
+
+func NewBookLoanSearcher(b *emiter.Broker, list *[]app.BookLoan) *BookLoanSearcher {
+	bs := &BookLoanSearcher{
+		selected: UnselectIndex,
+		selection: searching.NewRangeRing(len(*list)),
+		list: list,
+		broker: b,
+	}
+
+	bs.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+
+			case gui.EventSearchPattern:
+				pattern := e.Data.(string)
+				bs.pattern = pattern
+
+			case gui.EventSearchBy:
+				by := e.Data.(searching.Field)
+				bs.by = by
+
+			case gui.EventSelectNext:
+				idx := bs.selection.Next()
+				bs.broker.Notify(emiter.Event{
+					Name: gui.EventEntrySelected,
+					Data: idx,
+				})
+
+			case gui.EventSelectPrev:
+				idx := bs.selection.Prev()
+				bs.broker.Notify(emiter.Event{
+					Name: gui.EventEntrySelected,
+					Data: idx,
+				})
+
+			case gui.EventSearch:
+				selection := searching.SearchBookLoans(*bs.list, bs.by, bs.pattern)
+				if len(selection) == 0 {
+					return
+				}
+				bs.selection = searching.NewSelectionRing(selection)
+				idx := bs.selection.Selected()
+				bs.broker.Notify(emiter.Event{
+					Name: gui.EventEntrySelected,
+					Data: idx,
+				})
+			}
+		},
+	},
+		gui.EventSearchPattern,
+		gui.EventSearchBy,
+		gui.EventSelectNext,
+		gui.EventSelectPrev,
+		gui.EventSearch,
+	)
+	return bs
+}
+func (bs *BookLoanSearcher) HasSelected() bool {
+	return bs.selected > -1
+}
+
+func (bs *BookLoanSearcher) Search() {
+	if bs.pattern == "" {
+		bs.selection = searching.NewRangeRing(len(*bs.list))
+		return
+	}
+	selection := searching.SearchBookLoans(*bs.list, bs.by, bs.pattern)
+	if len(selection) != 0 {
+		bs.selection = searching.NewSelectionRing(selection)
+	}
+}
+
 
 type BookLoanList struct {
 	app      app.BookLoaning
@@ -48,6 +120,7 @@ func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
 			case gui.EventListOrdering:
 				o := e.Data.(listing.Ordering)
 				bl.ordering = o
+				bl.Sort()
 			}
 		},
 	},
@@ -55,6 +128,23 @@ func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
 		gui.EventListOrderBy,
 	)
 	return bl
+}
+
+func (bl *BookLoanList) Sort() {
+	bl.list = listing.OrderBookLoans(bl.list, bl.orderBy, bl.ordering)
+	bl.broker.Notify(emiter.Event{
+		Name: gui.EventListOrdered,
+	})
+}
+
+func (bl *BookLoanList) Get(index int) *listing.BookLoan {
+	bookLoan := bl.list[index]
+	bookView := listing.BookLoanToListed(&bookLoan)
+	return bookView
+}
+
+func (bl *BookLoanList) Len() int {
+	return len(bl.list)
 }
 
 

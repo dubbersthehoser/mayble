@@ -26,11 +26,12 @@ const (
 	EventSelectPrev = "ui.select.previous"
 
 	EventListOrderBy    = "ui.list.orderby"
-	EventListOrdering    = "ui.list.ordering"
+	EventListOrdering   = "ui.list.ordering"
+	EventListOrdered    = "ui.list.ordered"
 
+	EventSearch        = "ui.search"
 	EventSearchBy      = "ui.search.by"
 	EventSearchPattern = "ui.search.pattern"
-
 
 
 	EventDisplayErr    = "ui.display.error"
