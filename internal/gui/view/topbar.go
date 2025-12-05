@@ -11,8 +11,10 @@ import (
 	"fyne.io/fyne/v2/theme"
 	_ "fyne.io/fyne/v2/canvas"
 
-	//"github.com/dubbersthehoser/mayble/internal/searching"
+	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui"
+
 )
 
 
@@ -22,19 +24,19 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	saveItem.Disable()
 
 	menuItem := NewToolbarMenu(f.emiter)
-	createItem := NewToolbarCreate(f.emiter)
-	updateItem := NewToolbarUpdate(f.emiter)
-	deleteItem := NewToolbarDelete(f.emiter)
+	createItem := NewToolbarCreate(f.broker)
+	updateItem := NewToolbarUpdate(f.broker)
+	deleteItem := NewToolbarDelete(f.broker)
 
 	undoItem := NewToolbarUndo(f.broker)
 	redoItem := NewToolbarRedo(f.broker)
 
-	nextItem := NewToolbarNext(f.emiter)
-	prevItem := NewToolbarPrev(f.emiter)
+	nextItem := NewToolbarNext(f.broker)
+	prevItem := NewToolbarPrev(f.broker)
 
-	selectSearchBy := NewSearchBySelect(f.emiter)
+	selectSearchBy := NewSearchBySelect(f.broker)
 
-	searchEnt := NewSearchEntry(f.emiter)
+	searchEnt := NewSearchEntry(f.broker)
 
 	items := []widget.ToolbarItem{
 		menuItem,
@@ -63,53 +65,77 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 
 type SearchEntry struct {
 	widget.Entry
-	emiter *emiter.Emiter
+	broker *emiter.Broker
 }
-func NewSearchEntry(e *emiter.Emiter) *SearchEntry {
+func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	se := &SearchEntry{}
 	se.ExtendBaseWidget(se)
-	se.emiter = e
+
+	se.broker = b
 	se.Entry.PlaceHolder = "Search"
 	se.Entry.OnChanged = se.Search
 	se.Entry.OnSubmitted = se.Submit
-	se.emiter.OnEvent(OnSetSearchBy, func(_ any) {se.Reset()})
-	se.emiter.OnEvent(OnSetOrdering, func(_ any) {se.Reset()})
+
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventSearchBy:
+				se.Entry.SetText("")
+			case gui.EventListOrdering:
+				se.Entry.SetText("")
+			default:
+				panic("event not found: " + e.Name)
+			}
+		},
+	}, 
+		gui.EventSearchBy, 
+		gui.EventListOrdering,
+	)
+
 	return se
 }
 func (se *SearchEntry) Search(s string) {
-	se.emiter.Emit(OnSetSearchPattern, s)
-	se.emiter.Emit(OnSearch, nil)
+	se.broker.Notify(emiter.Event{
+		Name: gui.EventSearchPattern,
+		Data: s,
+	})
 }
 func (se *SearchEntry) Submit(s string) {
-	se.emiter.Emit(OnSelectNext, nil)
+	se.broker.Notify(emiter.Event{
+		Name: gui.EventSelectNext,
+	})
 }
-func (se *SearchEntry) Reset() {
-	se.Entry.SetText("")
-}
+
+
 
 func (se *SearchEntry) MinSize() fyne.Size {
 	size := se.Entry.MinSize()
-	size.Width += 350.0 // set horizontal size for vBox
+	size.Width += 350.0 // set horizontal size for VBox
 	return size
 }
 
 
 type SearchBySelect struct {
 	widget.Select
-	emiter *emiter.Emiter
+	broker *emiter.Broker
 }
-func NewSearchBySelect(e *emiter.Emiter) *SearchBySelect {
+func NewSearchBySelect(b *emiter.Broker) *SearchBySelect {
 	sb := &SearchBySelect{}
 	sb.ExtendBaseWidget(sb)
-	sb.emiter = e
+	sb.broker = b
 	sb.SetOptions([]string{"Title", "Author", "Genre", "Borrower"})
 	sb.PlaceHolder = "Search By"
 	sb.OnChanged = sb.OnSelected
 	return sb
 }
 func (sb *SearchBySelect) OnSelected(s string) {
-	sb.emiter.Emit(OnSetSearchBy, s)
+	by := searching.MustStringToField(s)
+	sb.broker.Notify(emiter.Event{
+		Name: gui.EventSearchBy,
+		Data: by,
+	})
 }
+
 
 /*****************************
         Toolbar Items
@@ -120,22 +146,29 @@ func NewToolbarSave(b *emiter.Broker) *widget.ToolbarAction {
 		Icon: theme.DocumentSaveIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
-				Name: EventSave,
+				Name: gui.EventSave,
 			})
 		},
 	}
-	l := emiter.Listener{
+	b.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-			case EventSaveDisable:
+			case gui.EventSave:
 				ts.Disable()
 
-			case EventSaveEnable:
+			case gui.EventEntryCreate,
+				gui.EventEntryDelete,
+				gui.EventEntryUpdate:
+
 				ts.Enable()
 			}
 		},
-	}
-	b.Subscribe(&l, EventSaveDisable, EventSaveEnable)
+	},
+		gui.EventSave,
+		gui.EventEntryCreate, 
+		gui.EventEntryDelete, 
+		gui.EventEntryUpdate,
+	)
 	return ts
 }
 
@@ -150,45 +183,71 @@ func NewToolbarMenu(e *emiter.Emiter) *widget.ToolbarAction {
 
 }
 
-func NewToolbarCreate(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarCreate(b *emiter.Broker) *widget.ToolbarAction {
 	tc := &widget.ToolbarAction{
 		Icon: theme.ContentAddIcon(),
 		OnActivated: func() {
-			e.Emit(OnCreate, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventEditOpen,
+				Data: gui.EventEntryCreate,
+			})
 		},
 	}
 	return tc
 }
 
-func NewToolbarUpdate(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarUpdate(b *emiter.Broker) *widget.ToolbarAction {
 	tu := &widget.ToolbarAction{
 		Icon: theme.DocumentCreateIcon(),
 		OnActivated: func() {
-			e.Emit(OnUpdate, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventEditOpen,
+				Data: gui.EventEntryUpdate,
+			})
 		},
 	}
-	e.OnEvent(OnSelected, func(_ any) {
-		tu.Enable()
-	})
-	e.OnEvent(OnUnselected, func(_ any) {
-		tu.Disable()
-	})
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventEntrySelected:
+				tu.Enable()
+			case gui.EventEntryUnselected:
+				tu.Disable()
+			}
+		},
+	},
+		gui.EventEntrySelected,
+		gui.EventEntryUnselected,
+	)
 	return tu
 }
 
-func NewToolbarDelete(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarDelete(b *emiter.Broker) *widget.ToolbarAction {
 	td := &widget.ToolbarAction{
 		Icon: theme.DeleteIcon(),
 		OnActivated: func() {
-			e.Emit(OnDelete, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventEntryDelete,
+			})
 		}, 
 	}
-	e.OnEvent(OnSelected, func(_ any) {
-		td.Enable()
-	})
-	e.OnEvent(OnUnselected, func(_ any) {
-		td.Disable()
-	})
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventEntrySelected:
+				td.Enable()
+
+			case gui.EventEntryUnselected:
+				td.Disable()
+
+			default:
+				panic("event not found: " + e.Name)
+			}
+		},
+	},
+		gui.EventEntrySelected,
+		gui.EventEntryUnselected,
+	)
 	return td
 }
 
@@ -197,7 +256,7 @@ func NewToolbarUndo(b *emiter.Broker) *widget.ToolbarAction {
 		Icon: theme.ContentUndoIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
-				Name: EventUndo,
+				Name: gui.EventUndo,
 			})
 		},
 	}
@@ -205,55 +264,68 @@ func NewToolbarUndo(b *emiter.Broker) *widget.ToolbarAction {
 	l := emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-			case EventUndoEmpty:
+			case gui.EventUndoEmpty:
 				tu.Disable()
-			case EventUndoReady:
+
+			case gui.EventUndoReady:
 				tu.Enable()
+
+			default:
+				panic("event not found: " + e.Name)
 			}
-		}
+		},
 	}
-	b.Subscribe(&l, EventUndoEmpty, EventUndoReady)
-	println("undo listen with id: ", l.id)
+	id := b.Subscribe(&l, gui.EventUndoEmpty, gui.EventUndoReady)
+	println("undo listen with id: ", id)
+	return tu
 
 }
+
 func NewToolbarRedo(b *emiter.Broker) *widget.ToolbarAction {
 	tr := &widget.ToolbarAction{
 		Icon: theme.ContentRedoIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
-				Name: EventRedo,
+				Name: gui.EventRedo,
 			})
 		},
 	}
 	l := emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-			case EventUndoEmpty:
-				tu.Disable()
-			case EventUndoReady:
-				tu.Enable()
+			case gui.EventRedoEmpty:
+				tr.Disable()
+
+			case gui.EventRedoReady:
+				tr.Enable()
+			default:
+				panic("event not found: " + e.Name)
 			}
-		}
+		},
 	}
-	b.Subscribe(&l, EventRedoEmpty, EventRedoReady)
-	println("redo listen with id: ", l.id)
+	id := b.Subscribe(&l, gui.EventRedoEmpty, gui.EventRedoReady)
+	println("redo listen with id: ", id)
 	return tr
 }
 
-func NewToolbarNext(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarNext(b *emiter.Broker) *widget.ToolbarAction {
 	tn := &widget.ToolbarAction{
 		Icon: theme.MoveDownIcon() ,
 		OnActivated: func() {
-			e.Emit(OnSelectNext, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventSelectNext,
+			})
 		},
 	}
 	return tn
 }
-func NewToolbarPrev(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarPrev(b *emiter.Broker) *widget.ToolbarAction {
 	tp := &widget.ToolbarAction{
 		Icon: theme.MoveUpIcon(),
 		OnActivated: func() {
-			e.Emit(OnSelectPrev, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventSelectPrev,
+			})
 		},
 	}
 	return tp

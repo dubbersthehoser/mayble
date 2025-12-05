@@ -190,13 +190,13 @@ func (a *App) Redo() error {
 	a.broker.Notify(emiter.Event{
 		Name: DocumentRedo,
 	})
-	if !a.RedoEmpty() {
+	if !a.RedoIsEmpty() {
 		return nil
 	}
 	a.broker.Notify(emiter.Event{
 		Name: DocumentRedoEmpty,
 	})
-
+	return nil
 }
 
 func (a *App) RedoIsEmpty() bool {
@@ -218,7 +218,7 @@ func (a *App) SubscribeToUndos(fn func(*emiter.Event)) {
 		Handler: fn,
 	}
 	a.broker.Subscribe(&l, DocumentUndo, DocumentUndoEmpty)
-
+}
 
 
 

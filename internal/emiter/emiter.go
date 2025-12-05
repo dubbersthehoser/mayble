@@ -54,10 +54,13 @@ type Listener struct {
 type Broker struct {
 	idCount int
 	items map[string][]*Listener
+	mu sync.RWMutex
 }
 
-func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
 
+func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	if b.items == nil {
 		b.items = make(map[string][]*Listener)
 	}
@@ -72,10 +75,11 @@ func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
 		b.items[e] = append(b.items[e], l)
 	}
 	return l.id
-
 }
 
 func (b *Broker) Unsubscribe(id int, events ...string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	for _, e := range events {
 		listeners, ok := b.items[e]
 		if !ok {
@@ -93,6 +97,8 @@ func (b *Broker) Unsubscribe(id int, events ...string) error {
 }
 
 func (b *Broker) Notify(e Event) error {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 	listeners, ok := b.items[e.Name]
 	if !ok {
 		return errors.New("event name not found: " + e.Name)

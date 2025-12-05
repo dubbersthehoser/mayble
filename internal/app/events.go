@@ -3,7 +3,6 @@ package app
 const (
 	DocumentLoaded string = "app.document.loaded" // I don't think needed for front end.
 	DocumentSaved         = "app.document.saved"
-	DocumentLoaded        = "app.document.undo.loaded"
 	DocumentRedo          = "app.document.redo"
 	DocumentUndo          = "app.document.undo"
 	DocumentRedoEmpty     = "app.document.redo.empty"
@@ -11,5 +10,5 @@ const (
 	DocumentEntryCreated  = "app.document.entry.created"
 	DocumentEntryUpdated  = "app.document.entry.created"
 	DocumentEntryDeleted  = "app.document.entry.created"
-	DocumentEntryImported = "app.document.imported"
+	DocumentImported      = "app.document.imported"
 )

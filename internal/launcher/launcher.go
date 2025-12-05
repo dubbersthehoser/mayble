@@ -72,7 +72,7 @@ func Run(options ...Option) error {
 		logGrid.Append("- storage: success")
 	}
 
-	coreApp := myapp.AppAPI(&appStub.App{})
+	coreApp := myapp.API(&appStub.App{})
 	coreApp, err = myapp.New(storage)
 	if err != nil {
 		logGrid.Append(fmt.Sprintf("- app: failed: %s", err))

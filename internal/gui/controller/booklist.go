@@ -8,9 +8,55 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/searching"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui"
 )
 
 const UnselectIndex int = -1
+
+type Searcher struct {
+	pattern   string
+	by        searching.Field
+	selected  int
+	selection searching.Ring
+	list      *[]app.BookLoan
+	broker    *emiter.Broker
+}
+
+type BookLoanList struct {
+	app      app.BookLoaning
+	list     []app.BookLoan
+	broker   *emiter.Broker
+	orderBy  listing.OrderBy
+	ordering listing.Ordering
+}
+
+func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
+	bl := &BookLoanList{
+		app:    a,
+		broker: b,   
+		list:   make([]app.BookLoan, 0),
+	}
+
+	bl.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventListOrderBy:
+				by := e.Data.(listing.OrderBy)
+				bl.orderBy = by
+
+			case gui.EventListOrdering:
+				o := e.Data.(listing.Ordering)
+				bl.ordering = o
+			}
+		},
+	},
+		gui.EventListOrdering,
+		gui.EventListOrderBy,
+	)
+	return bl
+}
+
 
 type BookList struct {
 	app            app.BookLoaning

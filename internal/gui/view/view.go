@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -12,6 +13,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/listing"
+	"github.com/dubbersthehoser/mayble/internal/gui"
 )
 
 
@@ -39,8 +41,42 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 	}
 
 	loadOnEventHandlers(&f)
-
 	f.View = f.Body()
+	syncView(&f)
+	f.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			log.Printf("event: %s, %#v", e.Name, e.Data)
+		},
+	},
+		gui.EventSave,
+		gui.EventSaveDisable,
+		gui.EventSaveEnable,
+
+		gui.EventRedo,
+		gui.EventRedoEmpty,
+		gui.EventRedoReady,
+
+		gui.EventUndo,
+		gui.EventUndoEmpty,
+		gui.EventUndoReady,
+
+		gui.EventEditOpen,
+		gui.EventEntryCreate,
+		gui.EventEntryDelete,
+		gui.EventEntryUpdate,
+
+		gui.EventEntrySelected,
+		gui.EventEntryUnselected,
+
+		gui.EventSelectNext,
+		gui.EventSelectPrev,
+
+		gui.EventListOrderBy,
+		gui.EventListOrdering,
+
+		gui.EventSearchBy,
+		gui.EventSearchPattern,
+	)
 	return f, nil
 }
 
@@ -101,7 +137,37 @@ const (
 	OnMenuClose    = "ON_MENU_CLOSE"
 )
 
+func syncView(f *FunkView) {
+	if f.controller.App.UndoIsEmpty() {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventUndoEmpty,
+		})
+	}
+	if f.controller.App.RedoIsEmpty() {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventRedoEmpty,
+		})
+	}
+	if !f.controller.List.IsSelected() {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventEntryUnselected,
+		})
+	}
+
+	f.broker.Notify(emiter.Event{
+		Name: gui.EventListOrderBy,
+		Data: listing.ByTitle,
+	})
+
+	f.broker.Notify(emiter.Event{
+		Name: gui.EventSearchBy,
+		Data: searching.ByTitle,
+	})
+}
+
+
 func loadOnEventHandlers(f *FunkView) {
+
 	f.emiter.OnEvent(OnUpdate, handleUpdate(f))
 	f.emiter.OnEvent(OnCreate, handleCreate(f))
 	f.emiter.OnEvent(OnModification, handleModification(f))
@@ -118,7 +184,40 @@ func loadOnEventHandlers(f *FunkView) {
 	f.emiter.OnEvent(OnSetOrdering, handleSetOrdering(f))
 	f.emiter.OnEvent(OnSetOrderBy, handleSetOrderBy(f))
 	f.emiter.OnEvent(OnShowError, handleShowError(f))
+
+	f.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventSave:
+				f.controller.App.Save()
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventSaveDisable,
+				})
+
+			case gui.EventRedo:
+				f.controller.App.Redo()
+				if f.controller.App.RedoIsEmpty() {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventRedoEmpty,
+					})
+				}
+
+			case gui.EventUndo:
+				f.controller.App.Undo()
+				if f.controller.App.UndoIsEmpty() {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventUndoEmpty,
+					})
+				}
+			}
+		},
+	}, 
+		gui.EventSave,
+		gui.EventRedo,
+		gui.EventUndo,
+	)
 }
+
 
 func handleShowError(f *FunkView) func(any) {
 	return func(data any) {

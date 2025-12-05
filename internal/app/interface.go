@@ -2,6 +2,8 @@ package app
 
 import (
 	"time"
+
+	"github.com/dubbersthehoser/mayble/internal/emiter"
 )
 
 type BookLoan struct {
@@ -53,9 +55,9 @@ type AppListerner interface {
 	SubscribeRedoUndoables
 }
 
-type SubscribeRedoUndoables {
+type SubscribeRedoUndoables interface {
 	// SubscribeToRedos listen to DocumentRedo, and DocumentRedoEmpty from application document.
-	SubscribeToUndos(func(*emiter.Event)
+	SubscribeToUndos(func(*emiter.Event))
 
 	// SubscribeToUndos listen to DocumentUndo, and DocumentUndoEmpty from application document.
 	SubscribeToRedos(func(*emiter.Event))

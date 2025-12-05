@@ -8,80 +8,29 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
+
+
+
+
 func (f *FunkView) Table() fyne.CanvasObject {
 
-	heading := NewHeader(f.emiter, f.controller.List.OrderBy(), f.controller.List.Ordering())
-	listTable := NewTableList(f.emiter, f.controller.List)
+	heading := NewHeader(f.broker)
+	listTable := NewTableList(f.broker, f.controller.List)
 
-	// Table
 	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, listTable.List)
 	return table
 }
 
-type HeaderButton struct {
-	label string
-	button *widget.Button
-	emiter *emiter.Emiter
-}
 
-func NewHeaderButton(e *emiter.Emiter, label string) *HeaderButton {
-	hb := &HeaderButton{
-		label: label,
-		emiter: e,
-	}
-	hb.button = widget.NewButton("", hb.OnTapped)
-	hb.Reset()
-	return hb
-}
 
-func (hb *HeaderButton) OnTapped() {
-	var (
-		IsNormal bool = hb.button.Text == hb.LabelNormal()
-		IsASC    bool = hb.button.Text == hb.LabelASC()
-		IsDESC   bool = hb.button.Text == hb.LabelDESC() 
-	)
-	switch {
-	case IsNormal:
-		hb.button.Importance = widget.MediumImportance
-		hb.button.SetText(hb.LabelASC())
-		hb.emiter.Emit(OnSetOrderBy, hb.label)
-		hb.emiter.Emit(OnSetOrdering, listing.ASC)
 
-	case IsASC:
-		hb.button.SetText(hb.LabelDESC())
-		hb.emiter.Emit(OnSetOrdering, listing.DESC)
 
-	case IsDESC:
-		hb.button.SetText(hb.LabelASC())
-		hb.emiter.Emit(OnSetOrdering, listing.ASC)
-	}
-}
 
-func (hb *HeaderButton) SetOrdering(o listing.Ordering) {
-	switch o {
-	case listing.ASC:
-		hb.button.SetText(hb.LabelASC())
-	case listing.DESC:
-		hb.button.SetText(hb.LabelDESC())
-	}
-}
 
-func (hb *HeaderButton) LabelNormal() string {
-	return "- " + hb.label
-}
-func (hb *HeaderButton) LabelASC() string {
-	return "↑ " + hb.label
-}
-func (hb *HeaderButton) LabelDESC() string {
-	return "↓ " + hb.label
-}
-func (hb *HeaderButton) Reset() {
-	hb.button.Importance = widget.LowImportance
-	hb.button.SetText(hb.LabelNormal())
-}
 
 type Header struct {
 	buttons []*HeaderButton
@@ -105,42 +54,121 @@ func (h *Header) OnSetOrderBy(data any) {
 	}
 }
 
-func NewHeader(e *emiter.Emiter, by listing.OrderBy, o listing.Ordering) *Header {
+func NewHeader(b *emiter.Broker) *Header {
 	h := &Header{
 		buttons: make([]*HeaderButton, 0),
 	}
 	labels := listing.SortByList()
 	fields := make([]fyne.CanvasObject, 0)
 	for _, label := range labels {
-		btn := NewHeaderButton(e, label)
-		if by == listing.MustStringToOrderBy(label) {// synced to booklist state
-			btn.SetOrdering(o)
-			btn.button.Importance = widget.MediumImportance
-		}
+		btn := NewHeaderButton(b, label)
 		h.buttons = append(h.buttons, btn)
 		fields = append(fields, btn.button)
 	}
-	e.OnEvent(OnSetOrderBy, h.OnSetOrderBy)
-
 	h.view = container.New(layout.NewGridLayout(len(fields)), fields...)
 	return h
 }
 
 
 
+
+type HeaderButton struct {
+	label string
+	button *widget.Button
+	broker *emiter.Broker
+}
+
+func NewHeaderButton(b *emiter.Broker, label string) *HeaderButton {
+	hb := &HeaderButton{
+		label: label,
+		broker: b,
+	}
+	hb.button = widget.NewButton("", hb.OnTapped)
+	hb.Reset()
+
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			by := e.Data.(listing.OrderBy)
+			if by != listing.MustStringToOrderBy(hb.label) {
+				hb.Reset()
+				return
+			}
+			hb.button.Importance = widget.MediumImportance
+			var (
+				IsNormal bool = hb.button.Text == hb.LabelNormal()
+				IsASC    bool = hb.button.Text == hb.LabelASC()
+				IsDESC   bool = hb.button.Text == hb.LabelDESC() 
+			)
+			switch {
+			case IsNormal:
+				hb.SetOrdering(listing.ASC)
+			case IsASC:
+				hb.SetOrdering(listing.DESC)
+			case IsDESC:
+				hb.SetOrdering(listing.ASC)
+			}
+		},
+	},
+		gui.EventListOrderBy,
+	)
+	return hb
+}
+
+func (hb *HeaderButton) OnTapped() {
+	hb.broker.Notify(emiter.Event{
+		Name: gui.EventListOrderBy,
+		Data: listing.MustStringToOrderBy(hb.label),
+	})
+}	
+
+func (hb *HeaderButton) SetOrdering(o listing.Ordering) {
+	switch o {
+	case listing.ASC:
+		hb.button.SetText(hb.LabelASC())
+	case listing.DESC:
+		hb.button.SetText(hb.LabelDESC())
+	}
+	hb.broker.Notify(emiter.Event{
+		Name: gui.EventListOrdering,
+		Data: o,
+	})
+}
+
+func (hb *HeaderButton) LabelNormal() string {
+	return "- " + hb.label
+}
+func (hb *HeaderButton) LabelASC() string {
+	return "↑ " + hb.label
+}
+func (hb *HeaderButton) LabelDESC() string {
+	return "↓ " + hb.label
+}
+func (hb *HeaderButton) Reset() {
+	hb.button.Importance = widget.LowImportance
+	hb.button.SetText(hb.LabelNormal())
+}
+
+
+
+
+
+
 type TableList struct {
-	Emiter     *emiter.Emiter
+	broker     *emiter.Broker
 	List       *widget.List
 	Controller *controller.BookList
 }
 
 func (tl *TableList) OnSelect(index int) {
-	tl.Emiter.Emit(OnSelected, index)
+	tl.broker.Notify(emiter.Event{
+		Name: gui.EventEntrySelected,
+		Data: index,
+	})
 }
 
-func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList {
+func NewTableList(b *emiter.Broker, controller *controller.BookList) *TableList {
 	tl := &TableList{
-		Emiter: e,
+		broker: b,
 		Controller: controller,
 	}
 	tl.List = widget.NewList(tl.OnListLength, tl.OnCanvasCreation, tl.OnCanvasInit)
@@ -148,25 +176,30 @@ func NewTableList(e *emiter.Emiter, controller *controller.BookList) *TableList 
 
 	tl.List.OnSelected = tl.OnSelect
 
-	listOnModification := func(_ any) {
-		tl.List.UnselectAll()
-	}
+	tl.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			switch e.Name {
+			case gui.EventEntryCreate,
+				gui.EventEntryDelete,
+				gui.EventEntryUpdate:
 
-	listOnSearch := func(_ any) {
-		idx := tl.Controller.SelectedIndex
-		tl.List.Select(widget.ListItemID(idx))
-	}
+				tl.List.UnselectAll()
 
-	listOnSelectNext := listOnSearch
-	listOnSelectPrev := listOnSearch
+			case gui.EventEntrySelected:
+				idx := e.Data.(int)
+				tl.List.Select(widget.ListItemID(idx))
 
-	tl.Emiter.OnEvent(OnModification, listOnModification)
-	tl.Emiter.OnEvent(OnSearch, listOnSearch)
-	tl.Emiter.OnEvent(OnSelectNext, listOnSelectNext)
-	tl.Emiter.OnEvent(OnSelectPrev, listOnSelectPrev)
-	tl.Emiter.OnEvent(OnUnselected, func(_ any) {
-		tl.List.UnselectAll()
-	})
+			case gui.EventEntryUnselected:
+				tl.List.UnselectAll()
+			}
+		},
+	},
+		gui.EventEntryCreate,
+		gui.EventEntryDelete,
+		gui.EventEntryUpdate,
+		gui.EventEntrySelected,
+		gui.EventEntryUnselected,
+	)
 	return tl
 }
 
@@ -214,7 +247,10 @@ func (tl *TableList) OnCanvasCreation() fyne.CanvasObject {
 func (tl *TableList) OnCanvasInit(index int, o fyne.CanvasObject) {
 	book, err := tl.Controller.Get(index)
 	if err != nil {
-		tl.Emiter.Emit(OnShowError, err)
+		tl.broker.Notify(emiter.Event{
+			Name: gui.EventDisplayErr,
+			Data: err,
+		},)
 		return
 	}
 	o.(*fyne.Container).Objects[0].(*widget.Label).SetText(book.Title)
