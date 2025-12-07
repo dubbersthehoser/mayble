@@ -78,8 +78,8 @@ func TestExportBooks(t *testing.T) {
 	for i, _case := range tests {
 		b := make([]byte, 0)
 		buf := bytes.NewBuffer(b)
-		exporter := BookLoanCSV{}
-		err := exporter.ExportBooks(buf, _case.input)
+		exporter := BookLoanPorter{}
+		err := exporter.ExportBookLoans(buf, _case.input)
 		if err != nil {
 			t.Fatalf("case %d, failed to export: %s", i, err)
 		}
@@ -92,7 +92,7 @@ func TestExportBooks(t *testing.T) {
 }
 
 
-func TestImportBooks(t *testing.T) {
+func TestImportBookLoans(t *testing.T) {
 	input := "The Title,The Author,The Genre,3,,\nMy Title,My Author,My Genre,5,John,2021-01-02\nThe Title,The Author,The Genre,2,,"
 	expects := []app.BookLoan{
 		app.BookLoan{
@@ -122,9 +122,9 @@ func TestImportBooks(t *testing.T) {
 		},
 	}
 	buf := bytes.NewBuffer([]byte(input))
-	importer := BookLoanCSV{}
+	importer := BookLoanPorter{}
 
-	books, err := importer.ImportBooks(buf)
+	books, err := importer.ImportBookLoans(buf)
 	if err != nil {
 		t.Fatalf("failed to inport books: %s", err)
 	}

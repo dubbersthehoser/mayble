@@ -1,15 +1,9 @@
 package view
 
 import (
-	//"fmt"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
-	_"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
-	_ "fyne.io/fyne/v2/canvas"
 
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
@@ -23,7 +17,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	saveItem := NewToolbarSave(f.broker)
 	saveItem.Disable()
 
-	menuItem := NewToolbarMenu(f.emiter)
+	menuItem := NewToolbarMenu(f.broker)
 	createItem := NewToolbarCreate(f.broker)
 	updateItem := NewToolbarUpdate(f.broker)
 	deleteItem := NewToolbarDelete(f.broker)
@@ -42,24 +36,23 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		menuItem,
 		saveItem,
 		widget.NewToolbarSeparator(),
+		undoItem,
+		redoItem,
+		widget.NewToolbarSeparator(),
 		createItem,
 		updateItem,
 		deleteItem,
 		widget.NewToolbarSeparator(),
-		undoItem,
-		redoItem,
-		widget.NewToolbarSeparator(),
+		selectSearchBy,
 		nextItem,
 		prevItem,
+		searchEnt,
+
 	}
 	toolBar := widget.NewToolbar(items...)
 	
-	boxes := []fyne.CanvasObject{
-		toolBar,
-		searchEnt,
-		selectSearchBy,
-	}
-	return container.New(layout.NewHBoxLayout(), boxes...)
+	//return container.New(layout.NewHBoxLayout(), boxes...)
+	return toolBar
 }
 
 
@@ -117,11 +110,16 @@ func (se *SearchEntry) MinSize() fyne.Size {
 	return size
 }
 
+func (se *SearchEntry) ToolbarObject() fyne.CanvasObject {
+	return se
+}
+
 
 type SearchBySelect struct {
 	widget.Select
 	broker *emiter.Broker
 }
+
 func NewSearchBySelect(b *emiter.Broker) *SearchBySelect {
 	sb := &SearchBySelect{}
 	sb.ExtendBaseWidget(sb)
@@ -129,6 +127,25 @@ func NewSearchBySelect(b *emiter.Broker) *SearchBySelect {
 	sb.SetOptions([]string{"Title", "Author", "Genre", "Borrower"})
 	sb.PlaceHolder = "Search By"
 	sb.OnChanged = sb.OnSelected
+
+	b.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			by := e.Data.(searching.Field)
+			switch by {
+			case searching.ByTitle:
+				sb.Selected = sb.Options[0]
+			case searching.ByAuthor:
+				sb.Selected = sb.Options[1]
+			case searching.ByGenre:
+				sb.Selected = sb.Options[2]
+			case searching.ByBorrower:
+				sb.Selected = sb.Options[3]
+			}
+			sb.Refresh()
+		},
+	},
+		gui.EventSearchBy,
+	)
 	return sb
 }
 func (sb *SearchBySelect) OnSelected(s string) {
@@ -137,6 +154,10 @@ func (sb *SearchBySelect) OnSelected(s string) {
 		Name: gui.EventSearchBy,
 		Data: by,
 	})
+}
+
+func (sb *SearchBySelect) ToolbarObject() fyne.CanvasObject {
+	return sb
 }
 
 
@@ -159,27 +180,24 @@ func NewToolbarSave(b *emiter.Broker) *widget.ToolbarAction {
 			case gui.EventSave:
 				ts.Disable()
 
-			case gui.EventEntryCreate,
-				gui.EventEntryDelete,
-				gui.EventEntryUpdate:
-
+			case gui.EventDocumentModified:
 				ts.Enable()
 			}
 		},
 	},
 		gui.EventSave,
-		gui.EventEntryCreate, 
-		gui.EventEntryDelete, 
-		gui.EventEntryUpdate,
+		gui.EventDocumentModified,
 	)
 	return ts
 }
 
-func NewToolbarMenu(e *emiter.Emiter) *widget.ToolbarAction {
+func NewToolbarMenu(b *emiter.Broker) *widget.ToolbarAction {
 	tm := &widget.ToolbarAction{
 		Icon: theme.MenuIcon(),
 		OnActivated: func() {
-			e.Emit(OnMenuOpen, nil)
+			b.Notify(emiter.Event{
+				Name: gui.EventMenuOpen,
+			})
 		},
 	}
 	return tm

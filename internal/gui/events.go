@@ -18,6 +18,10 @@ const (
 	EventEntryCreate = "ui.entry.create"
 	EventEntryDelete = "ui.entry.delete"
 	EventEntryUpdate = "ui.entry.update"
+	EventEntrySubmit = "ui.entry.submit"
+	EventDocumentModified = "ui.document.modified"
+	EventDocumentImport = "ui.document.import"
+	EventDocumentExport = "ui.document.export"
 
 	EventEntrySelected   = "ui.entry.selected"
 	EventEntryUnselected = "ui.entry.unselected"
@@ -38,4 +42,5 @@ const (
 	EventSelectionAll  = "ui.selection.all"
 
 	EventDisplayErr    = "ui.display.error"
+	EventMenuOpen      = "ui.menu.open"
 )

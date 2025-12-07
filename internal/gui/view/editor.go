@@ -8,12 +8,11 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
-	_"fyne.io/fyne/v2/data/binding"
-	_"fyne.io/fyne/v2/theme"
-	_ "fyne.io/fyne/v2/canvas"
 
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/listing"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui"
 )
 
 
@@ -27,7 +26,7 @@ func getDialogSize(size fyne.Size) fyne.Size {
 	return s
 }
 
-func (f *FunkView) ShowEditor(builder *controller.BookLoanBuilder) {
+func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBuilder) {
 
 	rattings := listing.GetRattingStrings()
 
@@ -67,7 +66,7 @@ func (f *FunkView) ShowEditor(builder *controller.BookLoanBuilder) {
 		Label: widget.NewLabel("Date"),
 	}
 
-	{ // Set data in the entries for the current edit status of the form
+	{ // Set data in the entries for the current edit status of the builder
 		var (
 			isBeingUpdated  bool  = builder.Type == controller.Updating
 			isBeingCreated  bool  = builder.Type == controller.Creating
@@ -196,7 +195,7 @@ func (f *FunkView) ShowEditor(builder *controller.BookLoanBuilder) {
 
 	obj := container.New(layout.NewVBoxLayout(), formlayout, ValidationInfo, submitBtn, cancelBtn)
 
-	d := dialog.NewCustomWithoutButtons(dialogLabel, obj, f.window)
+	d := dialog.NewCustomWithoutButtons(dialogLabel, obj, w)
 
 	d.Resize(getDialogSize(d.MinSize()))
 
@@ -204,12 +203,10 @@ func (f *FunkView) ShowEditor(builder *controller.BookLoanBuilder) {
 		d.Dismiss()
 	}
 	submitBtn.OnTapped = func() {
-		err := f.controller.Editor.Submit(builder)
-		if err != nil {
-			f.displayError(err)
-		}
-		f.emiter.Emit(OnModification, nil)
-		f.refresh()
+		b.Notify(emiter.Event{
+			Name: gui.EventEntrySubmit,
+			Data: builder,
+		})
 		d.Dismiss()
 	}
 	d.Show()

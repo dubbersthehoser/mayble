@@ -84,7 +84,7 @@ func (bs *BookLoanSearcher) HasSelection() bool {
 
 func (bs *BookLoanSearcher) Search() {
 	selection := searching.SearchBookLoans(*bs.list, bs.by, bs.pattern)
-	if len(selection) == 0 {
+	if len(selection) == 0 || bs.pattern == "" {
 		bs.broker.Notify(emiter.Event{
 			Name: gui.EventSelectionNone,
 		})
@@ -107,15 +107,16 @@ type BookLoanList struct {
 	app      app.BookLoaning
 	list     []app.BookLoan
 	broker   *emiter.Broker
-	selected int
+	selected int // index item in list. When index < 0 then it's unselected.
 	orderBy  listing.OrderBy
 	ordering listing.Ordering
 }
 
-func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
+func NewBookLoanList(b *emiter.Broker, a app.BookLoaning) *BookLoanList {
 	bl := &BookLoanList{
 		app:    a,
 		broker: b,   
+		selected: -1,
 		list:   make([]app.BookLoan, 0),
 	}
 
@@ -143,6 +144,18 @@ func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
 
 			case gui.EventEntryUnselected:
 				bl.selected = -1
+
+			case gui.EventDocumentModified:
+				l, err := bl.app.GetBookLoans()
+				if err != nil {
+					bl.broker.Notify(emiter.Event{
+						Name: gui.EventDisplayErr,
+						Data: err,
+					})
+					return
+				}
+				bl.list = l
+				bl.Sort()
 			}
 		},
 	},
@@ -150,6 +163,7 @@ func NewBookLoanList(a app.BookLoaning, b *emiter.Broker) *BookLoanList {
 		gui.EventListOrderBy,
 		gui.EventEntryUnselected,
 		gui.EventEntrySelected,
+		gui.EventDocumentModified,
 	)
 	return bl
 }

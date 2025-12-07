@@ -7,9 +7,12 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/listing"
+	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/gui"
 )
 
 type EditType int
+
 const (
 	Updating EditType = iota
 	Creating 
@@ -29,17 +32,43 @@ func (t EditType) String() string {
 	return ""
 }
 
-type BookEditor struct {
+type BookEditer struct {
 	app  app.BookLoaning
+	broker *emiter.Broker
 }
 
-func NewBookEditor(a app.BookLoaning) *BookEditor {
-	return &BookEditor{
+func NewBookEditer(b *emiter.Broker, a app.BookLoaning) *BookEditer {
+	be := &BookEditer{
 		app: a,
+		broker: b,
 	}
+
+	be.broker.Subscribe(&emiter.Listener{
+		Handler: func (e *emiter.Event) {
+			builder := e.Data.(*BookLoanBuilder)
+			err := be.Submit(builder)
+			if err != nil {
+				be.broker.Notify(emiter.Event{
+					Name: gui.EventDisplayErr,
+					Data: err,
+				})
+
+			} else {
+				be.broker.Notify(emiter.Event{
+					Name: gui.EventDocumentModified,
+				})
+			}
+
+
+		},
+	},
+		gui.EventEntrySubmit,
+	)
+
+	return be
 }
 
-func (be *BookEditor) Submit(builder *BookLoanBuilder) error {
+func (be *BookEditer) Submit(builder *BookLoanBuilder) error {
 	bookLoan := builder.Build()
 	switch builder.Type {
 	case Updating:

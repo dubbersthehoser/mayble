@@ -173,33 +173,33 @@ func NewTableList(b *emiter.Broker, c *controller.BookLoanList) *TableList {
 	}
 	tl.List = widget.NewList(tl.OnListLength, tl.OnCanvasCreation, tl.OnCanvasInit)
 	tl.List.HideSeparators = false
-
-	tl.List.OnSelected = tl.OnSelect
+	tl.List.OnSelected = func(id widget.ListItemID) {
+		tl.broker.Notify(emiter.Event{
+			Name: gui.EventEntrySelected,
+			Data: int(id),
+		})
+	}
+	tl.List.OnUnselected = func(id widget.ListItemID) {
+		tl.broker.Notify(emiter.Event{
+			Name: gui.EventEntryUnselected,
+		})
+	}
 
 	tl.broker.Subscribe(&emiter.Listener{
-		Handler: func(e *emiter.Event) {
-			switch e.Name {
-			case gui.EventEntryCreate,
-				gui.EventEntryDelete,
-				gui.EventEntryUpdate:
-
-				tl.List.UnselectAll()
-
-			case gui.EventEntrySelected:
-				idx := e.Data.(int)
-				tl.List.Select(widget.ListItemID(idx))
-
-			case gui.EventEntryUnselected:
-				tl.List.UnselectAll()
-			}
-		},
+			Handler: func(e *emiter.Event) {
+				switch  e.Name {
+				case gui.EventListOrdered:
+					tl.List.Refresh()
+				case gui.EventEntrySelected:
+					id := e.Data.(int)
+					tl.List.Select(id)
+				}
+			},
 	},
-		gui.EventEntryCreate,
-		gui.EventEntryDelete,
-		gui.EventEntryUpdate,
+		gui.EventListOrdered,
 		gui.EventEntrySelected,
-		gui.EventEntryUnselected,
 	)
+
 	return tl
 }
 

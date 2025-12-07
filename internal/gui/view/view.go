@@ -51,55 +51,9 @@ func (f *FunkView) Body() fyne.CanvasObject {
 	return body
 }
 
-func (f *FunkView) displayError(err error) {
-	if err  != nil {
-		dialog.ShowError(err, f.window)
-	}
-}
-
 func (f *FunkView) refresh() {
 	f.View.Refresh()
 }
-
-
-/*******************
-	Events
-********************/
-
-const (
-	OnShowError string = "ON_SHOW_ERR"
-	OnSave         = "ON_SAVE"
-	OnExport       = "ON_EXPORT"
-
-	OnCreate       = "ON_CREATE"
-	OnUpdate       = "ON_UPDATE"
-	OnDelete       = "ON_DELETE"
-
-	OnUndo         = "ON_UNDO"
-	OnUndoEmpty    = "ON_UNDO_EMPTY"
-	OnUndoReady    = "ON_UNDO_READY"
-	OnRedo         = "ON_REDO"
-	OnRedoEmpty    = "ON_REDO_EMPTY"
-	OnRedoReady    = "ON_REDO_READY"
-
-	OnSearch           = "ON_SEARCH"
-	OnSetSearchPattern = "ON_SET_SEARCH_PATTERN"
-	OnSetSearchBy      = "ON_SET_SEARCH_BY"
-
-	OnSetOrdering  = "ON_SET_ORDERING"
-	OnSetOrderBy   = "ON_SET_ORDER_BY"
-
-	OnSelectNext   = "ON_SELECT_NEXT"
-	OnSelectPrev   = "ON_SELECT_PREV"
-
-	OnSelected     = "ON_SELECTED"
-	OnUnselected   = "ON_UNSELECTED"
-
-	OnModification = "ON_MODIFICATION"
-
-	OnMenuOpen     = "ON_MENU_OPEN"
-	OnMenuClose    = "ON_MENU_CLOSE"
-)
 
 func syncView(f *FunkView) {
 	if f.controller.App.UndoIsEmpty() {
@@ -137,9 +91,6 @@ func syncView(f *FunkView) {
 
 func loadOnEventHandlers(f *FunkView) {
 
-	f.emiter.OnEvent(OnMenuOpen, handleMenuOpen(f))
-	f.emiter.OnEvent(OnShowError, handleShowError(f))
-
 	f.broker.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
@@ -164,6 +115,7 @@ func loadOnEventHandlers(f *FunkView) {
 						Name: gui.EventUndoEmpty,
 					})
 				}
+
 			case gui.EventEditerOpen:
 				subEvent := e.Data.(string)
 				var builder *controller.BookLoanBuilder
@@ -178,32 +130,36 @@ func loadOnEventHandlers(f *FunkView) {
 				if builder == nil {
 					panic("unexpected: builder is nil")
 				}
-				f.ShowEditor(builder)
+				ShowEditor(f.window, f.broker, builder)
+			
+			case gui.EventEntryDelete:
+				book := f.controller.List.Selected()
+				builder := controller.NewBuilderWithBookLoan(book)
+				builder.Type = controller.Deleting
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventEntrySubmit,
+					Data: builder,
+				})
+
+			case gui.EventDisplayErr:
+				err := e.Data.(error)
+				dialog.ShowError(err, f.window)
+				
+			case gui.EventMenuOpen:
+				ShowMenu(f)
+
 			}
+
+				
 		},
 	}, 
 		gui.EventSave,
 		gui.EventRedo,
 		gui.EventUndo,
 		gui.EventEditerOpen,
+		gui.EventDisplayErr,
+		gui.EventEntryDelete,
+		gui.EventMenuOpen,
 	)
-}
-
-
-func handleShowError(f *FunkView) func(any) {
-	return func(data any) {
-		err, ok := data.(error)
-		if !ok {
-			panic("given invalid data for Error event")
-		}
-		f.displayError(err)
-	}
-}
-
-
-func handleMenuOpen(f *FunkView) func(any) {
-	return func(data any) {
-		f.ShowMenu()
-	}
 }
 

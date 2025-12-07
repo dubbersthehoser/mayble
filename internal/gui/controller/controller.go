@@ -15,7 +15,7 @@ type Controller struct {
 
 	List      *BookLoanList
 	Searcher  *BookLoanSearcher
-	Editor    *BookEditor
+	Editer    *BookEditer
 
 	Broker    *emiter.Broker
 }
@@ -36,7 +36,7 @@ func (c *Controller) SetApp(a app.API) {
 	c.Importer   = a
 	c.Saver      = a
 
-	c.List = NewBookLoanList(app.BookLoaning(a), c.Broker)
+	c.List = NewBookLoanList(c.Broker, app.BookLoaning(a))
 	c.Searcher = NewBookLoanSearcher(c.Broker, &c.List.list)
-	c.Editor = NewBookEditor(app.BookLoaning(a))
+	c.Editer = NewBookEditer(c.Broker, app.BookLoaning(a))
 }
