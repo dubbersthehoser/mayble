@@ -12,6 +12,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/gui"
+	"github.com/dubbersthehoser/mayble/internal/porting"
 )
 
 
@@ -49,6 +50,13 @@ func (f *FunkView) Body() fyne.CanvasObject {
 	table := f.Table()
 	body := container.New(layout.NewBorderLayout(topBar, nil, nil, nil), topBar, table)
 	return body
+}
+
+func NotifyError(b *emiter.Broker, err error) {
+	b.Notify(emiter.Event{
+		Name: gui.EventDisplayErr,
+		Data: err,
+	})
 }
 
 func (f *FunkView) refresh() {
@@ -141,6 +149,57 @@ func loadOnEventHandlers(f *FunkView) {
 					Data: builder,
 				})
 
+			case gui.EventDocumentImport:
+				io := e.Data.(porting.NamedReadCloser)
+				defer io.Close()
+
+				porter, err := porting.GetBookLoanPorterByName(io.Name())
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+
+				books, err := porter.ImportBookLoans(io)
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+
+				err = f.controller.App.ImportBookLoans(books)
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventDocumentModified,
+				})
+
+
+			case gui.EventDocumentExport:
+				io := e.Data.(porting.NamedWriteCloser)
+				defer io.Close()
+
+				porter, err := porting.GetBookLoanPorterByName(io.Name())
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+
+				books, err := f.controller.App.GetBookLoans()
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+
+				err = porter.ExportBookLoans(io, books)
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+				
+
+
 			case gui.EventDisplayErr:
 				err := e.Data.(error)
 				dialog.ShowError(err, f.window)
@@ -160,6 +219,8 @@ func loadOnEventHandlers(f *FunkView) {
 		gui.EventDisplayErr,
 		gui.EventEntryDelete,
 		gui.EventMenuOpen,
+		gui.EventDocumentImport,
+		gui.EventDocumentExport,
 	)
 }
 

@@ -19,9 +19,10 @@ const (
 	EventEntryDelete = "ui.entry.delete"
 	EventEntryUpdate = "ui.entry.update"
 	EventEntrySubmit = "ui.entry.submit"
+
 	EventDocumentModified = "ui.document.modified"
-	EventDocumentImport = "ui.document.import"
-	EventDocumentExport = "ui.document.export"
+	EventDocumentImport   = "ui.document.import"
+	EventDocumentExport   = "ui.document.export"
 
 	EventEntrySelected   = "ui.entry.selected"
 	EventEntryUnselected = "ui.entry.unselected"

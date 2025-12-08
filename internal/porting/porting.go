@@ -9,6 +9,16 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/porting/csv"
 )
 
+type NamedWriteCloser interface {
+	io.WriteCloser
+	Name() string
+}
+
+type NamedReadCloser interface {
+	io.ReadCloser
+	Name() string  
+}
+
 type BookLoanImporter interface {
 	ImportBookLoans(io.Reader) ([]app.BookLoan, error)
 }
@@ -23,8 +33,8 @@ type BookLoanPorter interface {
 }
 
 
-func GetBookLoanPorterByFilePath(filePath string) (BookLoanPorter, error) {
-	ext := filepath.Ext(filePath)
+func GetBookLoanPorterByName(name string) (BookLoanPorter, error) {
+	ext := filepath.Ext(name)
 	switch ext {
 	case ".csv":
 		return &csv.BookLoanPorter{}, nil

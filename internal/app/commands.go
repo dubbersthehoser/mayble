@@ -11,15 +11,14 @@ import (
         Commands
 ***********************/
 
-/* Import */
+/* Import Book Loans */
 
 // NOTE need to re-think import system implementation.
 
 type commandImportBookLoans struct {
 	store     storage.BookLoanStore
-	addedIDs  []int64
+	addedIDs  []int64   // ids map to bookLoans slice.
 	bookLoans []BookLoan
-	// addIDs and bookLoans slices align with each other.
 }
 func newCommandImportBookLoans(books []BookLoan) func(storage.BookLoanStore) *commandImportBookLoans {
 	return func(s storage.BookLoanStore) *commandImportBookLoans {
@@ -29,7 +28,6 @@ func newCommandImportBookLoans(books []BookLoan) func(storage.BookLoanStore) *co
 		}
 	}
 }
-
 func (c *commandImportBookLoans) Do() error {
 	c.addedIDs = make([]int64, len(c.bookLoans))
 	for i, BookLoan := range c.bookLoans {
@@ -54,7 +52,8 @@ func (c *commandImportBookLoans) Undo() error {
 }
 
 
-/* Create */
+
+/* Create Book Loan */
 
 type commandCreateBookLoan struct {
 	store    storage.BookLoanStore
@@ -80,7 +79,7 @@ func (c *commandCreateBookLoan) Undo() error {
 }
 
 
-/* Delete */
+/* Delete Book Loan */
 
 type commandDeleteBookLoan struct {
 	store    storage.BookLoanStore
@@ -105,7 +104,7 @@ func (c *commandDeleteBookLoan) Undo() error {
 }
 
 
-/* Update */
+/* Update Book Loan */
 
 type commandUpdateBookLoan struct {
 	store        storage.BookLoanStore
