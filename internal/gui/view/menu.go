@@ -95,6 +95,7 @@ func NewExportButton(w fyne.Window, b *emiter.Broker) *ExportButton {
 		d := NewFileWriteDialog(eb.window, eb.OpenFile)
 		filter := storage.NewExtensionFileFilter([]string{".csv"})
 		d.SetFilter(filter)
+		d.SetTitleText("Export")
 		d.Show()
 	}
 	return eb
@@ -111,6 +112,7 @@ func NewImportButton(w fyne.Window, b *emiter.Broker) *ImportButton {
 		d := NewFileReadDialog(ib.window, ib.OpenFile)
 		filter := storage.NewExtensionFileFilter([]string{".csv"})
 		d.SetFilter(filter)
+		d.SetTitleText("Import")
 		d.Show()
 	}
 	return ib

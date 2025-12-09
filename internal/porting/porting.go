@@ -2,6 +2,7 @@ package porting
 
 import (
 	"io"
+	"fmt"
 	"errors"
 	"path/filepath"
 
@@ -38,8 +39,10 @@ func GetBookLoanPorterByName(name string) (BookLoanPorter, error) {
 	switch ext {
 	case ".csv":
 		return &csv.BookLoanPorter{}, nil
+	case "":
+		return nil, errors.New("porting: unspecified file extention")
 	default:
-		return nil, errors.New("porting: driver not found for file path.")
+		return nil, fmt.Errorf("porting: unsupported file extention: '%s'", ext)
 	}
 
 
