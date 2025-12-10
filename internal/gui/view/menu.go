@@ -17,44 +17,23 @@ import (
 
 func ShowMenu(f *FunkView) {
 
+	label := widget.NewLabel("When exporting file name must end with .csv")
 	importBtn := NewImportButton(f.window, f.broker)
 	exportBtn := NewExportButton(f.window, f.broker)
 
-	obj := container.New(layout.NewVBoxLayout(), importBtn, exportBtn)
+	porting := &container.TabItem{
+		Text: "Import / Export",
+		Content: container.New(layout.NewVBoxLayout(), importBtn, exportBtn, label),
+	}
 
-	d := dialog.NewCustom("Menu", "Close", obj, f.window)
+	body := container.NewAppTabs(porting)
+
+	d := dialog.NewCustom("Menu", "Close", body, f.window)
 	size := getDialogSize(d.MinSize())
 	d.Resize(size)
 	d.Show()
 }
 
-// ReadIOPorting a wrapper for porting.NamedReadCloser.
-type ReadIOPorting struct {
-	uri fyne.URIReadCloser
-}
-func (r *ReadIOPorting) Read(b []byte) (int, error) {
-	return r.uri.Read(b)
-}
-func (r *ReadIOPorting) Close() error {
-	return r.uri.Close()
-}
-func (r *ReadIOPorting) Name() string {
-	return r.uri.URI().Name()
-}
-
-// ReadIOPorting a wrapper for porting.NamedWriteCloser.
-type WriteIOPorting struct {
-	uri fyne.URIWriteCloser
-}
-func (w *WriteIOPorting) Write(b []byte) (int, error) {
-	return w.uri.Write(b)
-}
-func (w *WriteIOPorting) Close() error {
-	return w.uri.Close()
-}
-func (w *WriteIOPorting) Name() string {
-	return w.uri.URI().Name()
-}
 
 
 func NewFileReadDialog(w fyne.Window, handler func(uri fyne.URIReadCloser, err error)) *dialog.FileDialog {
@@ -90,7 +69,7 @@ func NewExportButton(w fyne.Window, b *emiter.Broker) *ExportButton {
 		window: w,
 	}
 	eb.ExtendBaseWidget(eb)
-	eb.SetText("Export")
+	eb.SetText("Export CSV")
 	eb.OnTapped = func() {
 		d := NewFileWriteDialog(eb.window, eb.OpenFile)
 		filter := storage.NewExtensionFileFilter([]string{".csv"})
@@ -107,7 +86,7 @@ func NewImportButton(w fyne.Window, b *emiter.Broker) *ImportButton {
 		window: w,
 	}
 	ib.ExtendBaseWidget(ib)
-	ib.SetText("Import")
+	ib.SetText("Import CSV")
 	ib.OnTapped = func() {
 		d := NewFileReadDialog(ib.window, ib.OpenFile)
 		filter := storage.NewExtensionFileFilter([]string{".csv"})
@@ -131,6 +110,7 @@ func (eb *ExportButton) OpenFile(uri fyne.URIWriteCloser, err error) {
 	if uri == nil {
 		return
 	}
+
 	pIO := &WriteIOPorting{uri: uri}
 
 	eb.broker.Notify(emiter.Event{
@@ -151,6 +131,7 @@ func (cb *ImportButton) OpenFile(uri fyne.URIReadCloser, err error) {
 	if uri == nil { 
 		return
 	}
+
 	pIO := &ReadIOPorting{uri: uri}
 
 	cb.broker.Notify(emiter.Event{
@@ -159,3 +140,30 @@ func (cb *ImportButton) OpenFile(uri fyne.URIReadCloser, err error) {
 	})
 }
 
+// ReadIOPorting a wrapper for porting.NamedReadCloser.
+type ReadIOPorting struct {
+	uri fyne.URIReadCloser
+}
+func (r *ReadIOPorting) Read(b []byte) (int, error) {
+	return r.uri.Read(b)
+}
+func (r *ReadIOPorting) Close() error {
+	return r.uri.Close()
+}
+func (r *ReadIOPorting) Name() string {
+	return r.uri.URI().Name()
+}
+
+// ReadIOPorting a wrapper for porting.NamedWriteCloser.
+type WriteIOPorting struct {
+	uri fyne.URIWriteCloser
+}
+func (w *WriteIOPorting) Write(b []byte) (int, error) {
+	return w.uri.Write(b)
+}
+func (w *WriteIOPorting) Close() error {
+	return w.uri.Close()
+}
+func (w *WriteIOPorting) Name() string {
+	return w.uri.URI().Name()
+}

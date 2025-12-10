@@ -148,6 +148,9 @@ func loadOnEventHandlers(f *FunkView) {
 					Name: gui.EventEntrySubmit,
 					Data: builder,
 				})
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventEntryUnselected,
+				})
 
 			case gui.EventDocumentImport:
 				io := e.Data.(porting.NamedReadCloser)

@@ -193,11 +193,14 @@ func NewTableList(b *emiter.Broker, c *controller.BookLoanList) *TableList {
 				case gui.EventEntrySelected:
 					id := e.Data.(int)
 					tl.List.Select(id)
+				case gui.EventEntryUnselected:
+					tl.List.UnselectAll()
 				}
 			},
 	},
 		gui.EventListOrdered,
 		gui.EventEntrySelected,
+		gui.EventEntryUnselected,
 	)
 
 	return tl

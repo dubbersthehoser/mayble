@@ -14,7 +14,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
-	"github.com/dubbersthehoser/mayble/internal/settings"
+	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 func loadConfig(s *settings.Settings) (*config.Config, error) {
@@ -29,19 +29,26 @@ func SetupTextGrid() *widget.TextGrid {
 
 
 
-func Run(options ...Option) error {
+func Run() error {
 
-	s := settings.Settings{}
-	for _, option := range options {
-		option(&s)
+	guiApp := fyneApp.NewWithID("app.dubbersthehoser.mayble")
+	
+	splash := guiApp.NewWindow("Loading...")
+
+
+	cfgFile := "config.json"
+
+	dir, err := config.GetDefaultDir()
+	if err != nil {
+		return err
 	}
 
-	defaultConfigDir(&s)
-	defaultConfigPath(&s)
-	defaultDBDriver(&s)
-	defaultDBPath(&s)
+	cfg, err := config.Load(dir, "config.json")
+	if err != nil {
+		return err
+	}
 	
-	guiApp := fyneApp.NewWithID("app.dubbersthehoser.mayble")
+	
 	window := guiApp.NewWindow("Mayble")
 	window.Resize(fyne.NewSize(800, 500))
 	window.CenterOnScreen()
@@ -50,8 +57,8 @@ func Run(options ...Option) error {
 
 	logGrid.Append("Hello, World!")
 	logGrid.Append("--- PATHS ---")
-	logGrid.Append(fmt.Sprintf("config: '%s'", s.ConfigPath))
-	logGrid.Append(fmt.Sprintf("storage: '%s'", s.DBPath))
+	logGrid.Append(fmt.Sprintf("config: '%s'", cfg.ConfigPath))
+	logGrid.Append(fmt.Sprintf("storage: '%s'", cfg.DBPath))
 	logGrid.Append("\n--- LOADING ---")
 
 	var Errored bool = false
@@ -78,7 +85,7 @@ func Run(options ...Option) error {
 		logGrid.Append(fmt.Sprintf("- app: failed: %s", err))
 	}
 
-	control := controller.New(coreApp)
+	control := controller.New(coreApp, s)
 	funkView, err := view.NewFunkView(control, window)
 	if err != nil {
 		logGrid.Append(fmt.Sprintf("- view: failed: %s", err))

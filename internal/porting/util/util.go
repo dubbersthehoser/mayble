@@ -1,5 +1,6 @@
+// Package util contains helper functions for creating importing exporting functions.
+//
 package util
-
 
 import (
 	"time"

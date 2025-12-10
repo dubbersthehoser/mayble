@@ -1,8 +1,10 @@
 package controller
 
 import (
+
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
+	"github.com/dubbersthehoser/mayble/internal/settings"
 )
 
 type Controller struct {
@@ -16,13 +18,15 @@ type Controller struct {
 	List      *BookLoanList
 	Searcher  *BookLoanSearcher
 	Editer    *BookEditer
+	Configur  *Configur
 
 	Broker    *emiter.Broker
 }
 
-func New(a app.API) *Controller {
+func New(a app.API, s *settings.Settings) *Controller {
 	var c Controller
 	c.Broker = &emiter.Broker{}
+	c.Configure = New
 	c.SetApp(a)
 	return &c
 }
