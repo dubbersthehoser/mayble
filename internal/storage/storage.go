@@ -28,7 +28,7 @@ type Book struct {
 }
 
 type BookStore interface {
-	// CreateBook with id if id is positive, if negative willl be created and return.
+	// CreateBook with id if id is positive, if negative will be made and return.
 	CreateBook(id int64, title, author, genre string, ratting int) (int64, error)
 	UpdateBook(*Book) error 
 	DeleteBook(*Book) error
@@ -43,10 +43,10 @@ type Loan struct {
 }
 
 type LoanStore interface {
-	CreateLoan(ID int64, borrower string, date time.Time) error
+	CreateLoan(BookID int64, borrower string, date time.Time) error
 	UpdateLoan(*Loan) error
 	DeleteLoan(*Loan) error
-	GetLoan(ID int64) (*Loan, error)
+	GetLoan(BookID int64) (*Loan, error)
 }
 
 type BookLoanStore interface {

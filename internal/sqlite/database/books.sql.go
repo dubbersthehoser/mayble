@@ -10,10 +10,11 @@ import (
 )
 
 const createBook = `-- name: CreateBook :one
-INSERT INTO books(created_at, updated_at, title, author, genre, ratting)
+INSERT INTO books(created_at, updated_at, id, title, author, genre, ratting)
 VALUES (
 	unixepoch(),
 	unixepoch(),
+	?,
 	?,
 	?,
 	?,
@@ -23,6 +24,7 @@ RETURNING id, created_at, updated_at, title, author, genre, ratting
 `
 
 type CreateBookParams struct {
+	ID      int64
 	Title   string
 	Author  string
 	Genre   string
@@ -31,6 +33,7 @@ type CreateBookParams struct {
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
 	row := q.db.QueryRowContext(ctx, createBook,
+		arg.ID,
 		arg.Title,
 		arg.Author,
 		arg.Genre,

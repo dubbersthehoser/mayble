@@ -1,8 +1,9 @@
 -- name: CreateBook :one
-INSERT INTO books(created_at, updated_at, title, author, genre, ratting)
+INSERT INTO books(created_at, updated_at, id, title, author, genre, ratting)
 VALUES (
 	unixepoch(),
 	unixepoch(),
+	?,
 	?,
 	?,
 	?,

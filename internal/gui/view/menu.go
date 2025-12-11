@@ -12,8 +12,28 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/porting"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/gui"
+	"github.com/dubbersthehoser/mayble/internal/config"
 
 )
+
+func NewConfigMenu(cfg *config.Config) fyne.CanvasObject {
+
+	DBFileEditer := widget.NewEntry() 
+	DBFileEditer.SetText(cfg.DBFile)
+
+	formlayout := container.New(layout.NewFormLayout(),
+		widget.NewLabel("Database"),
+		widget.NewEntry(),
+
+		widget.NewLabel("Driver"),
+		widget.NewLabel(cfg.DBDriver),
+
+		widget.NewLabel("Config File"),
+		widget.NewLabel(cfg.ConfigFile),
+
+	)
+	return formlayout
+}
 
 func ShowMenu(f *FunkView) {
 
@@ -26,7 +46,14 @@ func ShowMenu(f *FunkView) {
 		Content: container.New(layout.NewVBoxLayout(), importBtn, exportBtn, label),
 	}
 
-	body := container.NewAppTabs(porting)
+	configing := &container.TabItem{
+		Text: "Configuration",
+		Content: NewConfigMenu(f.controller.Config),
+	}
+
+
+
+	body := container.NewAppTabs(porting, configing)
 
 	d := dialog.NewCustom("Menu", "Close", body, f.window)
 	size := getDialogSize(d.MinSize())

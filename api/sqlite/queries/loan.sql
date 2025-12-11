@@ -1,6 +1,6 @@
 
 -- name: CreateLoan :one
-INSERT INTO loaned_books( created_at, updated_at, name, date, book_id)
+INSERT INTO loaned_books(created_at, updated_at, name, date, book_id)
 VALUES (
 	unixepoch(),
 	unixepoch(),
@@ -11,22 +11,21 @@ VALUES (
 RETURNING *;
 
 -- name: DeleteLoan :exec
-DELETE FROM loaned_books WHERE id = ?;
+DELETE FROM loaned_books WHERE book_id = ?;
 
 -- name: UpdateLoan :one
 UPDATE loaned_books
 SET
 	updated_at = unixepoch(),
 	name = ?,
-	date = ?,
-	book_id = ?
-WHERE id = ?
+	date = ?
+WHERE book_id = ?
 RETURNING *;
 
 -- name: GetLoanByBookID :one
-SELECT id, name, date, book_id FROM loaned_books
+SELECT name, date, book_id FROM loaned_books
 WHERE book_id = ?;
 
 -- name: GetAllLoans :many
-SELECT id, name, date, book_id FROM loaned_books;
+SELECT name, date, book_id FROM loaned_books;
 

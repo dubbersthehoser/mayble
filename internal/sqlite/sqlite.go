@@ -3,23 +3,20 @@ package sqlite
 import (
 	"fmt"
 	"io/fs"
-	"embed"
 	"database/sql"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 	
-	"github.com/dubbersthehoser/mayble/internal/sqlitedb/database"
+	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 	"github.com/dubbersthehoser/mayble/api"
 )
 
 
-var schemaDir string = "sqlite/schemas"
-
-// Schema contains schemas for migrations. Primary use is for embed file system and testing.
+// Schema contains migrations.
 type Schema struct {
 	Dir string // directory path to the schema directory.
-	FS   fs.FS // root filesystem location of the schema directory.
+	FS   fs.FS // root filesystem location of Dir.
 }
 
 // Database contains queries, Schema, and db connection
@@ -36,7 +33,7 @@ func NewDatabase() *Database {
 	goose.SetBaseFS(api.SQLiteFS)
 	return &Database{
 		Schema: Schema{
-			Dir: schemaDir,
+			Dir: "sqlite/schemas",
 			FS:  api.SQLiteFS,
 		},
 	}

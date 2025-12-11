@@ -1,6 +1,5 @@
 -- +goose Up
 CREATE TABLE loaned_books (
-	id         INTEGER PRIMARY KEY AUTOINCREMENT,
 	created_at INTEGER NOT NULL,
 	updated_at INTEGER NOT NULL,
 	date       TEXT NOT NULL,

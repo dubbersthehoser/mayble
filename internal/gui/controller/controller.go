@@ -4,7 +4,7 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
-	"github.com/dubbersthehoser/mayble/internal/settings"
+	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 type Controller struct {
@@ -18,15 +18,16 @@ type Controller struct {
 	List      *BookLoanList
 	Searcher  *BookLoanSearcher
 	Editer    *BookEditer
-	Configur  *Configur
+	Config    *config.Config
 
 	Broker    *emiter.Broker
 }
 
-func New(a app.API, s *settings.Settings) *Controller {
+func New(a app.API, cfg *config.Config) *Controller {
 	var c Controller
 	c.Broker = &emiter.Broker{}
-	c.Configure = New
+	c.Config = cfg
+	//c.Configure = NewConfigure(cfg,
 	c.SetApp(a)
 	return &c
 }

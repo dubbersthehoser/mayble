@@ -10,7 +10,7 @@ import (
 )
 
 const createLoan = `-- name: CreateLoan :one
-INSERT INTO loaned_books( created_at, updated_at, name, date, book_id)
+INSERT INTO loaned_books(created_at, updated_at, name, date, book_id)
 VALUES (
 	unixepoch(),
 	unixepoch(),
@@ -18,7 +18,7 @@ VALUES (
 	?,
 	?
 )
-RETURNING id, created_at, updated_at, date, name, book_id
+RETURNING created_at, updated_at, date, name, book_id
 `
 
 type CreateLoanParams struct {
@@ -31,7 +31,6 @@ func (q *Queries) CreateLoan(ctx context.Context, arg CreateLoanParams) (LoanedB
 	row := q.db.QueryRowContext(ctx, createLoan, arg.Name, arg.Date, arg.BookID)
 	var i LoanedBook
 	err := row.Scan(
-		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Date,
@@ -42,20 +41,19 @@ func (q *Queries) CreateLoan(ctx context.Context, arg CreateLoanParams) (LoanedB
 }
 
 const deleteLoan = `-- name: DeleteLoan :exec
-DELETE FROM loaned_books WHERE id = ?
+DELETE FROM loaned_books WHERE book_id = ?
 `
 
-func (q *Queries) DeleteLoan(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteLoan, id)
+func (q *Queries) DeleteLoan(ctx context.Context, bookID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteLoan, bookID)
 	return err
 }
 
 const getAllLoans = `-- name: GetAllLoans :many
-SELECT id, name, date, book_id FROM loaned_books
+SELECT name, date, book_id FROM loaned_books
 `
 
 type GetAllLoansRow struct {
-	ID     int64
 	Name   string
 	Date   string
 	BookID int64
@@ -70,12 +68,7 @@ func (q *Queries) GetAllLoans(ctx context.Context) ([]GetAllLoansRow, error) {
 	var items []GetAllLoansRow
 	for rows.Next() {
 		var i GetAllLoansRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Date,
-			&i.BookID,
-		); err != nil {
+		if err := rows.Scan(&i.Name, &i.Date, &i.BookID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -90,12 +83,11 @@ func (q *Queries) GetAllLoans(ctx context.Context) ([]GetAllLoansRow, error) {
 }
 
 const getLoanByBookID = `-- name: GetLoanByBookID :one
-SELECT id, name, date, book_id FROM loaned_books
+SELECT name, date, book_id FROM loaned_books
 WHERE book_id = ?
 `
 
 type GetLoanByBookIDRow struct {
-	ID     int64
 	Name   string
 	Date   string
 	BookID int64
@@ -104,12 +96,7 @@ type GetLoanByBookIDRow struct {
 func (q *Queries) GetLoanByBookID(ctx context.Context, bookID int64) (GetLoanByBookIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getLoanByBookID, bookID)
 	var i GetLoanByBookIDRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Date,
-		&i.BookID,
-	)
+	err := row.Scan(&i.Name, &i.Date, &i.BookID)
 	return i, err
 }
 
@@ -118,29 +105,21 @@ UPDATE loaned_books
 SET
 	updated_at = unixepoch(),
 	name = ?,
-	date = ?,
-	book_id = ?
-WHERE id = ?
-RETURNING id, created_at, updated_at, date, name, book_id
+	date = ?
+WHERE book_id = ?
+RETURNING created_at, updated_at, date, name, book_id
 `
 
 type UpdateLoanParams struct {
 	Name   string
 	Date   string
 	BookID int64
-	ID     int64
 }
 
 func (q *Queries) UpdateLoan(ctx context.Context, arg UpdateLoanParams) (LoanedBook, error) {
-	row := q.db.QueryRowContext(ctx, updateLoan,
-		arg.Name,
-		arg.Date,
-		arg.BookID,
-		arg.ID,
-	)
+	row := q.db.QueryRowContext(ctx, updateLoan, arg.Name, arg.Date, arg.BookID)
 	var i LoanedBook
 	err := row.Scan(
-		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Date,

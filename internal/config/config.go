@@ -2,11 +2,13 @@ package config
 
 import (
 	"os"
-	"io"
+	"errors"
 	"encoding/json"
 	"path/filepath"
 )
 
+// Config contains all configuration of the application.
+//
 type Config struct {
 	ConfigDir  string `json:"config_dir"` 
 	ConfigFile string `json:"config_file"`
@@ -14,11 +16,13 @@ type Config struct {
 	DBFile     string `json:"db_file"`
 }
 
+// SetDBFile sets storage driver and saves it to Confgi.ConfigFile.
 func (c *Config) SetDBDirver(s string) error {
 	c.DBDriver = s
 	return c.save()
 }
 
+// SetDBFile sets database file path and saves it to Config.ConfigFile.
 func (c *Config) SetDBFile(s string) error {
 	c.DBFile = s
 	return c.save()
@@ -34,15 +38,18 @@ func (c *Config) save() error {
 
 	encoder := json.NewEncoder(file)
 	encoder.Encode(c)
+	return nil
 }
 
-func Load(dir, file, string) (*Config, error) {
+// Load config with root directory and from file name. Sets .ConfigFile with 
+// joined root and file
+func Load(root, file string) (*Config, error) {
 
-	path := filepath.Join(dir, file)
+	path := filepath.Join(root, file)
 
-	file, err := os.Open(path)
-	if errors.Is(err, os.ErrNotExsit) {
-		return &Config{ConfigDir: dir, ConfigFile: path}, nil
+	fileIO, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return &Config{ConfigDir: root, ConfigFile: path}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -50,11 +57,11 @@ func Load(dir, file, string) (*Config, error) {
 
 	cfg := &Config{}
 
-	decoder := json.NewDecoder(file)
+	decoder := json.NewDecoder(fileIO)
 	
-	err := decoder.Decode(cfg)
+	err = decoder.Decode(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return cfg, nil
