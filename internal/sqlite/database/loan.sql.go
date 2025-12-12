@@ -49,39 +49,6 @@ func (q *Queries) DeleteLoan(ctx context.Context, bookID int64) error {
 	return err
 }
 
-const getAllLoans = `-- name: GetAllLoans :many
-SELECT name, date, book_id FROM loaned_books
-`
-
-type GetAllLoansRow struct {
-	Name   string
-	Date   string
-	BookID int64
-}
-
-func (q *Queries) GetAllLoans(ctx context.Context) ([]GetAllLoansRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllLoans)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllLoansRow
-	for rows.Next() {
-		var i GetAllLoansRow
-		if err := rows.Scan(&i.Name, &i.Date, &i.BookID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getLoanByBookID = `-- name: GetLoanByBookID :one
 SELECT name, date, book_id FROM loaned_books
 WHERE book_id = ?

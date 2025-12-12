@@ -28,7 +28,6 @@ func NewStorage(path string) (*Storage, error) {
 		return nil, err
 	}
 	return &Storage{Database: *db}, nil
-
 }
 
 
@@ -38,6 +37,11 @@ func NewStorage(path string) (*Storage, error) {
 */
 
 func (d *Storage) GetBookByID(id int64) (*storage.Book, error) {
+	
+	if storage.IsZeroID(id) {
+		return nil, storage.ErrInvalidValue
+	}
+	
 	book, err := d.Queries.GetBookByID(context.Background(), id)
 	var (
 		unknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
@@ -48,10 +52,6 @@ func (d *Storage) GetBookByID(id int64) (*storage.Book, error) {
 	}
 	if notFound {
 		return nil, storage.ErrEntryNotFound
-	}
-
-	if err != nil {
-		return nil, err
 	}
 
 	ret := &storage.Book{
@@ -98,6 +98,15 @@ func (d *Storage) CreateBook(id int64, title, author, genre string, ratting int)
 		id = int64(len(books) + 1)
 	}
 
+	_, err := d.Queries.GetBookByID(context.Background(), id)
+	if err == nil {
+		return id, storage.ErrEntryExists
+	} 
+	if !errors.Is(err, sql.ErrNoRows) {
+		return id, err
+	}
+
+
 	params := database.CreateBookParams{
 		ID:      id,
 		Title:   title,
@@ -106,8 +115,8 @@ func (d *Storage) CreateBook(id int64, title, author, genre string, ratting int)
 		Ratting: int64(ratting),
 	}
 
-	_, err := d.Queries.CreateBook(context.Background(), params)
-	if err != nil {
+	_, err = d.Queries.CreateBook(context.Background(), params)
+	if err != nil { 
 		return id, err
 	}
 	return id, nil
@@ -116,6 +125,10 @@ func (d *Storage) CreateBook(id int64, title, author, genre string, ratting int)
 
 
 func (d *Storage) UpdateBook(book *storage.Book) error {
+	if storage.IsZeroID(book.ID) {
+		return storage.ErrInvalidValue
+	}
+
 	params := database.UpdateBookParams{
 		ID: book.ID,
 		Title: book.Title,
@@ -123,18 +136,16 @@ func (d *Storage) UpdateBook(book *storage.Book) error {
 		Genre: book.Genre,
 		Ratting: int64(book.Ratting),
 	}
-	_, err := d.Queries.UpdateBook(context.Background(), params)
-	var (
-		bookNotFound bool = errors.Is(err, sql.ErrNoRows)
-		bookUnknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
-	)
-	if bookUnknownErr {
-		return err
-	}
-	if bookNotFound {
+
+	_, err := d.Queries.GetBookByID(context.Background(), book.ID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return storage.ErrEntryNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	_, err = d.Queries.UpdateBook(context.Background(), params)
+	return err
 }
 
 func (d *Storage) DeleteBook(book *storage.Book) error {
@@ -142,29 +153,22 @@ func (d *Storage) DeleteBook(book *storage.Book) error {
 	if storage.IsZeroID(book.ID) {
 		return fmt.Errorf("%w: given zero id", storage.ErrInvalidValue)
 	}
-
-	err := d.Queries.DeleteBook(context.Background(), book.ID)
-	var (
-		bookNotFound bool = errors.Is(err, sql.ErrNoRows)
-		bookUnknownErr bool = err != nil && !errors.Is(err, sql.ErrNoRows)
-	)
-
-	if bookUnknownErr {
+	_, err := d.Queries.GetBookByID(context.Background(), book.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return storage.ErrEntryNotFound
+	}
+	if err != nil {
 		return err
 	}
 
-	if bookNotFound {
-		return storage.ErrEntryNotFound
-	}
-
-	return nil
+	err = d.Queries.DeleteBook(context.Background(), book.ID)
+	return err
 }
 
 
 /*
         LoanStore
 */
-
 
 func (d *Storage) GetLoan(id int64) (*storage.Loan, error) {
 	loan, err := d.Queries.GetLoanByBookID(context.Background(), id)
@@ -180,7 +184,6 @@ func (d *Storage) GetLoan(id int64) (*storage.Loan, error) {
 	}
 
 	date, err := time.Parse(time.DateOnly, loan.Date)
-
 	if err != nil {
 		return nil, err
 	}
@@ -191,3 +194,77 @@ func (d *Storage) GetLoan(id int64) (*storage.Loan, error) {
 	}
 	return ret, nil
 }
+
+func (d *Storage) CreateLoan(bookID int64, borrower string, date time.Time) error {
+	
+	if storage.IsZeroID(bookID) {
+		return storage.ErrInvalidValue
+	}
+
+	_, err := d.Queries.GetBookByID(context.Background(), bookID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return storage.ErrEntryNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = d.Queries.GetLoanByBookID(context.Background(), bookID)
+	if err == nil {
+		return storage.ErrEntryExists
+	} 
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
+	params := database.CreateLoanParams{
+		BookID: bookID,
+		Name: borrower,
+		Date: date.Format(time.DateOnly),
+	}
+
+	_, err = d.Queries.CreateLoan(context.Background(), params)
+	return err
+}
+
+func (d *Storage) UpdateLoan(loan *storage.Loan) error {
+
+	if storage.IsZeroID(loan.ID) {
+		return storage.ErrInvalidValue
+	}
+
+	_, err := d.Queries.GetLoanByBookID(context.Background(), loan.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return storage.ErrEntryNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	params := database.UpdateLoanParams{
+		BookID: loan.ID,
+		Name: loan.Borrower,
+		Date: loan.Date.Format(time.DateOnly),
+	}
+	_, err = d.Queries.UpdateLoan(context.Background(), params)
+	return err
+}
+
+func (d *Storage) DeleteLoan(loan *storage.Loan) error {
+	if storage.IsZeroID(loan.ID) {
+		return storage.ErrInvalidValue
+	}
+
+	_, err := d.Queries.GetLoanByBookID(context.Background(), loan.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return storage.ErrEntryNotFound
+	}
+	if err != nil {
+		return err
+	}
+	
+	return d.Queries.DeleteLoan(context.Background(), loan.ID)
+}
+
+
+

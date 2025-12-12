@@ -26,6 +26,3 @@ RETURNING *;
 SELECT name, date, book_id FROM loaned_books
 WHERE book_id = ?;
 
--- name: GetAllLoans :many
-SELECT name, date, book_id FROM loaned_books;
-
