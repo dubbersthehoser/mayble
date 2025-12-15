@@ -113,11 +113,20 @@ type BookLoanList struct {
 }
 
 func NewBookLoanList(b *emiter.Broker, a app.BookLoaning) *BookLoanList {
+
+	list, err := bl.app.GetBookLoans()
+	if err != nil {
+		bl.broker.Notify(emiter.Event{
+			Name: gui.EventDisplayErr,
+			Data: err,
+		})
+	}
+
 	bl := &BookLoanList{
 		app:    a,
 		broker: b,   
 		selected: -1,
-		list:   make([]app.BookLoan, 0),
+		list: list,
 	}
 
 	bl.broker.Subscribe(&emiter.Listener{

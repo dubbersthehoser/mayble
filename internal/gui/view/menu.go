@@ -23,7 +23,7 @@ func NewConfigMenu(cfg *config.Config) fyne.CanvasObject {
 
 	formlayout := container.New(layout.NewFormLayout(),
 		widget.NewLabel("Database"),
-		widget.NewEntry(),
+		DBFileEditer,
 
 		widget.NewLabel("Driver"),
 		widget.NewLabel(cfg.DBDriver),

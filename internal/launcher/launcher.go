@@ -1,8 +1,8 @@
 package launcher
 
 import (
-
 	"errors"
+	"path/filepath"
 	
 	"fyne.io/fyne/v2"
 	fyneApp "fyne.io/fyne/v2/app"
@@ -10,21 +10,17 @@ import (
 	
 	myapp "github.com/dubbersthehoser/mayble/internal/app"
 	storeDriver "github.com/dubbersthehoser/mayble/internal/storage/driver"
-
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
 )
 
+
 func Run() error {
 
 	AppName := "mayble"
 
-	guiApp := fyneApp.NewWithID(AppName)
-
-	if guiApp.Driver().Device().IsMobile() == true {
-		return errors.New("unsupported platform")
-	}
+	// Load Config
 
 	dir, err := config.GetDefaultDir(AppName)
 	if err != nil {
@@ -35,15 +31,31 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-	
 
-	cfg.DBDriver = ""
+	guiApp := fyneApp.NewWithID(AppName)
+
+	if guiApp.Driver().Device().IsMobile() {
+		return errors.New("unsupported platform")
+	}
+
+	if cfg.DBDriver == "" {
+		err := cfg.SetDBDriver("sqlite")
+		if err != nil {
+			return err
+		}
+	}
+
+	if cfg.DBFile == "" {
+		err := cfg.SetDBFile(filepath.Join(dir, "mayble.db"))
+		if err != nil {
+			return err
+		}
+	}
 
 	storage, err := storeDriver.Load(cfg.DBDriver, cfg.DBFile)
 	if err != nil {
 		return err	
 	}
-
 
 	coreApp, err := myapp.New(storage)
 	if err != nil {

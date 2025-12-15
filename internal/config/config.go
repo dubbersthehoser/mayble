@@ -17,7 +17,7 @@ type Config struct {
 }
 
 // SetDBFile sets storage driver and saves it to Confgi.ConfigFile.
-func (c *Config) SetDBDirver(s string) error {
+func (c *Config) SetDBDriver(s string) error {
 	c.DBDriver = s
 	return c.save()
 }
