@@ -2,10 +2,6 @@ package gui
 
 
 const (
-	EventSave string = "ui.save"
-	EventSaveDisable = "ui.save.disable"
-	EventSaveEnable  = "ui.save.enable"
-
 	EventRedo        = "ui.redo"
 	EventRedoEmpty   = "ui.redo.empty"
 	EventRedoReady   = "ui.redo.ready"

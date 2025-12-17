@@ -25,7 +25,7 @@ func New(cfg *config.Config) (*Controller, error) {
 	if err != nil {
 		return nil, err
 	}
-	a, err := app.New(storage)
+	a := app.New(storage)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *Controller) Reset() error {
 	if err != nil {
 		return err
 	}
-	a, err := app.New(storage)
+	a := app.New(storage)
 	if err != nil {
 		return err
 	}

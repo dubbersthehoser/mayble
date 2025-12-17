@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/storage/memory"
 )
 
 type BookLoan struct {
@@ -28,68 +27,17 @@ var ZeroID int64 = storage.ZeroID
 type App struct {
 	storage  storage.BookLoanStore
 	storeMgr *manager 
-
-	memory   *memory.Storage
-	memMgr   *manager 
-
 }
 
-func New(store storage.BookLoanStore) (*App, error) {
+func New(store storage.BookLoanStore) *App {
 	var a App
 	a.storage = store
 	a.storeMgr = newManager()
-
-	a.memory = memory.NewStorage()
-	a.memMgr = newManager()
-
-	if err := a.load(); err != nil {
-		return nil, err
-	}
-	return &a, nil
-}
-
-func (a *App) load() error {
-	bookLoans, err := getAllBookLoans(a.storage)
-	if err != nil {
-		return fmt.Errorf("app: %w", err)
-	}
-	a.memory.Wipe()
-	for _, book := range bookLoans {
-		id, err := createBookLoan(a.memory, &book)
-		if err != nil {
-			return err
-		}
-		book.ID = id
-		err = updateBookLoan(a.memory, &book)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a *App) Save() error {
-	for {
-		cmd := a.storeMgr.dequeue()
-		if cmd == nil {
-			break
-		}
-		err := a.storeMgr.execute(cmd)
-		if err != nil {
-			return err
-		}
-	}
-	a.storeMgr.undos.Clear() // clear undos from executed commands
-	
-	err := a.load()
-	if err != nil {
-		return err
-	}
-	return nil
+	return &a
 }
 
 func (a *App) GetBookLoans() ([]BookLoan, error) {
-	bookLoans, err := getAllBookLoans(a.memory)
+	bookLoans, err := getAllBookLoans(a.storage)
 	if err != nil {
 		return nil, err
 	}
@@ -101,12 +49,7 @@ func (a *App) ImportBookLoans(bookLoans []BookLoan) error {
 		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
 	}
 	cmd := newCommandImportBookLoans(bookLoans)
-	err := a.memMgr.execute(cmd(a.memory))
-	if err != nil {
-		return err
-	}
-	a.storeMgr.enqueue(cmd(a.storage))
-	return nil
+	return a.storeMgr.execute(cmd(a.storage))
 }
 
 
@@ -115,12 +58,7 @@ func (a *App) CreateBookLoan(book *BookLoan) error {
 		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
 	}
 	cmd := newCommandCreateBookLoan(book)
-	err := a.memMgr.execute(cmd(a.memory))
-	if err != nil {
-		return err
-	}
-	a.storeMgr.enqueue(cmd(a.storage))
-	return nil
+	return a.storeMgr.execute(cmd(a.storage))
 }
 
 func (a *App) UpdateBookLoan(book *BookLoan) error {
@@ -128,12 +66,7 @@ func (a *App) UpdateBookLoan(book *BookLoan) error {
 		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
 	}
 	cmd := newCommandUpdateBookLoan(book)
-	err := a.memMgr.execute(cmd(a.memory))
-	if err != nil {
-		return err
-	}
-	a.storeMgr.enqueue(cmd(a.storage))
-	return nil
+	return a.storeMgr.execute(cmd(a.storage))
 }
 
 func (a *App) DeleteBookLoan(book *BookLoan) error {
@@ -141,40 +74,32 @@ func (a *App) DeleteBookLoan(book *BookLoan) error {
 		return fmt.Errorf("%w: nil pointer", ErrInvalidValue)
 	}
 	cmd := newCommandDeleteBookLoan(book)
-	err := a.memMgr.execute(cmd(a.memory))
-	if err != nil {
-		return err
-	}
-	a.storeMgr.enqueue(cmd(a.storage))
-	return nil
+	return a.storeMgr.execute(cmd(a.storage))
 }
 
 
 
 
 func (a *App) Undo() error {
-	if err := a.memMgr.unExecute(); err != nil {
+	if err := a.storeMgr.unExecute(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a *App) UndoIsEmpty() bool {
-	return a.memMgr.undos.Length() == 0
+	return a.storeMgr.undos.Length() == 0
 }
 
-
-
-
 func (a *App) Redo() error {
-	if err := a.memMgr.reExecute(); err != nil {
+	if err := a.storeMgr.reExecute(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (a *App) RedoIsEmpty() bool {
-	return a.memMgr.redos.Length() == 0
+	return a.storeMgr.redos.Length() == 0
 }
 
 func createBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) (int64, error) {
@@ -320,12 +245,3 @@ func deleteBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) error {
 	}
 	return s.DeleteLoan(loan)
 }
-
-
-
-
-
-
-
-
-

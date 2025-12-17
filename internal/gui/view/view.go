@@ -101,11 +101,6 @@ func loadOnEventHandlers(f *FunkView) {
 	f.broker.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-			case gui.EventSave:
-				f.controller.App.Save()
-				f.broker.Notify(emiter.Event{
-					Name: gui.EventSaveDisable,
-				})
 
 			case gui.EventRedo:
 				err := f.controller.App.Redo()
@@ -134,11 +129,6 @@ func loadOnEventHandlers(f *FunkView) {
 				})
 
 			case gui.EventDocumentModified:
-
-				f.broker.Notify(emiter.Event{
-					Name: gui.EventSaveEnable,
-				})
-
 				if f.controller.App.UndoIsEmpty() {
 					f.broker.Notify(emiter.Event{
 						Name: gui.EventUndoEmpty,
@@ -250,7 +240,6 @@ func loadOnEventHandlers(f *FunkView) {
 				
 		},
 	}, 
-		gui.EventSave,
 		gui.EventRedo,
 		gui.EventUndo,
 		gui.EventEditerOpen,

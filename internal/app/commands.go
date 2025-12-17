@@ -69,6 +69,7 @@ func newCommandCreateBookLoan(book *BookLoan) func(storage.BookLoanStore) *comma
 }
 
 func (c *commandCreateBookLoan) Do() error {
+	fmt.Println(c.bookLoan)
 	id, err := createBookLoan(c.store, c.bookLoan)
 	if err != nil {
 		return err

@@ -14,9 +14,6 @@ import (
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
 
-	saveItem := NewToolbarSave(f.broker)
-	saveItem.Disable()
-
 	menuItem := NewToolbarMenu(f.broker)
 	createItem := NewToolbarCreate(f.broker)
 	updateItem := NewToolbarUpdate(f.broker)
@@ -34,7 +31,6 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 
 	items := []widget.ToolbarItem{
 		menuItem,
-		saveItem,
 		widget.NewToolbarSeparator(),
 		undoItem,
 		redoItem,
@@ -43,15 +39,13 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 		updateItem,
 		deleteItem,
 		widget.NewToolbarSeparator(),
-		selectSearchBy,
 		nextItem,
 		prevItem,
 		searchEnt,
+		selectSearchBy,
 
 	}
 	toolBar := widget.NewToolbar(items...)
-	
-	//return container.New(layout.NewHBoxLayout(), boxes...)
 	return toolBar
 }
 
@@ -164,32 +158,6 @@ func (sb *SearchBySelect) ToolbarObject() fyne.CanvasObject {
 /*****************************
         Toolbar Items
 ******************************/
-
-func NewToolbarSave(b *emiter.Broker) *widget.ToolbarAction {
-	ts := &widget.ToolbarAction{
-		Icon: theme.DocumentSaveIcon(),
-		OnActivated: func() {
-			b.Notify(emiter.Event{
-				Name: gui.EventSave,
-			})
-		},
-	}
-	b.Subscribe(&emiter.Listener{
-		Handler: func(e *emiter.Event) {
-			switch e.Name {
-			case gui.EventSaveDisable:
-				ts.Disable()
-
-			case gui.EventSaveEnable:
-				ts.Enable()
-			}
-		},
-	},
-		gui.EventSaveEnable,
-		gui.EventSaveDisable,
-	)
-	return ts
-}
 
 func NewToolbarMenu(b *emiter.Broker) *widget.ToolbarAction {
 	tm := &widget.ToolbarAction{

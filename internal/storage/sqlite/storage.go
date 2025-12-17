@@ -90,18 +90,24 @@ func (d *Storage) GetBooks() ([]storage.Book, error) {
 
 func (d *Storage) CreateBook(id int64, title, author, genre string, ratting int) (int64, error) { 
 	
+	var createdID bool
 	if storage.IsZeroID(id) {
 		books, err := d.GetBooks()
 		if err != nil {
 			return id, err
 		}
 		id = int64(len(books) + 1)
+		createdID = true
 	}
 
 	_, err := d.Queries.GetBookByID(context.Background(), id)
-	if err == nil {
+	if err == nil && !createdID {
 		return id, storage.ErrEntryExists
 	} 
+	for err == nil && createdID {
+		id += 1
+		_, err = d.Queries.GetBookByID(context.Background(), id)
+	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return id, err
 	}
