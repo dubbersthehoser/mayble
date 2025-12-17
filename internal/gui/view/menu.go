@@ -1,7 +1,6 @@
 package view
 
 import (
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/dialog"
@@ -13,7 +12,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/gui"
 	"github.com/dubbersthehoser/mayble/internal/config"
-
 )
 
 func NewConfigMenu(cfg *config.Config) fyne.CanvasObject {
@@ -50,8 +48,6 @@ func ShowMenu(f *FunkView) {
 		Text: "Configuration",
 		Content: NewConfigMenu(f.controller.Config),
 	}
-
-
 
 	body := container.NewAppTabs(porting, configing)
 

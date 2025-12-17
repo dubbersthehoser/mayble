@@ -104,7 +104,7 @@ func (bs *BookLoanSearcher) Search() {
 
 
 type BookLoanList struct {
-	app      app.BookLoaning
+	app      *app.App
 	list     []app.BookLoan
 	broker   *emiter.Broker
 	selected int // index item in list. When index < 0 then it's unselected.
@@ -112,11 +112,11 @@ type BookLoanList struct {
 	ordering listing.Ordering
 }
 
-func NewBookLoanList(b *emiter.Broker, a app.BookLoaning) *BookLoanList {
+func NewBookLoanList(b *emiter.Broker, a *app.App) *BookLoanList {
 
-	list, err := bl.app.GetBookLoans()
+	list, err := a.GetBookLoans()
 	if err != nil {
-		bl.broker.Notify(emiter.Event{
+		b.Notify(emiter.Event{
 			Name: gui.EventDisplayErr,
 			Data: err,
 		})

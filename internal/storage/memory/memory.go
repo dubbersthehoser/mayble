@@ -29,6 +29,15 @@ func (m *Storage) Wipe() {
 	}
 }
 
+func (m *Storage) getNewBookID() int64 {
+	id := int64(len(m.Books)) + 1
+	_, ok := m.Books[id]
+	for ok {
+		id += 1
+		_, ok = m.Books[id]
+	}
+	return id
+}
 
 /************************
         StoreBook
@@ -153,9 +162,6 @@ func (m *Storage) GetLoan(id int64) (*storage.Loan, error) {
 	return &loan, nil
 }
 
-func (m *Storage) getNewBookID() int64 {
-	return int64(len(m.Books)) + 1
-}
 
 
 

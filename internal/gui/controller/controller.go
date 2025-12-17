@@ -5,15 +5,11 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	storeDriver "github.com/dubbersthehoser/mayble/internal/storage/driver"
 )
 
 type Controller struct {
-	App        app.API
-	BookLoaner app.BookLoaning
-	Redoer     app.Redoable
-	Undoer     app.Undoable
-	Importer   app.Importable
-	Saver      app.Savable
+	App        *app.App
 
 	List      *BookLoanList
 	Searcher  *BookLoanSearcher
@@ -23,25 +19,40 @@ type Controller struct {
 	Broker    *emiter.Broker
 }
 
-func New(a app.API, cfg *config.Config) *Controller {
+func New(cfg *config.Config) (*Controller, error) {
 	var c Controller
+	storage, err := storeDriver.Load(cfg.DBDriver, cfg.DBFile)
+	if err != nil {
+		return nil, err
+	}
+	a, err := app.New(storage)
+	if err != nil {
+		return nil, err
+	}
+
 	c.Broker = &emiter.Broker{}
 	c.Config = cfg
-	//c.Configure = NewConfigure(cfg,
 	c.SetApp(a)
-	return &c
+	return &c, nil
 }
 
-func (c *Controller) SetApp(a app.API) {
+func (c *Controller) SetApp(a *app.App) {
 	c.App = a
-
-	c.BookLoaner = a
-	c.Redoer     = a
-	c.Undoer     = a
-	c.Importer   = a
-	c.Saver      = a
-
-	c.List = NewBookLoanList(c.Broker, app.BookLoaning(a))
+	c.List = NewBookLoanList(c.Broker, a)
 	c.Searcher = NewBookLoanSearcher(c.Broker, &c.List.list)
-	c.Editer = NewBookEditer(c.Broker, app.BookLoaning(a))
+	c.Editer = NewBookEditer(c.Broker, a)
 }
+
+func (c *Controller) Reset() error {
+	storage, err := storeDriver.Load(c.Config.DBDriver, c.Config.DBFile)
+	if err != nil {
+		return err
+	}
+	a, err := app.New(storage)
+	if err != nil {
+		return err
+	}
+	c.SetApp(a)
+	return nil
+}
+

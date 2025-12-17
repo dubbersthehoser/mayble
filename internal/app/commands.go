@@ -70,8 +70,11 @@ func newCommandCreateBookLoan(book *BookLoan) func(storage.BookLoanStore) *comma
 
 func (c *commandCreateBookLoan) Do() error {
 	id, err := createBookLoan(c.store, c.bookLoan)
+	if err != nil {
+		return err
+	}
 	c.bookLoan.ID = id
-	return err
+	return nil
 }
 
 func (c *commandCreateBookLoan) Undo() error {

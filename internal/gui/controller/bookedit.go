@@ -33,11 +33,11 @@ func (t EditType) String() string {
 }
 
 type BookEditer struct {
-	app  app.BookLoaning
+	app    *app.App
 	broker *emiter.Broker
 }
 
-func NewBookEditer(b *emiter.Broker, a app.BookLoaning) *BookEditer {
+func NewBookEditer(b *emiter.Broker, a *app.App) *BookEditer {
 	be := &BookEditer{
 		app: a,
 		broker: b,

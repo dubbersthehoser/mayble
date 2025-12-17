@@ -38,7 +38,6 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 		window: window,
 		broker: control.Broker,
 	}
-
 	loadOnEventHandlers(&f)
 	f.View = f.Body()
 	syncView(&f)
@@ -109,20 +108,58 @@ func loadOnEventHandlers(f *FunkView) {
 				})
 
 			case gui.EventRedo:
-				f.controller.App.Redo()
-				if f.controller.App.RedoIsEmpty() {
+				err := f.controller.App.Redo()
+				if err != nil {
 					f.broker.Notify(emiter.Event{
-						Name: gui.EventRedoEmpty,
+						Name: gui.EventDisplayErr,
+						Data: err,
 					})
+					return
 				}
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventDocumentModified,
+				})
 
 			case gui.EventUndo:
-				f.controller.App.Undo()
+				err := f.controller.App.Undo()
+				if err != nil {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventDisplayErr,
+						Data: err,
+					})
+					return
+				}
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventDocumentModified,
+				})
+
+			case gui.EventDocumentModified:
+
+				f.broker.Notify(emiter.Event{
+					Name: gui.EventSaveEnable,
+				})
+
 				if f.controller.App.UndoIsEmpty() {
 					f.broker.Notify(emiter.Event{
 						Name: gui.EventUndoEmpty,
 					})
+				} else {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventUndoReady,
+					})
 				}
+
+				
+				if f.controller.App.RedoIsEmpty() {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventRedoEmpty,
+					})
+				} else {
+					f.broker.Notify(emiter.Event{
+						Name: gui.EventRedoReady,
+					})
+				}
+
 
 			case gui.EventEditerOpen:
 				subEvent := e.Data.(string)
@@ -200,8 +237,6 @@ func loadOnEventHandlers(f *FunkView) {
 					NotifyError(f.broker, err)
 					return
 				}
-				
-
 
 			case gui.EventDisplayErr:
 				err := e.Data.(error)
@@ -224,6 +259,7 @@ func loadOnEventHandlers(f *FunkView) {
 		gui.EventMenuOpen,
 		gui.EventDocumentImport,
 		gui.EventDocumentExport,
+		gui.EventDocumentModified,
 	)
 }
 

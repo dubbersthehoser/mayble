@@ -8,20 +8,35 @@ import (
 	fyneApp "fyne.io/fyne/v2/app"
 	_"fyne.io/fyne/v2/widget"
 	
-	myapp "github.com/dubbersthehoser/mayble/internal/app"
-	storeDriver "github.com/dubbersthehoser/mayble/internal/storage/driver"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
 )
 
+const AppName string = "mayble"
+
 
 func Run() error {
+	guiApp := fyneApp.NewWithID(AppName)
 
-	AppName := "mayble"
+	if guiApp.Driver().Device().IsMobile() {
+		return errors.New("unsupported platform")
+	}
 
-	// Load Config
+	window := guiApp.NewWindow("Mayble")
+	window.Resize(fyne.NewSize(800, 500))
+	window.CenterOnScreen()
+	window.Show()
 
+	err := SetContent(window)
+	if err != nil {
+		return err
+	}
+	guiApp.Run()
+	return nil
+}
+
+func SetContent(window fyne.Window) error {
 	dir, err := config.GetDefaultDir(AppName)
 	if err != nil {
 		return err
@@ -30,12 +45,6 @@ func Run() error {
 	cfg, err := config.Load(dir, "config.json")
 	if err != nil {
 		return err
-	}
-
-	guiApp := fyneApp.NewWithID(AppName)
-
-	if guiApp.Driver().Device().IsMobile() {
-		return errors.New("unsupported platform")
 	}
 
 	if cfg.DBDriver == "" {
@@ -52,34 +61,17 @@ func Run() error {
 		}
 	}
 
-	storage, err := storeDriver.Load(cfg.DBDriver, cfg.DBFile)
-	if err != nil {
-		return err	
-	}
-
-	coreApp, err := myapp.New(storage)
+	control, err := controller.New(cfg)
 	if err != nil {
 		return err
 	}
-
-	window := guiApp.NewWindow("Mayble")
-	window.Resize(fyne.NewSize(800, 500))
-	window.CenterOnScreen()
-
-	control := controller.New(coreApp, cfg)
 	funkView, err := view.NewFunkView(control, window)
 	if err != nil {
 		return err
 	}
 
-	mainView := funkView.View
-
-	window.SetContent(mainView)
-	window.ShowAndRun()
+	window.SetContent(funkView.View)
 	return nil
-}
-
-func ShowApp() {
 }
 
 

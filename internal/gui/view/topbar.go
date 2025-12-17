@@ -177,16 +177,16 @@ func NewToolbarSave(b *emiter.Broker) *widget.ToolbarAction {
 	b.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-			case gui.EventSave:
+			case gui.EventSaveDisable:
 				ts.Disable()
 
-			case gui.EventDocumentModified:
+			case gui.EventSaveEnable:
 				ts.Enable()
 			}
 		},
 	},
-		gui.EventSave,
-		gui.EventDocumentModified,
+		gui.EventSaveEnable,
+		gui.EventSaveDisable,
 	)
 	return ts
 }

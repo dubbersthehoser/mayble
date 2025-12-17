@@ -3,16 +3,27 @@ package app
 import (
 	"fmt"
 	"errors"
+	"time"
 	"github.com/dubbersthehoser/mayble/internal/storage"
 	"github.com/dubbersthehoser/mayble/internal/storage/memory"
 )
+
+type BookLoan struct {
+	ID       int64
+	Title    string
+	Author   string
+	Genre    string
+	Ratting  int
+	IsOnLoan   bool
+	Borrower string
+	Date     time.Time
+}
 
 var (
 	ErrInvalidValue error = errors.New("invalid value")
 )
 
 var ZeroID int64 = storage.ZeroID
-
 
 type App struct {
 	storage  storage.BookLoanStore
@@ -27,8 +38,10 @@ func New(store storage.BookLoanStore) (*App, error) {
 	var a App
 	a.storage = store
 	a.storeMgr = newManager()
+
 	a.memory = memory.NewStorage()
 	a.memMgr = newManager()
+
 	if err := a.load(); err != nil {
 		return nil, err
 	}
@@ -163,8 +176,6 @@ func (a *App) Redo() error {
 func (a *App) RedoIsEmpty() bool {
 	return a.memMgr.redos.Length() == 0
 }
-
-
 
 func createBookLoan(s storage.BookLoanStore, bookLoan *BookLoan) (int64, error) {
 	id, err := s.CreateBook(bookLoan.ID, bookLoan.Title, bookLoan.Author, bookLoan.Genre, bookLoan.Ratting)
