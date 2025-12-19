@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
@@ -14,7 +15,8 @@ import (
 
 func (f *FunkView) TopBar() fyne.CanvasObject {
 
-	menuItem := NewToolbarMenu(f.broker)
+	documentItem := NewToolbarDocument(f.broker)
+
 	createItem := NewToolbarCreate(f.broker)
 	updateItem := NewToolbarUpdate(f.broker)
 	deleteItem := NewToolbarDelete(f.broker)
@@ -30,7 +32,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 	searchEnt := NewSearchEntry(f.broker)
 
 	items := []widget.ToolbarItem{
-		menuItem,
+		documentItem,
 		widget.NewToolbarSeparator(),
 		undoItem,
 		redoItem,
@@ -73,6 +75,9 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 			case gui.EventListOrdering:
 				se.Entry.SetText("")
 
+			case gui.EventSearchFocus:
+				se.Entry.MouseDown(&desktop.MouseEvent{})
+
 			default:
 				panic("event not found: " + e.Name)
 			}
@@ -80,6 +85,7 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	}, 
 		gui.EventSearchBy, 
 		gui.EventListOrdering,
+		gui.EventSearchFocus,
 	)
 
 	return se
@@ -159,9 +165,9 @@ func (sb *SearchBySelect) ToolbarObject() fyne.CanvasObject {
         Toolbar Items
 ******************************/
 
-func NewToolbarMenu(b *emiter.Broker) *widget.ToolbarAction {
+func NewToolbarDocument(b *emiter.Broker) *widget.ToolbarAction {
 	tm := &widget.ToolbarAction{
-		Icon: theme.MenuIcon(),
+		Icon: theme.FolderIcon(),
 		OnActivated: func() {
 			b.Notify(emiter.Event{
 				Name: gui.EventMenuOpen,
@@ -351,6 +357,4 @@ func NewToolbarPrev(b *emiter.Broker) *widget.ToolbarAction {
 	)
 	return tp
 }
-
-
 

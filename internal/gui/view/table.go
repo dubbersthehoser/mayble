@@ -189,11 +189,15 @@ func NewTableList(b *emiter.Broker, c *controller.BookLoanList) *TableList {
 			Handler: func(e *emiter.Event) {
 				switch  e.Name {
 				case gui.EventListOrdered:
+					tl.List.UnselectAll()
+					tl.List.ScrollTo(0)
 					tl.List.Refresh()
 				case gui.EventEntrySelected:
 					id := e.Data.(int)
 					tl.List.Select(id)
 				case gui.EventEntryUnselected:
+					tl.List.UnselectAll()
+				case gui.EventSelectionNone:
 					tl.List.UnselectAll()
 				}
 			},
@@ -201,6 +205,7 @@ func NewTableList(b *emiter.Broker, c *controller.BookLoanList) *TableList {
 		gui.EventListOrdered,
 		gui.EventEntrySelected,
 		gui.EventEntryUnselected,
+		gui.EventSelectionNone,
 	)
 
 	return tl
@@ -235,6 +240,11 @@ func (tl *TableList) OnCanvasCreation() fyne.CanvasObject {
 	rattingLabel.Selectable = false
 	onLoanName.Selectable = false
 	onLoanDate.Selectable = false
+
+	genreLabel.Alignment = fyne.TextAlignCenter
+	rattingLabel.Alignment = fyne.TextAlignCenter
+	onLoanName.Alignment = fyne.TextAlignCenter
+	onLoanDate.Alignment = fyne.TextAlignCenter
 
 	fields := []fyne.CanvasObject{
 		titleLabel,

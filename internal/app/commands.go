@@ -33,7 +33,7 @@ func (c *commandImportBookLoans) Do() error {
 	for i, BookLoan := range c.bookLoans {
 		id, err := createBookLoan(c.store, &BookLoan)
 		if err != nil {
-			return fmt.Errorf("app: import: %w", err)
+			return fmt.Errorf("app: %w", err)
 		}
 		c.addedIDs[i] = id
 	}

@@ -16,9 +16,11 @@ const (
 	EventEntryUpdate = "ui.entry.update"
 	EventEntrySubmit = "ui.entry.submit"
 
-	EventDocumentModified = "ui.document.modified"
-	EventDocumentImport   = "ui.document.import"
-	EventDocumentExport   = "ui.document.export"
+	EventDocumentModified  = "ui.document.modified"
+	EventDocumentImport    = "ui.document.import"
+	EventDocumentExportCSV = "ui.document.export.csv"
+	EventDocumentExport    = "ui.document.export"
+	EventDocumentNew       = "ui.document.open"
 
 	EventEntrySelected   = "ui.entry.selected"
 	EventEntryUnselected = "ui.entry.unselected"
@@ -33,6 +35,7 @@ const (
 	EventSearch        = "ui.search"
 	EventSearchBy      = "ui.search.by"
 	EventSearchPattern = "ui.search.pattern"
+	EventSearchFocus   = "ui.search.focus"
 
 	EventSelection     = "ui.selection"
 	EventSelectionNone = "ui.selection.none"

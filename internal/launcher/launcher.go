@@ -22,9 +22,10 @@ func Run() error {
 	if guiApp.Driver().Device().IsMobile() {
 		return errors.New("unsupported platform")
 	}
+	
 
 	window := guiApp.NewWindow("Mayble")
-	window.Resize(fyne.NewSize(800, 500))
+	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
 	window.Show()
 

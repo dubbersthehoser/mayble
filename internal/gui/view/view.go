@@ -1,11 +1,13 @@
 package view
 
 import (
+	"io"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
@@ -13,15 +15,8 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/listing"
 	"github.com/dubbersthehoser/mayble/internal/gui"
 	"github.com/dubbersthehoser/mayble/internal/porting"
+	csvPorting "github.com/dubbersthehoser/mayble/internal/porting/csv"
 )
-
-
-
-/***********************
-	FunkView
-************************/
-
-// NOTE It's called FunkView because I was frustrated and I needed some amusement.
 
 type FunkView struct {
 	window     fyne.Window
@@ -41,6 +36,7 @@ func NewFunkView(control *controller.Controller, window fyne.Window) (FunkView, 
 	loadOnEventHandlers(&f)
 	f.View = f.Body()
 	syncView(&f)
+	shortcutAdd(&f)
 	return f, nil
 }
 
@@ -60,6 +56,34 @@ func NotifyError(b *emiter.Broker, err error) {
 
 func (f *FunkView) refresh() {
 	f.View.Refresh()
+}
+
+func shortcutAdd(f *FunkView) {
+	ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
+	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
+
+	f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventSearchFocus,
+		})
+	})
+	f.window.Canvas().AddShortcut(ctrlM, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventMenuOpen,
+		})
+	})
+
+	f.window.Canvas().AddShortcut(&fyne.ShortcutUndo{}, func(_ fyne.Shortcut) { // ctrl + Z
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventUndo,
+		})
+	})
+
+	f.window.Canvas().AddShortcut(&fyne.ShortcutRedo{}, func(_ fyne.Shortcut) { // ctrl + Y
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventRedo,
+		})
+	})
 }
 
 func syncView(f *FunkView) {
@@ -227,6 +251,24 @@ func loadOnEventHandlers(f *FunkView) {
 					NotifyError(f.broker, err)
 					return
 				}
+
+			case gui.EventDocumentExportCSV:
+				ioCloser := e.Data.(io.WriteCloser)
+				defer ioCloser.Close()
+
+				porter := csvPorting.BookLoanPorter{}
+
+				books, err := f.controller.App.GetBookLoans()
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+				err = porter.ExportBookLoans(ioCloser, books)
+				if err != nil {
+					NotifyError(f.broker, err)
+					return 
+				}
+
 
 			case gui.EventDisplayErr:
 				err := e.Data.(error)
