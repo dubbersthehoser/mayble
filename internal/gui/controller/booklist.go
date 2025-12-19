@@ -112,6 +112,7 @@ type BookLoanList struct {
 	ordering listing.Ordering
 }
 
+
 func NewBookLoanList(b *emiter.Broker, a *app.App) *BookLoanList {
 
 	list, err := a.GetBookLoans()
@@ -175,6 +176,18 @@ func NewBookLoanList(b *emiter.Broker, a *app.App) *BookLoanList {
 		gui.EventDocumentModified,
 	)
 	return bl
+}
+
+func (bl *BookLoanList) SetApp(a *app.App) {
+	bl.app = a
+	list, err := a.GetBookLoans()
+	if err != nil {
+		bl.broker.Notify(emiter.Event{
+			Name: gui.EventDisplayErr,
+			Data: err,
+		})
+	}
+	bl.list = list
 }
 
 func (bl *BookLoanList) Selected() *app.BookLoan {

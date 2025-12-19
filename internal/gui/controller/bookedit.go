@@ -68,6 +68,10 @@ func NewBookEditer(b *emiter.Broker, a *app.App) *BookEditer {
 	return be
 }
 
+func (be *BookEditer) SetApp(a *app.App) {
+	be.app = a
+}
+
 func (be *BookEditer) Submit(builder *BookLoanBuilder) error {
 	bookLoan := builder.Build()
 	switch builder.Type {

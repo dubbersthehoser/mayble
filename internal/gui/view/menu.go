@@ -25,6 +25,7 @@ func ShowMenu(f *FunkView) {
 	newFile := NewNewFileButton(f.window, f.broker)
 	
 	current := widget.NewLabel(f.controller.Config.DBFile)
+
 	importBtn := NewImportButton(f.window, f.broker)
 	exportBtn := NewExportButton(f.window, f.broker)
 
@@ -40,9 +41,6 @@ func ShowMenu(f *FunkView) {
 	d.Resize(size)
 	d.Show()
 }
-
-
-
 
 type OpenFileButton struct {
 	widget.Button

@@ -58,6 +58,7 @@ func (f *FunkView) refresh() {
 	f.View.Refresh()
 }
 
+
 func shortcutAdd(f *FunkView) {
 	ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
 	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
@@ -277,9 +278,22 @@ func loadOnEventHandlers(f *FunkView) {
 			case gui.EventMenuOpen:
 				ShowMenu(f)
 
-			}
-
+			case gui.EventDocumentNew:
+				path := e.Data.(string)
+				println(path)
+				err := f.controller.Config.SetDBFile(path)
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
 				
+				err = f.controller.Reset()
+				if err != nil {
+					NotifyError(f.broker, err)
+					return
+				}
+				syncView(f)
+			}
 		},
 	}, 
 		gui.EventRedo,
@@ -291,6 +305,7 @@ func loadOnEventHandlers(f *FunkView) {
 		gui.EventDocumentImport,
 		gui.EventDocumentExport,
 		gui.EventDocumentModified,
+		gui.EventDocumentNew,
 	)
 }
 

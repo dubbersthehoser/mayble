@@ -32,15 +32,13 @@ func New(cfg *config.Config) (*Controller, error) {
 
 	c.Broker = &emiter.Broker{}
 	c.Config = cfg
-	c.SetApp(a)
-	return &c, nil
-}
 
-func (c *Controller) SetApp(a *app.App) {
 	c.App = a
 	c.List = NewBookLoanList(c.Broker, a)
 	c.Searcher = NewBookLoanSearcher(c.Broker, &c.List.list)
 	c.Editer = NewBookEditer(c.Broker, a)
+
+	return &c, nil
 }
 
 func (c *Controller) Reset() error {
@@ -52,7 +50,8 @@ func (c *Controller) Reset() error {
 	if err != nil {
 		return err
 	}
-	c.SetApp(a)
+	c.List.SetApp(a)
+	c.Editer.SetApp(a)
 	return nil
 }
 
