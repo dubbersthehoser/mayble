@@ -126,13 +126,13 @@ type BookLoanBuilder struct {
 
 func (b *BookLoanBuilder) Validate() error {
 	if err := ValidateTitle(b.Title); err != nil {
-		return errors.New("must have an title.")
+		return errors.New("must have title.")
 	}
 	if err := ValidateAuthor(b.Author); err != nil {
-		return errors.New("must have an author.")
+		return errors.New("must have author.")
 	}
 	if err := ValidateGenre(b.Genre); err != nil {
-		return errors.New("must have an genre.")
+		return errors.New("must have genre.")
 	}
 	if !b.IsOnLoan {
 		return nil

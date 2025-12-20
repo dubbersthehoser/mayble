@@ -1,5 +1,9 @@
 package validation
 
+import (
+	"github.com/dubbersthehoser/mayble/internal/app"
+)
+
 type ValidationErr struct {
 	field       string
 	description string
@@ -14,7 +18,7 @@ func (v *ValidationErr) Error() string {
 	return fmt.Sprintf("data: %s, %s", v.field, v.description)
 }
 
-func ValidateBookLoan(b *BookLoan) error {
+func ValidateBookLoan(b *app.BookLoan) error {
 	var (
 		InvalidTitle        error = ValidTitle(b.Title)
 		InvalidAuthor       error = ValidAuthor(b.Author)
