@@ -30,7 +30,9 @@ func NewStorage(path string) (*Storage, error) {
 	return &Storage{Database: *db}, nil
 }
 
-
+func (d *Storage) Close() error {
+	return d.Database.Close()
+}
 
 /*
         BookStore

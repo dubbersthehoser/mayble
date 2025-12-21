@@ -52,4 +52,5 @@ type LoanStore interface {
 type BookLoanStore interface {
 	BookStore
 	LoanStore
+	Close() error
 }

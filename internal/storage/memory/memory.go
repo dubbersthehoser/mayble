@@ -39,6 +39,10 @@ func (m *Storage) getNewBookID() int64 {
 	return id
 }
 
+func (m *Storage) Close() error {
+	return nil
+}
+
 /************************
         StoreBook
 *************************/

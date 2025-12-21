@@ -50,6 +50,8 @@ func (c *Controller) Reset() error {
 	if err != nil {
 		return err
 	}
+	c.App.Close()
+	c.App = a
 	c.List.SetApp(a)
 	c.Editer.SetApp(a)
 	return nil

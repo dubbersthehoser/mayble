@@ -39,6 +39,17 @@ func ShowMenu(f *FunkView) {
 	d := dialog.NewCustom("Database", "Close", body, f.window)
 	size := getDialogSize(d.MinSize())
 	d.Resize(size)
+
+	var listnerID int
+
+	listnerID = f.broker.Subscribe(&emiter.Listener{
+		Handler: func(e *emiter.Event) {
+			d.Dismiss()
+			f.broker.Unsubscribe(listnerID, gui.EventDocumentNew)
+		},
+	},
+		gui.EventDocumentNew,
+	)
 	d.Show()
 }
 

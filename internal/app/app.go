@@ -36,6 +36,10 @@ func New(store storage.BookLoanStore) *App {
 	return &a
 }
 
+func (a *App) Close() error {
+	return a.storage.Close()
+}
+
 func (a *App) GetBookLoans() ([]BookLoan, error) {
 	bookLoans, err := getAllBookLoans(a.storage)
 	if err != nil {

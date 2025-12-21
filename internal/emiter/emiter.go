@@ -8,7 +8,6 @@ import (
 
 type Emiter struct {
 	event map[string][]func(any)
-	mu sync.RWMutex
 }
 
 func NewEmiter() *Emiter {
@@ -18,8 +17,6 @@ func NewEmiter() *Emiter {
 }
 
 func (e *Emiter) OnEvent(key string, handler func(any)) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
 	_, ok := e.event[key]
 	if !ok {
 		e.event[key] = make([]func(any), 0)
@@ -28,8 +25,6 @@ func (e *Emiter) OnEvent(key string, handler func(any)) {
 }
 
 func (e *Emiter) Emit(key string, data any) error {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
 	handlers, ok := e.event[key]
 	if !ok {
 		return errors.New("emiter: key not found")
@@ -58,8 +53,6 @@ type Broker struct {
 }
 
 func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	if b.items == nil {
 		b.items = make(map[string][]*Listener)
 	}
@@ -77,8 +70,6 @@ func (b *Broker) Subscribe(l *Listener, events ...string) (int) {
 }
 
 func (b *Broker) SubscribeAll(l *Listener, exclude ...string) (int) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 
 	if b.items == nil {
 		b.items = make(map[string][]*Listener)
@@ -108,8 +99,6 @@ func (b *Broker) SubscribeAll(l *Listener, exclude ...string) (int) {
 }
 
 func (b *Broker) Unsubscribe(id int, events ...string) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
 	for _, e := range events {
 		listeners, ok := b.items[e]
 		if !ok {
@@ -127,8 +116,6 @@ func (b *Broker) Unsubscribe(id int, events ...string) error {
 }
 
 func (b *Broker) Notify(e Event) error {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
 	log.Printf("event: (%s, %#v)", e.Name, e.Data)
 	listeners, ok := b.items[e.Name]
 	if !ok {

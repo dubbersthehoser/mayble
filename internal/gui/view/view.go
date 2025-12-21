@@ -280,7 +280,6 @@ func loadOnEventHandlers(f *FunkView) {
 
 			case gui.EventDocumentNew:
 				path := e.Data.(string)
-				println(path)
 				err := f.controller.Config.SetDBFile(path)
 				if err != nil {
 					NotifyError(f.broker, err)
