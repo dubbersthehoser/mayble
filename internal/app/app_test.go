@@ -13,10 +13,7 @@ import (
 
 func TestAppCreateBookLoan(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpeced error: %s", err)
-	}
+	app  := New(store)
 
 	date := time.Now()
 
@@ -69,12 +66,9 @@ func TestAppCreateBookLoan(t *testing.T) {
 
 func TestAppError(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	app  := New(store)
 
-	err = app.UpdateBookLoan(nil)
+	err := app.UpdateBookLoan(nil)
 	if !errors.Is(err, ErrInvalidValue) {
 		t.Fatal("error value was not catched")
 	}
@@ -97,10 +91,7 @@ func TestAppError(t *testing.T) {
 
 func TestAppDeleteBookLoan(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpeced error: %s", err)
-	}
+	app := New(store)
 
 	date := time.Now()
 	tests := []BookLoan{
@@ -160,10 +151,7 @@ func TestAppDeleteBookLoan(t *testing.T) {
 
 func TestAppUpdateBookLoan(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpeced error: %s", err)
-	}
+	app := New(store)
 
 	date := time.Now()
 	
@@ -232,7 +220,7 @@ func TestAppUpdateBookLoan(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		id, err := createBookLoan(app.memory, &test.create)
+		id, err := createBookLoan(app.storage, &test.create)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -249,7 +237,7 @@ func TestAppUpdateBookLoan(t *testing.T) {
 		}
 
 		expect := &test.update
-		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		actual, err := getBookLoanByID(app.storage, test.update.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -264,7 +252,7 @@ func TestAppUpdateBookLoan(t *testing.T) {
 	}
 	for i, test := range tests {
 		expect := &test.create
-		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		actual, err := getBookLoanByID(app.storage, test.update.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -280,7 +268,7 @@ func TestAppUpdateBookLoan(t *testing.T) {
 	}
 	for i, test := range tests {
 		expect := &test.update
-		actual, err := getBookLoanByID(app.memory, test.update.ID)
+		actual, err := getBookLoanByID(app.storage, test.update.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -294,10 +282,7 @@ func TestAppUpdateBookLoan(t *testing.T) {
 
 func TestAppImportBookLoans(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	app := New(store)
 
 	date := time.Now()
 
@@ -321,7 +306,7 @@ func TestAppImportBookLoans(t *testing.T) {
 		},
 	}
 
-	err = app.ImportBookLoans(test)
+	err := app.ImportBookLoans(test)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -358,10 +343,7 @@ func TestAppImportBookLoans(t *testing.T) {
 
 func TestAppSave(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	app := New(store)
 
 	date := time.Now()
 
@@ -392,14 +374,12 @@ func TestAppSave(t *testing.T) {
 		}
 	}
 
-	expect, err := getAllBookLoans(app.memory)
+	expect, err := getAllBookLoans(app.storage)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	app.Save()
-
-	expect, err = getAllBookLoans(app.memory)
+	expect, err = getAllBookLoans(app.storage)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -415,10 +395,7 @@ func TestAppSave(t *testing.T) {
 
 func TestAppLoad(t *testing.T) {
 	store := memory.NewStorage()
-	app, err := New(store)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	app := New(store)
 
 	date := time.Now()
 
@@ -442,20 +419,12 @@ func TestAppLoad(t *testing.T) {
 		},
 	}
 
-	// place book loans in to storage,
-	// then load it into memory.
-	//
 	for i, bookLoan := range test {
 		id, err := createBookLoan(app.storage, &bookLoan)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
 		test[i].ID = id
-	}
-
-	err = app.load()
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
 	}
 
 	actual, err := app.GetBookLoans()
