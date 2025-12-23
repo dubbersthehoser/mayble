@@ -2,36 +2,33 @@ package command
 
 import (
 	"testing"
-
-	"github.com/dubbersthehoser/mayble/internal/command/stub"
 )
-
 
 func TestStack(t *testing.T) {
 
 	stack := NewStack()
 
-	cmdStub := &stub.Command{Label: "command-1"}
+	cmdStub := &StubCommand{Label: "command-1"}
 	stack.Push(cmdStub)
-	cmdStub = &stub.Command{Label: "command-2"}
+	cmdStub = &StubCommand{Label: "command-2"}
 	stack.Push(cmdStub)
-	cmdStub = &stub.Command{Label: "command-3"}
+	cmdStub = &StubCommand{Label: "command-3"}
 	stack.Push(cmdStub)
 
 	if stack.Length() != 3 {
 		t.Fatalf("want length %d, got %d", 3, stack.Length())
 	}
 
-	cmd := stack.Pop().(*stub.Command)
+	cmd := stack.Pop().(*StubCommand)
 	if cmd.Label != "command-3" {
 		t.Fatalf("want %s, got %s", "command-3", cmd.Label)
 	}
-	cmd = stack.Pop().(*stub.Command)
+	cmd = stack.Pop().(*StubCommand)
 	if cmd.Label != "command-2" {
 		t.Fatalf("want %s, got %s", "command-2", cmd.Label)
 
 	}
-	cmd = stack.Pop().(*stub.Command)
+	cmd = stack.Pop().(*StubCommand)
 	if cmd.Label != "command-1" {
 		t.Fatalf("want %s, got %s", "command-1", cmd.Label)
 	}
@@ -58,26 +55,26 @@ func TestStack(t *testing.T) {
 func TestQueue(t *testing.T) {
 	queue := NewQueue()
 
-	cmdStub := &stub.Command{Label: "command-1"}
+	cmdStub := &StubCommand{Label: "command-1"}
 	queue.Enqueue(cmdStub)
-	cmdStub = &stub.Command{Label: "command-2"}
+	cmdStub = &StubCommand{Label: "command-2"}
 	queue.Enqueue(cmdStub)
-	cmdStub = &stub.Command{Label: "command-3"}
+	cmdStub = &StubCommand{Label: "command-3"}
 	queue.Enqueue(cmdStub)
 
 	if queue.Length() != 3 {
 		t.Fatalf("want length %d, got %d", 3, queue.Length())
 	}
 
-	cmd := queue.Dequeue().(*stub.Command)
+	cmd := queue.Dequeue().(*StubCommand)
 	if cmd.Label != "command-1" {
 		t.Fatalf("want %s, got %s", "command-1", cmd.Label)
 	}
-	cmd = queue.Dequeue().(*stub.Command)
+	cmd = queue.Dequeue().(*StubCommand)
 	if cmd.Label != "command-2" {
 		t.Fatalf("want %s, got %s", "command-2", cmd.Label)
 	}
-	cmd = queue.Dequeue().(*stub.Command)
+	cmd = queue.Dequeue().(*StubCommand)
 	if cmd.Label != "command-3" {
 		t.Fatalf("want %s, got %s", "command-3", cmd.Label)
 	}

@@ -3,14 +3,14 @@ package app
 import (
 	"testing"
 
-	"github.com/dubbersthehoser/mayble/internal/command/stub"
+	"github.com/dubbersthehoser/mayble/internal/command"
 )
 
 
 func TestManager(t *testing.T) {
 	manager := newManager()
 
-	cmd := &stub.Command{
+	cmd := &command.StubCommand{
 		Label: "command-1",
 	}
 
@@ -64,7 +64,7 @@ func TestManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	cmd = &stub.Command{
+	cmd = &command.StubCommand{
 		Label: "command-2",
 	}
 	err = manager.execute(cmd)

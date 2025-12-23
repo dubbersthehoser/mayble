@@ -1,8 +1,10 @@
 # Mayble
 
-A simple book management application.
+A simple book management application for a family member.
 
 ## Requirements
+
+This CRUD app was created with the following requirements:
 
 This program came about as a request to build a book management system for a non-technical user. With the requirements of storing a books title, author, genre, ratting, read status, and if it's borrowed, its borrower, and its date. The ability to sort books by title, author, and genre. To be user friendly, and to be pretty (if possible.)
 

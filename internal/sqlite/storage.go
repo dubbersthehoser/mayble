@@ -8,17 +8,16 @@ import (
 	"database/sql"
 
 	"github.com/dubbersthehoser/mayble/internal/storage"
-	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 )
 
 type Storage struct {
-	sqlite.Database
+	Database
 }
 
 
 func NewStorage(path string) (*Storage, error) {
-	db := sqlite.NewDatabase()
+	db := NewDatabase()
 	err := db.Open(path)
 	if err != nil {
 		return nil, err

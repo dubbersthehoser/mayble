@@ -15,7 +15,6 @@ import (
 
 const AppName string = "mayble"
 
-
 func Run() error {
 	guiApp := fyneApp.NewWithID(AppName)
 
@@ -23,7 +22,6 @@ func Run() error {
 		return errors.New("unsupported platform")
 	}
 	
-
 	window := guiApp.NewWindow("Mayble")
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
