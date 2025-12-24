@@ -15,8 +15,19 @@ case "${COMMAND}" in
 	#go build ./cmd/gui -o ./bin/mayble
 	;;
 	test)
-	echo "test has been run"
-	#go test ./...
+	go test \
+	./internal/app     \
+	./internal/config  \
+	./internal/gui/... \
+	./internal/listing \
+	./internal/emiter \
+	./internal/command \
+	./internal/porting/... \
+	./internal/searching \
+	./internal/storage \
+	./internal/sqlite \
+	"$2" \
+
 	;;
 	*)
 	echo "command not found"
