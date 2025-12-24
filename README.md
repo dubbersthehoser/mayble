@@ -1,26 +1,45 @@
 # Mayble
 
-A simple book management application for a family member.
+A simple desktop book management application for a family member.
 
-## Requirements
+My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to.
 
-This app was created with the following [requirements](requirements.txt)
+She asked me to make this application to help her out.
 
-This program came about as a request to build a book management system for a non-technical user. With the requirements of storing a books title, author, genre, ratting, read status, and if it's borrowed, its borrower, and its date. The ability to sort books by title, author, and genre. To be user friendly, and to be pretty (if possible.)
+## The Requirements
 
-The application's book entries are for physical books in a collection in a apartment. The expected number of entries will most likely be less then a thousand entries, with minimal duplicates.
+This app is created with the following [requirements](requirements.txt). 
 
-When it comes to read status it's part of ratting system. If not ratted therefore ratted status is To Be Read (TBR).
+Technical requirements were to have builds for MacOS and ChromeOS. 
 
-Builds for the client include being able to run on MacOS, and Chrome OS. Since Chrome OS can run Linux apps and the client has ran Linux apps on their Chrome Book before, and to keep the build process simple, there will only be a Linux build for Chrome OS. Target builds are going to be MacOS, and Linux. Windows is not a main focus for this project, but in theory could be built and used for Windows. No promises.
+The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment (I hit road blocks using cgo for Linux to Mac cross-compilation).
 
-# Features
+For ChromeOS a .deb build is used with ChromeOS's Linux development environment.
 
-- Sorting by title, author, genre, ratting, .
-- Search by title, author, genre, and borrower.
-- Undo and Redo.
-- CSV Import and CSV Export.
+Windows is not a priority for client.
+
+# Current Features
+
+- Sort by:
+  + Title
+  + Author
+  + Genre
+  + Ratting
+  + Borrower
+  + and Date
+
+- Search by:
+  + Title
+  + Author
+  + Genre
+  + and Borrower
+
+- The ability to Undo and Redo changes.
+
+- To import and export by CSV.
+
 
 # Build
+
 
 

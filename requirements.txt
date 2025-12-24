@@ -12,4 +12,3 @@ Requirements:
     - Borrower name
   - User Friendly
   - Pretty (if possible)
-
