@@ -1,7 +1,5 @@
 # Mayble
 
-![Screenshot](Screenshot.png)
-
 A desktop application book management for a family member.
 
 My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to.
@@ -12,7 +10,7 @@ She asked me to make this application to help her out.
 
 The [requirements](requirements.txt) my sister gave me. 
 
-Build requirements were to have builds for MacOS and ChromeOS. 
+Build targets are MacOS and ChromeOS. 
 
 The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment (I hit road blocks using cgo for Linux to Mac cross-compilation).
 
@@ -21,6 +19,8 @@ For ChromeOS a `.deb` build is used with ChromeOS's Linux development environmen
 Windows is not a priority for my sister.
 
 ## Current Features
+
+![Screenshot](Screenshot.png)
 
 - Sort by:
   + Title
@@ -51,7 +51,7 @@ xcode-select --install
 ```
 1. Install [Go](https://go.dev/dl)
 
-NOTE: Can't run build under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  app under a virtual GPU.
+NOTE: Can't run build under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
 
 ## Quick Test Run
 
@@ -63,7 +63,7 @@ go run .
 
 **MacOS**
 
-**Debian**
+**Debian (`.deb`)**
 
 
 

@@ -2,7 +2,7 @@
 
 set -eu
 
-COMMAND="$1"
+COMMAND="${1:-}"
 
 if [ -z "${COMMAND}" ]; then
 	echo "command not given"
@@ -27,9 +27,16 @@ case "${COMMAND}" in
 	./internal/storage \
 	./internal/sqlite \
 	"$2" \
-
+	;;
+	debian | deb)
+	package_deb
 	;;
 	*)
 	echo "command not found"
 	;;
 esac
+
+package_deb() {
+	mkdir ./build/usr/bin
+	go build . -o ./build/usr/bin/mayble
+}
