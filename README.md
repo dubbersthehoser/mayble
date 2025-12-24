@@ -6,19 +6,21 @@ My sister has a collection of physical books, and wants to keep track of what bo
 
 She asked me to make this application to help her out.
 
+![Screenshot](Screenshot.png)
+
 ## The Requirements
 
-This app is created with the following [requirements](requirements.txt). 
+The [requirements](requirements.txt) my sister gave me. 
 
 Technical requirements were to have builds for MacOS and ChromeOS. 
 
 The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment (I hit road blocks using cgo for Linux to Mac cross-compilation).
 
-For ChromeOS a .deb build is used with ChromeOS's Linux development environment.
+For ChromeOS a `.deb` build is used with ChromeOS's Linux development environment.
 
-Windows is not a priority for client.
+Windows is not a priority for my sister.
 
-# Current Features
+## Current Features
 
 - Sort by:
   + Title
@@ -38,8 +40,5 @@ Windows is not a priority for client.
 
 - To import and export by CSV.
 
-
 # Build
-
-
 
