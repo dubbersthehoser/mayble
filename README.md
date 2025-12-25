@@ -10,40 +10,28 @@ She asked me to make this application to help her out.
 
 The [requirements](requirements.txt) my sister gave me. 
 
-Build targets are MacOS and ChromeOS. 
+Build targets are MacOS and ChromeOS and Windows is not a priority for her.
 
-For ChromeOS a `.deb` build is used with ChromeOS's Linux development environment.
-
-Windows is not a priority for my sister.
 
 ## Current Features
 
 ![Screenshot](Screenshot.png)
 
-- Sort by:
-  + Title
-  + Author
-  + Genre
-  + Ratting
-  + Borrower
-  + and Date
+- Sorting by field.
 
-- Search by:
-  + Title
-  + Author
-  + Genre
-  + and Borrower
+- Text Searching.
 
-- The ability to Undo and Redo changes.
+- Undo and Redo changes.
 
-- To import and export by CSV.
-
+- Import and export with, and as CSV.
 
 # Building, Installing, and Running
 
-Dependencies.
+## Dependencies.
 
-A [Go](https://go.dev/dl) compiler.
+- A [Go](https://go.dev/dl) compiler.
+
+- fyne-cross
 
 ``` sh
 go install github.com/fyne-io/fyne-cross@latest
@@ -75,7 +63,10 @@ Once finished the `.app` file will be shown in output of `fyne-cross`. Example:
 
 ## Debian
 
+The ChromeOS build is a `.deb` package for the Linux Development Environment.
+
 NOTE: This package is not intended for general Debian deployment and only for [personal use](https://wiki.debian.org/MakeAPrivatePackage).
+
 
 Dependencies
 
@@ -89,9 +80,7 @@ Package
 ``` sh
 fyne-cross linux -arch=ARCH      # ARCH = amd64, or arm64
 ./package-deb.sh ARCH            # Create Debian packages of selected ARCH
-                                 # The resulting package will be in ./build/deb/mayble-X.X.X.db
+                                 # The resulting package will be in ./build/deb/mayble-X.X.X.deb
 ```
-
-
 
 
