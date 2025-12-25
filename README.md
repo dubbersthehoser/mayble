@@ -40,6 +40,7 @@ Windows is not a priority for my sister.
 
 - To import and export by CSV.
 
+
 # Building
 
 ## MacOS Setup
@@ -53,7 +54,8 @@ xcode-select --install
 
 NOTE: Can't run build under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
 
-## Quick Test Run
+
+## Quick Run
 
 ``` sh
 go run .
@@ -61,15 +63,45 @@ go run .
 
 ## Packaging
 
+Dependencies
+
+``` sh
+go install github.com/fyne-io/fyne-cross@latest
+```
+
 **MacOS**
 
-**Debian (`.deb`)**
+With in a MacOS environment.
 
+```
+fyne-cross darwin -arch=ARCH  # ARCH = amd64, or arm64
+```
 
+Once finished the `.app` file will be shown in output of `fyne-cross`. Example:
 
+``` sh
+[✓] Package: "./fyne-cross/dist/darwin-*/Mayble.app"
+```
 
+**Debian**
 
+NOTE: This package is not intended for general Debian deployment and only for [personal use](https://wiki.debian.org/MakeAPrivatePackage).
 
+With in a Debian environment.
+
+Dependencies
+
+``` sh
+sudo apt update
+sudo apt install build-essential devscripts debhelper dh-make fakeroot
+```
+
+Package
+
+``` sh
+fyne-cross linux -arch=ARCH      # ARCH = amd64, or arm64
+./package-deb.sh ARCH            # Create Debian packages of selected ARCH
+```
 
 
 

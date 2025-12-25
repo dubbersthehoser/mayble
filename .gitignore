@@ -1,3 +1,5 @@
 /bin/*
 /mayble
 /cover.out
+/fyne-cross
+/build/*

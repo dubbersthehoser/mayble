@@ -15,18 +15,7 @@ case "${COMMAND}" in
 	#go build ./cmd/gui -o ./bin/mayble
 	;;
 	test)
-	go test \
-	./internal/app     \
-	./internal/config  \
-	./internal/gui/... \
-	./internal/listing \
-	./internal/emiter \
-	./internal/command \
-	./internal/porting/... \
-	./internal/searching \
-	./internal/storage \
-	./internal/sqlite \
-	"$2" \
+	go test 
 	;;
 	debian | deb)
 	package_deb
@@ -37,6 +26,5 @@ case "${COMMAND}" in
 esac
 
 package_deb() {
-	mkdir ./build/usr/bin
-	go build . -o ./build/usr/bin/mayble
+	fyne package
 }
