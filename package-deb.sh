@@ -2,7 +2,6 @@
 
 set -eu
 
-
 ARCH="$1"
 
 PROJECT_ROOT="$PWD"
@@ -28,7 +27,6 @@ fi
 mkdir -p "${DEB_DEBIAN}"
 
 cp -v "${TAR_FILE}" "${BUILD_ROOT}"
-
 
 cd "${BUILD_ROOT}"
 

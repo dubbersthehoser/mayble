@@ -12,8 +12,6 @@ The [requirements](requirements.txt) my sister gave me.
 
 Build targets are MacOS and ChromeOS. 
 
-The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment (I hit road blocks using cgo for Linux to Mac cross-compilation).
-
 For ChromeOS a `.deb` build is used with ChromeOS's Linux development environment.
 
 Windows is not a priority for my sister.
@@ -41,39 +39,31 @@ Windows is not a priority for my sister.
 - To import and export by CSV.
 
 
-# Building
+# Building, Installing, and Running
 
-## MacOS Setup
+Dependencies.
 
-1. Install Xcode Command Line Tools.
-
-``` sh
-xcode-select --install
-```
-1. Install [Go](https://go.dev/dl)
-
-NOTE: Can't run build under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
-
-
-## Quick Run
-
-``` sh
-go run .
-```
-
-## Packaging
-
-Dependencies
+A [Go](https://go.dev/dl) compiler.
 
 ``` sh
 go install github.com/fyne-io/fyne-cross@latest
 ```
 
-**MacOS**
+## MacOS
 
-With in a MacOS environment.
+The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment. (I hit road blocks using cgo and fyne-cross for Linux to Mac cross-compilation).
 
+NOTE: Can't run app under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
+
+Install Xcode Command Line Tools.
+
+``` sh
+xcode-select --install
 ```
+
+Build
+
+``` sh
 fyne-cross darwin -arch=ARCH  # ARCH = amd64, or arm64
 ```
 
@@ -83,11 +73,9 @@ Once finished the `.app` file will be shown in output of `fyne-cross`. Example:
 [✓] Package: "./fyne-cross/dist/darwin-*/Mayble.app"
 ```
 
-**Debian**
+## Debian
 
 NOTE: This package is not intended for general Debian deployment and only for [personal use](https://wiki.debian.org/MakeAPrivatePackage).
-
-With in a Debian environment.
 
 Dependencies
 
@@ -101,12 +89,8 @@ Package
 ``` sh
 fyne-cross linux -arch=ARCH      # ARCH = amd64, or arm64
 ./package-deb.sh ARCH            # Create Debian packages of selected ARCH
+                                 # The resulting package will be in ./build/deb/mayble-X.X.X.db
 ```
-
-
-
-
-
 
 
 
