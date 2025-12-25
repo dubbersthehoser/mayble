@@ -2,12 +2,12 @@ Website = "https://example.com"
 
 [Details]
   Icon = "Icon.png"
-  Name = "Mayble"
+  Name = "mayble"
   ID = "com.dubbersthehoser.mayble"
   Version = "1.0.0"
-  Build = 11
+  Build = 16
 
 [LinuxAndBSD]
   GenericName = "Book Management"
-  Categories = ["Office"]
-  Keywords = ["", "web"]
+  Categories = ["Office", "Database"]
+  Keywords = ["books", "office"]

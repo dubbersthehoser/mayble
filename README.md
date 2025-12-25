@@ -2,40 +2,34 @@
 
 A desktop application book management for a family member.
 
-My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to.
+My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to. And so she asked me to make this application to help her out.
 
-She asked me to make this application to help her out.
-
-## The Requirements
-
-The [requirements](requirements.txt) my sister gave me. 
-
-Build targets are MacOS and ChromeOS and Windows is not a priority for her.
+The [requirements](requirements.txt) my sister gave me, and the build targets are for MacOS and ChromeOS. Windows is not a priority for her. I'm also going with to use a Debian package for ChromeOS, since she has install Linux apps on her Chrome Book before.
 
 
-## Current Features
+## Features.
 
 ![Screenshot](Screenshot.png)
 
 - Sorting by field.
 
-- Text Searching.
+- Field based Text Searching.
 
 - Undo and Redo changes.
 
-- Import and export with, and as CSV.
+- Import and export with CSV.
 
-# Building, Installing, and Running
 
-## Dependencies.
+# Building
 
-- A [Go](https://go.dev/dl) compiler.
+## Requirements.
 
-- fyne-cross
+fyne-cross and [Go](https://go.dev/dl).
 
 ``` sh
 go install github.com/fyne-io/fyne-cross@latest
 ```
+
 
 ## MacOS
 
@@ -61,26 +55,29 @@ Once finished the `.app` file will be shown in output of `fyne-cross`. Example:
 [✓] Package: "./fyne-cross/dist/darwin-*/Mayble.app"
 ```
 
-## Debian
+## Debian / ChromeOS
 
-The ChromeOS build is a `.deb` package for the Linux Development Environment.
+The ChromeOS build is a `.deb` package for the Linux Development Environment. The code writing assumes a desktop environment, and will crash if the `fyne/driver` is a phone environment.
 
 NOTE: This package is not intended for general Debian deployment and only for [personal use](https://wiki.debian.org/MakeAPrivatePackage).
 
 
-Dependencies
+Requirements.
 
 ``` sh
 sudo apt update
 sudo apt install build-essential devscripts debhelper dh-make fakeroot
 ```
 
-Package
+Packaging.
 
 ``` sh
 fyne-cross linux -arch=ARCH      # ARCH = amd64, or arm64
 ./package-deb.sh ARCH            # Create Debian packages of selected ARCH
-                                 # The resulting package will be in ./build/deb/mayble-X.X.X.deb
 ```
+
+The `package-deb.sh` will take the Linux tarball created by `fyne-cross` and creates a Debian package with it.
+
+The resulting Debian package will be in `./build/deb/mayble-X.X.X.deb`
 
 
