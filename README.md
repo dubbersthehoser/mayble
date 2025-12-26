@@ -28,6 +28,7 @@ fyne-cross and [Go](https://go.dev/dl).
 
 ``` sh
 go install github.com/fyne-io/fyne-cross@latest
+go install github.com/fyne-io/fyne@latest
 ```
 
 
@@ -37,7 +38,7 @@ The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) fo
 
 NOTE: Can't run app under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
 
-Install Xcode Command Line Tools.
+Requirements
 
 ``` sh
 xcode-select --install
@@ -46,13 +47,7 @@ xcode-select --install
 Build
 
 ``` sh
-fyne-cross darwin -arch=ARCH  # ARCH = amd64, or arm64
-```
-
-Once finished the `.app` file will be shown in output of `fyne-cross`. Example:
-
-``` sh
-[✓] Package: "./fyne-cross/dist/darwin-*/Mayble.app"
+GOARCH=ARCH fyne package -os darwin
 ```
 
 ## Debian / ChromeOS
