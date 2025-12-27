@@ -190,7 +190,8 @@ func loadOnEventHandlers(f *FunkView) {
 				if builder == nil {
 					panic("unexpected: builder is nil")
 				}
-				ShowEditor(f.window, f.broker, builder)
+				uniqueGenres := f.controller.List.UniqueGenres()
+				ShowEditor(f.window, f.broker, builder, uniqueGenres)
 			
 			case gui.EventEntryDelete:
 				book := f.controller.List.Selected()

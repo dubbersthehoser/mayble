@@ -2,6 +2,12 @@ package controller
 
 import (
 	//"fmt"
+	"slices"
+	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/listing"
@@ -112,7 +118,6 @@ type BookLoanList struct {
 	ordering listing.Ordering
 }
 
-
 func NewBookLoanList(b *emiter.Broker, a *app.App) *BookLoanList {
 
 	list, err := a.GetBookLoans()
@@ -176,6 +181,28 @@ func NewBookLoanList(b *emiter.Broker, a *app.App) *BookLoanList {
 		gui.EventDocumentModified,
 	)
 	return bl
+}
+
+func (bl *BookLoanList) UniqueGenres() []string {
+
+
+	genres := make([]string, len(bl.list))
+	for i := range bl.list {
+		genre := strings.ToLower(bl.list[i].Genre)
+		genres[i] = genre
+	}
+
+	titled := cases.Title(language.English)
+	slices.Sort(genres)
+	unique := make([]string, 0)
+	current := ""
+	for _, genre := range genres {
+		if current != genre {
+			current = genre
+			unique = append(unique, titled.String(genre))
+		}
+	}
+	return unique
 }
 
 func (bl *BookLoanList) SetApp(a *app.App) {

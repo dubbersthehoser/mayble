@@ -26,7 +26,7 @@ func getDialogSize(size fyne.Size) fyne.Size {
 	return s
 }
 
-func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBuilder) {
+func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBuilder, uniqueGenres []string) {
 
 	rattings := listing.GetRattingStrings()
 
@@ -46,7 +46,7 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 		Label: widget.NewLabel("Author"),
 	}
 	genreField := EntryField{
-		Entry: widget.NewSelectEntry([]string{"placeholder_1", "placeholder_2", "placeholder_2"}),
+		Entry: widget.NewSelectEntry(uniqueGenres),
 		Label: widget.NewLabel("Genre"),
 	}
 	rattingField := EntryField{
@@ -85,7 +85,8 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 		}
 		if isBeingLoaned && isBeingUpdated {
 			loanNameField.Entry.(*widget.Entry).Text = builder.Borrower
-			loanDateField.Entry.(*widget.DateEntry).Date = &builder.Date
+			//loanDateField.Entry.(*widget.DateEntry).Date = &builder.Date
+			loanDateField.Entry.(*widget.DateEntry).SetDate(&builder.Date)
 		}
 	}
 
@@ -180,6 +181,7 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 		onLoanCheck.Refresh()
 	}
 	onLoanCheck.OnChanged(builder.IsOnLoan)
+	onLoanCheck.Checked = builder.IsOnLoan
 
 	cancelBtn := widget.NewButton("Cancel", nil)
 
