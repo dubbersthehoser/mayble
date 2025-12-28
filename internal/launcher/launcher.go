@@ -20,10 +20,6 @@ func Run() error {
 
 	guiApp := fyneApp.NewWithID(AppName)
 
-	//if guiApp.Driver().Device().IsMobile() {
-	//	return errors.New("unsupported platform")
-	//}
-	
 	window := guiApp.NewWindow("Mayble")
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
@@ -36,8 +32,6 @@ func Run() error {
 	guiApp.Run()
 	return nil
 }
-
-
 
 
 func SetContent(window fyne.Window, drv fyne.Driver) error {

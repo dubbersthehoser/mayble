@@ -1,18 +1,18 @@
 
 # Mayble Manual
 
-## Introduction: On First Start Up
+version: 1.0.0
 
-When Mayble starts for the first time, it will create a database file with in it's configuration directory.
-You can check the path the current open database by clicking the folder icon on the top left.
-At top of the dialog shows the current database path.
+## Overview
 
-From here you can open, or create a database, as well as importing, and exporting with CSV (more on that later).
+![Overview](images/overview.png)
 
+1. Database management.
+1. Undo and redo changes.
+1. Create, edit, delete book entry.
+1. Select next, previous search matched item.
+1. Search entry.
+1. Search field selection.
+1. Table header, and ordering.
 
-
-
-## Database File
-
-Mayble uses a sqlite database file for storing book entries. 
 
