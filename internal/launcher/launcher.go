@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	
 	"fyne.io/fyne/v2"
@@ -35,13 +36,50 @@ func Run() error {
 	return nil
 }
 
-func SetContent(window fyne.Window) error {
-	dir, err := config.GetDefaultDir(AppName)
+func SetDBFile(cfg *config.Config) error {
+	var err error
+
+	fileExist := func(path string) bool {
+		_, err = os.Stat(path)
+		return !errors.Is(err, os.ErrNotExist)
+	}
+
+	userHome, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
 
-	cfg, err := config.Load(dir, "config.json")
+	var (
+		DBFileInConfig    string = filepath.Join(cfg.ConfigDir, "mayble.db")
+		//DBFileInHome      string = filepath.Join(userHome, "mayble.db")
+		DBFileInDocuments string = filepath.Join(userHome, "Documents", "mayble.db")
+	)
+
+	// Select the path for default database path from a prioity list, when not 
+	// set, or current path is not found.
+	//
+	prioityList := []string{
+		DBFileInDocuments,
+		DBFileInConfig,
+	}
+	if cfg.DBFile == "" ||  !fileExist(cfg.DBFile) {
+		for i := range prioityList {
+			path := prioityList[i]
+			if fileExist(path) {
+				return cfg.SetDBFile(path)
+			}
+		}
+	}
+	return cfg.SetDBFile(prioityList[0])
+}
+
+func SetContent(window fyne.Window) error {
+	cfgDir, err := config.GetDefaultDir(AppName)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := config.Load(cfgDir, "config.json")
 	if err != nil {
 		return err
 	}
@@ -53,12 +91,7 @@ func SetContent(window fyne.Window) error {
 		}
 	}
 
-	if cfg.DBFile == "" {
-		err := cfg.SetDBFile(filepath.Join(dir, "mayble.db"))
-		if err != nil {
-			return err
-		}
-	}
+	SetDBFile(cfg)
 
 	control, err := controller.New(cfg)
 	if err != nil {
