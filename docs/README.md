@@ -5,8 +5,6 @@ version: 1.0.0
 
 ## Overview
 
-![Overview](images/overview.png)
-
 1. Database management.
 1. Undo and redo changes.
 1. Create, edit, delete book entry.
@@ -14,5 +12,8 @@ version: 1.0.0
 1. Search entry.
 1. Search field selection.
 1. Table header, and ordering.
+
+![Overview](images/overview.png)
+
 
 
