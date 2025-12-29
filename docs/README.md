@@ -27,4 +27,7 @@ Version: 1.0.0
 ![Dialog Window](images/database-management-menu.png)
 
 
+### Creating Files
+
+When creating a file, be it exporting ~.csv~ or creating database file, with in the file dialog, the file name extension is **not required**. The appropriate extension will be append to the name if the extension is not found.
 
