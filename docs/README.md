@@ -29,5 +29,12 @@ Version: 1.0.0
 
 ### Creating Files
 
-When creating a file, be it exporting ~.csv~ or creating database file, with in the file dialog, the file name extension is **not required**. The appropriate extension will be append to the name if the extension is not found.
+When creating a file, be it exporting `.csv` or creating database file, with in the file dialog, the file name extension is **not required**. The appropriate extension will be append to the name, if is not found.
+
+
+## Text Search
+
+When entering text in to search entry, an case insensitive substring match will be preformed on the set column/field.
+Resulting a selection ring, which can be navigated.
+
 
