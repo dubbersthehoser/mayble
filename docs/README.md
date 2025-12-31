@@ -46,5 +46,5 @@ Search can only search a specific column from the table, and they must only cont
 By default the search column is set to Title, and can be changed with the selection box (right of the search box.)
 
 When entering text in the search box, a case insensitive substring match will be preformed.
-Resulting in a selection ring, which can be navigated with the arrow buttons, or pressing <ENTER> selecting the next item in the ring.
+Resulting in a selection ring, which can be navigated with the arrow buttons, or pressing ENTER selecting the next item in the ring.
 
