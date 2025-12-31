@@ -48,24 +48,24 @@ TITLE,AUTHOR,GENRE,RATTING,,
 
 **RULES**
 
-- The should be no field header in the `.csv` file.
+- The should be no column header in the `.csv` file.
 
-- From `TITLE` to `RATTING` fields must be filled in.
+- `TITLE`, `AUTHOR`, `GENRE`, and `RATTING` fields must be filled in.
 
-- If it's on loan then `BORROWER` and `DATE` must be filled in. Otherwise keep blank.
+- If it's on loan then `BORROWER` and `DATE` must be filled in, otherwise keep blank.
 
-- *RATTING:* Can only be 0, 1, 2, 3, 4, 5.
+- *RATTING:* can only be 0, 1, 2, 3, 4, and 5.
 
-- *DATE:* Is in `YYYY-MM-DD` format.
+- *DATE* is in a `YYYY-MM-DD` format.
 
 
 ## Text Search
 
-Search searches specific fields from entries in the table.
-By default the search field is set to title.
-You can change search field with selection box (6) right of the search box.
+![Search](images/search.png)
+
+Search only searches specific column from table, and they have to only contain text.
+By default the search column is set to title, and can be with the selection box (right of the search box.)
 
 When entering text in to search entry, an case insensitive substring match will be preformed.
-Resulting in a item ring, which can be navigated with the arrow buttons. (4)
-
-Inserting <ENTER> in the text box will select the  next item in the search selected item in ring.
+Resulting in a selection ring, which can be navigated with the arrow buttons or inserting <ENTER> in the text box will
+selecting the next selection in the ring.
