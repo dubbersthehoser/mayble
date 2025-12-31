@@ -26,14 +26,37 @@ Version: 1.0.0
 
 ![Dialog Window](images/database-management-menu.png)
 
-### Opening Database File
+### Creating Files
+
+When creating a file, be it exporting `.csv` or creating database file, with in the file dialog, the file name extension is **not required**. The appropriate extension will be append to the name, if is not found in given file name.
+
+### Database File
+
+The database file is a sqlite3 database file.
 
 At first start a database file will be created at `$HOME/Documents/mayble.db`. 
 If that directory dose not exists then `$HOME/mayble.db` will be used.
 
-### Creating Files
+### Exporting / Importing CSV
 
-When creating a file, be it exporting `.csv` or creating database file, with in the file dialog, the file name extension is **not required**. The appropriate extension will be append to the name, if is not found.
+The structure of the CSV is:
+
+```
+TITLE,AUTHOR,GENRE,RATTING,BORROWER,DATE
+TITLE,AUTHOR,GENRE,RATTING,,
+```
+
+**RULES**
+
+- The should be no field header in the `.csv` file.
+
+- From `TITLE` to `RATTING` fields must be filled in.
+
+- If it's on loan then `BORROWER` and `DATE` must be filled in. Otherwise keep blank.
+
+- *RATTING:* Can only be 0, 1, 2, 3, 4, 5.
+
+- *DATE:* Is in `YYYY-MM-DD` format.
 
 
 ## Text Search
@@ -45,4 +68,4 @@ You can change search field with selection box (6) right of the search box.
 When entering text in to search entry, an case insensitive substring match will be preformed.
 Resulting in a item ring, which can be navigated with the arrow buttons. (4)
 
-Pressing ENTER in the text box will go to the next item in the search selected item in ring.
+Inserting <ENTER> in the text box will select the  next item in the search selected item in ring.
