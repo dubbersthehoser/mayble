@@ -3,18 +3,12 @@
 
 Version: 1.0.0
 
-
-## Database Management Menu
-
-![Dialog Window](images/database-management-menu.png)
-
-
-### Creating Files
+## Creating Files
 
 When creating a file, be it a `.csv` or `.db` file, the file name extension is **not required**. The appropriate extension will be append to the file name when not found during creation.
 
 
-### The Database File
+## Database File
 
 At first start a database file will be created at `$HOME/Documents/mayble.db`. 
 If that directory dose not exists then `$HOME/mayble.db` will be used.
@@ -23,7 +17,7 @@ The database file is a sqlite3 database file, and by default uses the `.db` exte
 `.sqlite` and `.sqlite3` are also valid extension.
 
 
-### Exporting and Importing CSV
+## Exporting and Importing CSV
 
 The structure of the CSV is:
 
@@ -53,3 +47,4 @@ By default the search column is set to Title, and can be changed with the select
 
 When entering text in the search box, a case insensitive substring match will be preformed.
 Resulting in a selection ring, which can be navigated with the arrow buttons, or pressing <ENTER> selecting the next item in the ring.
+
