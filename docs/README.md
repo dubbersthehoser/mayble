@@ -7,7 +7,6 @@ Version: 1.0.0
 
 When creating a file, be it a `.csv` or `.db` file, the file name extension is **not required**. The appropriate extension will be append to the file name when not found during creation.
 
-
 ## Database File
 
 At first start a database file will be created at `$HOME/Documents/mayble.db`. 

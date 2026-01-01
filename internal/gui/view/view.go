@@ -66,6 +66,9 @@ func shortcutAdd(f *FunkView) {
 	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
 	ctrlN := &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl}
 	ctrlU := &desktop.CustomShortcut{KeyName: fyne.KeyU, Modifier: fyne.KeyModifierControl}
+	ctrlShiftDel := &desktop.CustomShortcut{KeyName: fyne.KeyDelete, Modifier: fyne.KeyModifierShift | fyne.KeyModifierControl}
+	ctrlShiftD := &desktop.CustomShortcut{KeyName: fyne.KeyD, Modifier: fyne.KeyModifierShift | fyne.KeyModifierControl}
+
 
 	//f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
 	//	f.broker.Notify(emiter.Event{
@@ -83,6 +86,16 @@ func shortcutAdd(f *FunkView) {
 		f.broker.Notify(emiter.Event{
 			Name: gui.EventEditerOpen,
 			Data: gui.EventEntryUpdate,
+		})
+	})
+	f.window.Canvas().AddShortcut(ctrlShiftDel, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventEntryDelete,
+		})
+	})
+	f.window.Canvas().AddShortcut(ctrlShiftD, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventEntryDelete,
 		})
 	})
 

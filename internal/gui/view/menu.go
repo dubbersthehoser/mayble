@@ -33,12 +33,19 @@ func ShowMenu(f *FunkView) {
 	newFile.Alignment = widget.ButtonAlignLeading
 	importBtn.Alignment = widget.ButtonAlignLeading
 	exportBtn.Alignment = widget.ButtonAlignLeading
+	
+	cancelBtn := NewButtonWithKeyed("Close")
 
-	body := container.New(layout.NewVBoxLayout(), current, openFile, newFile, importBtn, exportBtn)
+	body := container.New(layout.NewVBoxLayout(), current, openFile, newFile, importBtn, exportBtn, cancelBtn)
 
-	d := dialog.NewCustom("Database", "Close", body, f.window)
+	//d := dialog.NewCustom("Database", "Close", body, f.window)
+	d := dialog.NewCustomWithoutButtons("Database", body, f.window)
 	size := getDialogSize(d.MinSize())
 	d.Resize(size)
+
+	cancelBtn.OnTapped = func() {
+		d.Dismiss()
+	}
 
 	var listnerID int
 
@@ -80,6 +87,12 @@ func NewOpenFileButton(w fyne.Window, b *emiter.Broker) *OpenFileButton {
 
 	}
 	return pf
+}
+func (pf *OpenFileButton) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		pf.Tapped(nil)
+	}
 }
 
 func (pf *OpenFileButton) OpenFile(uri fyne.URIReadCloser, err error) {
@@ -131,6 +144,12 @@ func NewNewFileButton(w fyne.Window, b *emiter.Broker) *NewFileButton {
 	}
 
 	return nf
+}
+func (nf *NewFileButton) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		nf.Tapped(nil)
+	}
 }
 
 func (nf *NewFileButton) NewFile(uri fyne.URIWriteCloser, err error) {
@@ -227,7 +246,19 @@ func NewImportButton(w fyne.Window, b *emiter.Broker) *ImportButton {
 	}
 	return ib
 }
+func (ib *ImportButton) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		ib.Tapped(nil)
+	}
+}
 
+func (eb *ExportButton) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		eb.Tapped(nil)
+	}
+}
 
 func (eb *ExportButton) OpenFile(uri fyne.URIWriteCloser, err error) {
 	if err != nil {

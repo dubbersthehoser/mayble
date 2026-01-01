@@ -92,7 +92,8 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 
 
 
-	submitBtn := widget.NewButton("Submit", nil)
+	//submitBtn := widget.NewButton("Submit", nil)
+	submitBtn := NewButtonWithKeyed("Submit")
 
 	validateData := builder.Validate
 
@@ -183,7 +184,9 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 	onLoanCheck.OnChanged(builder.IsOnLoan)
 	onLoanCheck.Checked = builder.IsOnLoan
 
-	cancelBtn := widget.NewButton("Cancel", nil)
+	//cancelBtn := widget.NewButton("Cancel", nil)
+	cancelBtn := NewButtonWithKeyed("Cancel")
+
 
 	var dialogLabel string
 	switch builder.Type {
@@ -213,3 +216,27 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 	}
 	d.Show()
 }
+
+type ButtonWithKeyed struct {
+	widget.Button
+}
+func NewButtonWithKeyed(label string) *ButtonWithKeyed {
+	sb := &ButtonWithKeyed{}
+	sb.ExtendBaseWidget(sb)
+	sb.SetText(label)
+	return sb
+}
+
+func (sb *ButtonWithKeyed) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		sb.Tapped(nil)
+	}
+}
+
+
+
+
+
+
+
