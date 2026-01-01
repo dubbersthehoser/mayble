@@ -37,6 +37,7 @@ func (c *Config) save() error {
 	}
 
 	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
 	encoder.Encode(c)
 	return nil
 }

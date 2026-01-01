@@ -60,14 +60,32 @@ func (f *FunkView) refresh() {
 
 
 func shortcutAdd(f *FunkView) {
-	ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
-	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
 
-	f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
+	//ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
+
+	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
+	ctrlN := &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl}
+	ctrlU := &desktop.CustomShortcut{KeyName: fyne.KeyU, Modifier: fyne.KeyModifierControl}
+
+	//f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
+	//	f.broker.Notify(emiter.Event{
+	//		Name: gui.EventSearchFocus,
+	//	})
+	//})
+
+	f.window.Canvas().AddShortcut(ctrlN, func(_ fyne.Shortcut) {
 		f.broker.Notify(emiter.Event{
-			Name: gui.EventSearchFocus,
+			Name: gui.EventEditerOpen,
+			Data: gui.EventEntryCreate,
 		})
 	})
+	f.window.Canvas().AddShortcut(ctrlU, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventEditerOpen,
+			Data: gui.EventEntryUpdate,
+		})
+	})
+
 	f.window.Canvas().AddShortcut(ctrlM, func(_ fyne.Shortcut) {
 		f.broker.Notify(emiter.Event{
 			Name: gui.EventMenuOpen,
@@ -184,6 +202,9 @@ func loadOnEventHandlers(f *FunkView) {
 					builder = controller.NewBookLoanBuilder()
 
 				case gui.EventEntryUpdate:
+					if !f.controller.List.HasSelected() {
+						return
+					}
 					book := f.controller.List.Selected()
 					builder = controller.NewBuilderWithBookLoan(book)
 				}
@@ -194,6 +215,9 @@ func loadOnEventHandlers(f *FunkView) {
 				ShowEditor(f.window, f.broker, builder, uniqueGenres)
 			
 			case gui.EventEntryDelete:
+				if !f.controller.List.HasSelected() {
+					return
+				}
 				book := f.controller.List.Selected()
 				builder := controller.NewBuilderWithBookLoan(book)
 				builder.Type = controller.Deleting

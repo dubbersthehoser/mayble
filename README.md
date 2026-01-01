@@ -6,10 +6,10 @@ My sister has a collection of physical books, and wants to keep track of what bo
 
 The [requirements](requirements.txt) my sister gave me, and the build targets are for MacOS and ChromeOS. Windows is not a priority for her.
 
+![Screenshot](Screenshot.png)
+
 
 ## Features.
-
-![Screenshot](Screenshot.png)
 
 - Sorting by column.
 
@@ -19,17 +19,15 @@ The [requirements](requirements.txt) my sister gave me, and the build targets ar
 
 - Import and export with CSV.
 
+- Ratting go from TBR (to be read) to 5 stared.
 
+# Compile and Run
 
-# Quick Compile and Test Run
-
-To do a quick test run you can run:
+With go installed, to do a quick test run you can run:
 
 ```sh 
 go run .
 ```
-
-
 
 # Packaging 
 
@@ -37,26 +35,19 @@ These notes are mainly for myself for if, or when I need to make updates, and re
 Remembering how to build these packages, and having quick links with in the build environments.
 
 
-## Requirements.
-
-fyne, fyne-cross, and [Go](https://go.dev/dl).
-
-``` sh
-go install github.com/fyne-io/fyne-cross@latest
-go install github.com/fyne-io/fyne@latest
-```
-
 
 ## MacOS
 
 The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment. (I hit road blocks using cgo and fyne-cross for Linux to Mac cross-compilation).
 
-NOTE: Mayble Can't run app under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
+NOTE: Mayble Can't run under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
 
 Requirements
 
 ``` sh
 xcode-select --install
+
+go install github.com/fyne-io/fyne@latest
 ```
 
 Build
@@ -74,7 +65,19 @@ The ChromeOS build uses a `.deb` package for the Linux Development Environment.
 NOTE: This package is not intended for general Debian deployment and only for [personal use](https://wiki.debian.org/MakeAPrivatePackage).
 
 
-Requirements.
+**Requirements**
+
+Fyne packaging tools
+
+``` sh
+go install github.com/fyne-io/fyne-cross@latest
+
+go install github.com/fyne-io/fyne@latest
+```
+
+`fyne-cross` command requires docker.
+
+Debian package building
 
 ``` sh
 sudo apt update

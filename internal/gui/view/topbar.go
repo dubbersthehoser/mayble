@@ -4,7 +4,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
@@ -55,6 +54,7 @@ func (f *FunkView) TopBar() fyne.CanvasObject {
 type SearchEntry struct {
 	widget.Entry
 	broker *emiter.Broker
+	Canvas  fyne.Canvas
 }
 func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	se := &SearchEntry{}
@@ -68,15 +68,11 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	b.Subscribe(&emiter.Listener{
 		Handler: func(e *emiter.Event) {
 			switch e.Name {
-
 			case gui.EventSearchBy:
 				se.Entry.SetText("") 
 
 			case gui.EventListOrdering:
 				se.Entry.SetText("")
-
-			case gui.EventSearchFocus:
-				se.Entry.MouseDown(&desktop.MouseEvent{})
 
 			default:
 				panic("event not found: " + e.Name)
@@ -85,7 +81,6 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 	}, 
 		gui.EventSearchBy, 
 		gui.EventListOrdering,
-		gui.EventSearchFocus,
 	)
 
 	return se
@@ -270,8 +265,7 @@ func NewToolbarUndo(b *emiter.Broker) *widget.ToolbarAction {
 			}
 		},
 	}
-	id := b.Subscribe(&l, gui.EventUndoEmpty, gui.EventUndoReady)
-	println("undo listen with id: ", id)
+	_ = b.Subscribe(&l, gui.EventUndoEmpty, gui.EventUndoReady)
 	return tu
 
 }
@@ -298,8 +292,7 @@ func NewToolbarRedo(b *emiter.Broker) *widget.ToolbarAction {
 			}
 		},
 	}
-	id := b.Subscribe(&l, gui.EventRedoEmpty, gui.EventRedoReady)
-	println("redo listen with id: ", id)
+	_ = b.Subscribe(&l, gui.EventRedoEmpty, gui.EventRedoReady)
 	return tr
 }
 
