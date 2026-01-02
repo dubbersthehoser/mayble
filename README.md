@@ -1,10 +1,10 @@
 # Mayble
 
-A desktop application book management for a family member.
+A desktop application for book management. Created for a family member.
 
 My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to. And so she asked me to make this application to help her out.
 
-The [requirements](requirements.txt) my sister gave me, and the build targets are for MacOS and ChromeOS. Windows is not a priority for her.
+The [requirements](requirements.txt) my sister gave me, and the build targets are MacOS and ChromeOS. Windows is not a priority for her.
 
 ![Screenshot](Screenshot.png)
 
@@ -27,24 +27,25 @@ The [requirements](requirements.txt) my sister gave me, and the build targets ar
 
 **User Manual** [here](docs/README.md)
 
+
 ## Building
 
-Mayble uses the [fyne](https://fyne.io) framework for the ui and packaging so the fist time build will take sometime to complete. 
+Mayble uses the [fyne](https://fyne.io) framework for the UI and packaging so the fist time build will take sometime to complete. 
 
-With go installed, to do a quick test run you can run:
+With go installed, you can do a compile and run:
 
 ```sh 
 go run .
 ```
 
-# Packaging 
+## Packaging 
 
 These notes are mainly for myself for if, or when I need to make updates.
 As well as having quick links within some of the build environments.
 
 
 
-## MacOS
+### MacOS
 
 The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment. (I hit road blocks using cgo and fyne-cross for Linux to Mac cross-compilation).
 
@@ -66,7 +67,7 @@ GOARCH=ARCH fyne package -os darwin
 
 
 
-## Debian / ChromeOS
+### Debian / ChromeOS
 
 The ChromeOS build uses a `.deb` package for the Linux Development Environment.
 
@@ -104,5 +105,4 @@ fyne-cross linux -arch=ARCH      # ARCH = amd64, or arm64
 The `package-deb.sh` script will take the Linux tarball created by `fyne-cross` and creates a Debian package with it.
 
 The resulting Debian package will be in `./build/deb/mayble-X.X.X.deb`
-
 
