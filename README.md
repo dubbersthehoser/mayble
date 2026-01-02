@@ -25,7 +25,7 @@ The [requirements](requirements.txt) my sister gave me, and the build targets ar
 
 - Hotkeys
 
-**User Manual** [docs/README.md](here.)
+**User Manual** [here](docs/README.md)
 
 ## Building
 
