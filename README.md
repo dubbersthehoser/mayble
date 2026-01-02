@@ -21,7 +21,15 @@ The [requirements](requirements.txt) my sister gave me, and the build targets ar
 
 - Ratting go from TBR (to be read) to 5 stared.
 
-# Compile and Run
+- Data validation.
+
+- Hotkeys
+
+**User Manual** [docs/README.md](here.)
+
+## Building
+
+Mayble uses the [fyne](https://fyne.io) framework for the ui and packaging so the fist time build will take sometime to complete. 
 
 With go installed, to do a quick test run you can run:
 
@@ -31,8 +39,8 @@ go run .
 
 # Packaging 
 
-These notes are mainly for myself for if, or when I need to make updates, and release a new version.
-Remembering how to build these packages, and having quick links with in the build environments.
+These notes are mainly for myself for if, or when I need to make updates.
+As well as having quick links within some of the build environments.
 
 
 
@@ -40,7 +48,7 @@ Remembering how to build these packages, and having quick links with in the buil
 
 The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) for a proper build environment. (I hit road blocks using cgo and fyne-cross for Linux to Mac cross-compilation).
 
-NOTE: Mayble Can't run under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  the app under a virtual Graphics.
+NOTE: Mayble Can't run under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  under virtual Graphics.
 
 Requirements
 
@@ -67,7 +75,7 @@ NOTE: This package is not intended for general Debian deployment and only for [p
 
 **Requirements**
 
-Fyne packaging tools
+Fyne packaging tools.
 
 ``` sh
 go install github.com/fyne-io/fyne-cross@latest
