@@ -16,6 +16,8 @@ const (
 	EventEntryUpdate = "ui.entry.update"
 	EventEntrySubmit = "ui.entry.submit"
 
+	EventElementUnfocus = "ui.element.unfocus"
+
 	EventDocumentModified  = "ui.document.modified"
 	EventDocumentImport    = "ui.document.import"
 	EventDocumentExportCSV = "ui.document.export.csv"

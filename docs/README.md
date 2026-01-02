@@ -47,3 +47,25 @@ By default the search column is set to Title, and can be changed with the select
 When entering text in the search box, a case insensitive substring match will be preformed.
 Resulting in a selection ring, which can be navigated with the arrow buttons, or pressing ENTER selecting the next item in the ring.
 
+## Hotkeys
+
+NOTE: When the search box has focus ( when there is a cursor in the text box) **hotkeys will not work.**
+You must deselect search box before using hotkeys to work. To do so press `Escape` to remove its focus.
+
+- `ctrl-shift + d` Delete selected entry.
+
+- `ctrl-shift + delete` Delete selected entry.
+
+- `ctrl + n` Create new entry.
+
+- `ctrl + u` Update selected entry.
+
+- `ctrl + m` Open Database Menu.
+
+- `ctrl + f` Select search box.
+
+
+
+
+
+

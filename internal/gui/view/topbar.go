@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/dubbersthehoser/mayble/internal/searching"
 	"github.com/dubbersthehoser/mayble/internal/emiter"
@@ -74,15 +75,19 @@ func NewSearchEntry(b *emiter.Broker) *SearchEntry {
 			case gui.EventListOrdering:
 				se.Entry.SetText("")
 
+			case gui.EventSearchFocus:
+				se.MouseDown(&desktop.MouseEvent{})
+
 			default:
 				panic("event not found: " + e.Name)
 			}
+
 		},
 	}, 
 		gui.EventSearchBy, 
 		gui.EventListOrdering,
+		gui.EventSearchFocus,
 	)
-
 	return se
 }
 func (se *SearchEntry) Search(s string) {
@@ -95,6 +100,16 @@ func (se *SearchEntry) Submit(s string) {
 	se.broker.Notify(emiter.Event{
 		Name: gui.EventSelectNext,
 	})
+}
+func (se *SearchEntry) KeyUp(key *fyne.KeyEvent) {
+	switch key.Name {
+	case fyne.KeyEscape:
+		se.broker.Notify(emiter.Event{
+			Name: gui.EventElementUnfocus,
+			//Data: se,
+		})
+		se.Refresh()
+	}
 }
 
 

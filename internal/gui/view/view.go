@@ -61,7 +61,7 @@ func (f *FunkView) refresh() {
 
 func shortcutAdd(f *FunkView) {
 
-	//ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
+	ctrlF := &desktop.CustomShortcut{KeyName: fyne.KeyF, Modifier: fyne.KeyModifierControl}
 
 	ctrlM := &desktop.CustomShortcut{KeyName: fyne.KeyM, Modifier: fyne.KeyModifierControl}
 	ctrlN := &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl}
@@ -70,11 +70,11 @@ func shortcutAdd(f *FunkView) {
 	ctrlShiftD := &desktop.CustomShortcut{KeyName: fyne.KeyD, Modifier: fyne.KeyModifierShift | fyne.KeyModifierControl}
 
 
-	//f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
-	//	f.broker.Notify(emiter.Event{
-	//		Name: gui.EventSearchFocus,
-	//	})
-	//})
+	f.window.Canvas().AddShortcut(ctrlF, func(_ fyne.Shortcut) {
+		f.broker.Notify(emiter.Event{
+			Name: gui.EventSearchFocus,
+		})
+	})
 
 	f.window.Canvas().AddShortcut(ctrlN, func(_ fyne.Shortcut) {
 		f.broker.Notify(emiter.Event{
@@ -330,6 +330,9 @@ func loadOnEventHandlers(f *FunkView) {
 					return
 				}
 				syncView(f)
+
+			case gui.EventElementUnfocus:
+				f.window.Canvas().Unfocus()
 			}
 		},
 	}, 
@@ -343,6 +346,7 @@ func loadOnEventHandlers(f *FunkView) {
 		gui.EventDocumentExport,
 		gui.EventDocumentModified,
 		gui.EventDocumentNew,
+		gui.EventElementUnfocus,
 	)
 }
 
