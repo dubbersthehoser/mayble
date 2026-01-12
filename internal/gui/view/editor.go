@@ -51,7 +51,7 @@ func ShowEditor(w fyne.Window, b *emiter.Broker, builder *controller.BookLoanBui
 	}
 	rattingField := EntryField{
 		Entry: widget.NewSelect(rattings, nil),
-		Label: widget.NewLabel("Ratting"),
+		Label: widget.NewLabel("Rating"),
 	}
 	onLoanField := EntryField{
 		Entry: widget.NewCheck("", nil),

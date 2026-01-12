@@ -23,40 +23,38 @@ type BookLoan struct {
 type OrderBy string
 
 const (
-	ByTitle OrderBy = "Title"
-	ByAuthor        = "Author"
-	ByGenre         = "Genre"
-	ByRatting       = "Ratting"
-	ByBorrower      = "Borrower"
-	ByDate          = "Date"
-	ByID            = "ID"
-	ByNothing       = ""
+	ByTitle    OrderBy = "Title"
+	ByAuthor   OrderBy = "Author"
+	ByGenre    OrderBy = "Genre"
+	ByRatting  OrderBy = "Rating"
+	ByBorrower OrderBy = "Borrower"
+	ByDate     OrderBy = "Date"
+	ByID       OrderBy = "ID"
+	ByNothing  OrderBy = ""
 )
 
 func SortByList() []string {
-	return []string{"Title", "Author", "Genre", "Ratting", "Borrower", "Date"}
+	return []string{
+		string(ByTitle),
+		string(ByAuthor),
+		string(ByGenre),
+		string(ByRatting),
+		string(ByBorrower),
+		string(ByDate),
+	}
 }
 
 func StringToOrderBy(s string) (OrderBy, error) {
-	s = strings.ToLower(s)
-	switch s {
-	case "title":
-		return ByTitle, nil
-	case "author":
-		return ByAuthor, nil
-	case "genre":
-		return ByGenre, nil
-	case "ratting":
-		return ByRatting, nil
-	case "borrower":
-		return ByBorrower, nil
-	case "date":
-		return ByDate, nil
-	case "":
+	if s == "" {
 		return ByNothing, nil
-	default:
-		return ByNothing, errors.New("invalid string order by string")
 	}
+	match := strings.ToLower(s)
+	for _, field := range SortByList() {
+		if strings.ToLower(field) == match {
+			return OrderBy(field), nil
+		}
+	}
+	return ByNothing, errors.New("invalid string order by string")
 }
 func MustStringToOrderBy(s string) OrderBy {
 	o, err := StringToOrderBy(s)

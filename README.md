@@ -4,10 +4,9 @@ A desktop application for book management. Created for a family member.
 
 My sister has a collection of physical books, and wants to keep track of what book has been read, and to whom she lent them out to. And so she asked me to make this application to help her out.
 
-The [requirements](requirements.txt) my sister gave me, and the build targets are MacOS and ChromeOS. Windows is not a priority for her.
+The [requirements](requirements.txt) my sister gave me, and the build targets are MacOS and ChromeOS.
 
 ![Screenshot](Screenshot.png)
-
 
 ## Features.
 
@@ -51,7 +50,7 @@ The MacOS build is created using [OSX-KVM](https://github.com/kholia/OSX-KVM) fo
 
 NOTE: Mayble Can't run under [OSX-VM](https://github.com/kholia/OSX-KVM) without GPU pass-through. OpenGL will crash  under virtual Graphics.
 
-Requirements
+**Requirements**
 
 ``` sh
 xcode-select --install
