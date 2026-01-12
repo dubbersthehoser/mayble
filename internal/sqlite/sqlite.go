@@ -23,7 +23,8 @@ type Schema struct {
 type Database struct {
 	Queries *database.Queries // sqlc queries
 	DB      *sql.DB           // database connection
-	Schema   Schema           
+	Schema   Schema
+	Version  int64            // current migration version
 }
 
 // NewDatabase create a new database. 
@@ -36,6 +37,7 @@ func NewDatabase() *Database {
 			Dir: "sqlite/schemas",
 			FS:  api.SQLiteFS,
 		},
+		Version: 2,
 	}
 }
 
@@ -83,7 +85,7 @@ func (db *Database) MigrateUp() error {
 		return fmtError(err)
 	}
 	
-	if err := goose.Up(db.DB, db.Schema.Dir); err != nil {
+	if err := goose.UpTo(db.DB, db.Schema.Dir, 2); err != nil {
 		return fmtError(err)
 	}
 	return nil
