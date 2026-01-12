@@ -1,6 +1,6 @@
 
 -- +goose UP
-CREATE TABLE read_books (
+CREATE TABLE read_books (  -- prenounced 'red books'
 	-- Books that have been fulling read.
 	created_at      INTEGER NOT NULL,
 	updated_at      INTEGER NOT NULL,

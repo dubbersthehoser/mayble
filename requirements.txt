@@ -5,9 +5,10 @@ Requirements:
     - Author
     - Title 
     - Genre
-  - Rattings
-  - To Be Read (TBR)
-  - Loaned out Status
+  - Read Status
+    - Rating
+    - Completion Date
+  - Loaned Out Status
     - date
     - Borrower name
   - User Friendly

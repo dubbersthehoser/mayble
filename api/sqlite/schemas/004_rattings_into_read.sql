@@ -1,5 +1,5 @@
 -- +goose Up
-INSERT INTO read_books( -- prenounced 'red books'
+INSERT INTO read_books(
 	created_at,
 	updated_at,
 	rating,
@@ -15,5 +15,3 @@ FROM books WHERE ratting > 0;
 
 -- +goose Down
 DELETE FROM read_books;
-
-
