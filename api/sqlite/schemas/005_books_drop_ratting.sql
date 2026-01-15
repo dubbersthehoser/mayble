@@ -71,7 +71,7 @@ SET ratting = (
 	FROM read_books
 	WHERE read_books.book_id = old_books.id
 )
-WHERE old_books.id IN ( -- I hate sql
+WHERE old_books.id IN (
 	SELECT read_books.book_id
 	FROM read_books
 );
