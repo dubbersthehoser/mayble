@@ -3,3 +3,7 @@
 /cover.out
 /fyne-cross
 /build/*
+*.db
+*.sqlite
+*.sqlite3
+*.bak

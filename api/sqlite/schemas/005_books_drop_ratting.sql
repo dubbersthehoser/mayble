@@ -51,7 +51,7 @@ INSERT INTO old_books(
 	title,
 	author,
 	genre,
-	0      -- set ratting to zero, for now...
+	ratting
 ) 
 SELECT
 	id,
@@ -60,17 +60,21 @@ SELECT
 	title,
 	author,
 	genre,
+	0
 FROM
 	books;
 
 -- update ratting values
 UPDATE old_books
-SET 
-	old_books.ratting = read_books.rating
-FROM 
-	read_books
-WHERE
-	read_books.book_id = old_books.id;
+SET ratting = (
+	SELECT read_books.rating 
+	FROM read_books
+	WHERE read_books.book_id = old_books.id
+)
+WHERE old_books.id IN ( -- I hate sql
+	SELECT read_books.book_id
+	FROM read_books
+);
 
 DROP TABLE books;
 
