@@ -12,10 +12,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
-
-
-
-
 func (f *FunkView) Table() fyne.CanvasObject {
 
 	heading := NewHeader(f.broker)
@@ -24,11 +20,6 @@ func (f *FunkView) Table() fyne.CanvasObject {
 	table := container.New(layout.NewBorderLayout(heading.view, nil, nil, nil), heading.view, listTable.List)
 	return table
 }
-
-
-
-
-
 
 
 

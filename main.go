@@ -6,7 +6,7 @@ import (
 	"fyne.io/fyne/v2/app"
 
 	"github.com/dubbersthehoser/mayble/internal/gui/view"
-	"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
+	//"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
 )
 
 
@@ -16,9 +16,8 @@ func main() {
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
 
-	form := viewmodel.NewBookForm()
-	content := view.BookForm(form)
 
+	content := view.NewMainUI()
 
 	window.SetContent(content)
 	window.ShowAndRun()

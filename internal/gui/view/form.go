@@ -15,15 +15,15 @@ func BookForm(vm *viewmodel.BookForm) fyne.CanvasObject {
 	cancel := widget.NewButton("Cancel", vm.Cancel)
 	message := widget.NewLabel("")
 
-	vm.Error.AddListener(binding.NewDataListener(func() {
-		msg, _ := vm.Error.Get()
-		message.SetText(msg)
-	}))
+	//vm.Error.AddListener(binding.NewDataListener(func() {
+	//	msg, _ := vm.Error.Get()
+	//	message.SetText(msg)
+	//}))
 
-	vm.Success.AddListener(binding.NewDataListener(func() {
-		msg, _ := vm.Success.Get()
-		message.SetText(msg)
-	}))
+	//vm.Success.AddListener(binding.NewDataListener(func() {
+	//	msg, _ := vm.Success.Get()
+	//	message.SetText(msg)
+	//}))
 
 	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)

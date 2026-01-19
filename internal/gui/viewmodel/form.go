@@ -29,7 +29,7 @@ type BookForm struct {
 }
 
 
-func NewBookForm() *BookForm {
+func NewBookForm(err, success binding.String) *BookForm {
 	bf := &BookForm{
 		bus: &eventBus{},
 
@@ -38,8 +38,8 @@ func NewBookForm() *BookForm {
 		Genre: binding.NewString(),
 
 		Valid: binding.NewBool(),
-		Success: binding.NewString(),
-		Error: binding.NewString(),
+		Success: success,
+		Error: err,
 
 		IsRead:    binding.NewBool(),
 		Rating:    binding.NewString(),
@@ -119,7 +119,6 @@ func (bf *BookForm) Submit() {
 	}
 
 	_ = bf.Valid.Set(true)
-	_ = bf.Error.Set("")
 	_ = bf.Success.Set("Added")
 
 	_ = bf.Title.Set("")
