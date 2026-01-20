@@ -15,10 +15,7 @@ func main() {
 	window := a.NewWindow("New Mayble")
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
-
-
-	content := view.NewMainUI()
-
+	content := view.NewMainUI(window)
 	window.SetContent(content)
 	window.ShowAndRun()
 }

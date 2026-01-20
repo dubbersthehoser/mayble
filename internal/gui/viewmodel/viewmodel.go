@@ -1,6 +1,7 @@
 package viewmodel
 
 import (
+	"slices"
 	"errors"
 
 	"fyne.io/fyne/v2/data/binding"
@@ -106,47 +107,137 @@ type BookLoanVM struct {
 	Date     binding.String
 	Borrower binding.String
 }
+
 type BookReadVM struct {
 	bookID     int64
-	Completion binding.String
-	Rating     binding.String
+	Completion string
+	Rating     string
 }
 
 type Table struct {
 	Header    []string
-	Items     []binding.Struct
+	Sizes     []int
+	Items     [][]string
 	listeners []binding.DataListener
 	
 	OrderField binding.String
 }
+
 func NewTable() *Table {
 	t := &Table{
-		Items: make([]binding.Struct, 0),
+		Items: make([][]string, 0),
 		listeners: make([]binding.DataListener, 0),
 		Header: []string{"Title", "Author", "Genre"},
 	}
-	t.Items = append(t.Items,
-		binding.BindStruct(NewBookVM(0, "Example Title", "Example Author", "Example Genre")),
-		binding.BindStruct(NewBookVM(1, "Example Title", "Example Author", "Example Genre")),
-	)
+	t.Sizes = make([]int, len(t.Header))
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
+	t.Append("Example Title", "Example Author", "Example Genre")
 	return t
 }
+
+func (t *Table) Append(values... string) error {
+	if len(values) != len(t.Header) {
+		return errors.New("length of values missmatch header length")
+	}
+	for i := range len(t.Header) {
+		if t.Sizes[i] < len(values[i]) {
+			t.Sizes[i] = len(values[i])
+		}
+	}
+	t.Items = append(t.Items, values)
+	return nil
+}
+
 func (t *Table) Length() int {
 	return len(t.Items)
 }
-func (t *Table) GetItem(index int) (binding.DataItem, error) {
-	return t.GetValue(index)
-}
-func (t *Table) GetValue(index int) (binding.Struct, error) {
+func (t *Table) GetValue(index int) ([]string, error) {
 	if len(t.Items) >= index || 0 > index {
 		return nil, errors.New("index out of range")
 	}
 	return t.Items[index], nil
 }
+func (t *Table) SetValue(index int, key string, value string) error {
+	if len(t.Items) >= index || 0 > index {
+		return errors.New("index out of range")
+	}
+	field := slices.Index(t.Header, key)
+	if field == -1 {
+		return errors.New("key not found")
+	}
+	t.Items[index][field] = value
+	t.notify()
+	return nil
+}
+
+func (t *Table) notify() {
+	for _, listener := range t.listeners {
+		listener.DataChanged()
+	}
+}
+
 func (t *Table) AddListener(l binding.DataListener) {
 	t.listeners = append(t.listeners, l)
 }
-func (t *Table) RemoveListener(binding.DataListener) {
-	panic("not-implemented")
+func (t *Table) RemoveListener(l binding.DataListener) {
+	index := -1
+	for i, listener := range t.listeners {
+		if listener == l {
+			index = i
+		}
+	}
+	if index == -1 {
+		return
+	}
+	t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)
 }
 

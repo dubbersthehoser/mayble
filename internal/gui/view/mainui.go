@@ -5,13 +5,14 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+
 	//"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
 )
 
-func NewMainUI() *fyne.Container {
+func NewMainUI(w fyne.Window) *fyne.Container {
 
 	uiVM := viewmodel.NewMainUI()
 	formVM := viewmodel.NewBookForm(uiVM.Error, uiVM.Success)
@@ -60,7 +61,7 @@ func NewMainUI() *fyne.Container {
 
 	form := BookForm(formVM)
 	tableVM := viewmodel.NewTable()
-	table := BookTable(tableVM)
+	table := BookTable(w, tableVM)
 
 	body := container.NewStack(form)
 
@@ -97,37 +98,41 @@ func BookTables() *fyne.Container {
 	return nil
 }
 
-func BookTable(vm *viewmodel.Table) *fyne.Container {
-	
-	list := widget.NewList(
-		vm.Length,
-		// CREATE CANVAS
-		func() fyne.CanvasObject{
-			c := container.NewAdaptiveGrid(
-				3, 
-				widget.NewLabel("placeholder"),
-				widget.NewLabel("placeholder"),
-				widget.NewLabel("placeholder"),
-			)
-			return c
+func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
+
+	table := widget.NewTableWithHeaders(
+		func() (row, col int) {
+			row = vm.Length()
+			col = len(vm.Header)
+			return row, col
 		},
-		// UPDATE CANVAS
-		func(index int, object fyne.CanvasObject) {
-			con := object.(*fyne.Container)
-			data := vm.Items[index]
-			for i, key := range vm.Header {
-				v, err := data.GetValue(key)
-				if err != nil {
-					panic(err)
-				}
-				b := v.(binding.String)
-				t, _ := b.Get()
-				con.Objects[i].(*widget.Label).SetText(t)
-			}
-			object.Refresh()
+		func() fyne.CanvasObject {
+			object := widget.NewLabel("placeholder")
+			return object
+		},
+		func(cellID widget.TableCellID, object fyne.CanvasObject) {
+			bind := vm.Items[cellID.Row][cellID.Col]
+			object.(*widget.Label).SetText(bind)
 		},
 	)
-	return container.NewBorder(nil, nil, nil, nil, list)
+	table.ShowHeaderColumn = false
+
+	table.CreateHeader = func() fyne.CanvasObject {
+		return widget.NewButton("", nil)
+	}
+	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
+		if cellID.Row != -1 {
+			return
+		}
+		header := vm.Header[cellID.Col]
+		object.(*widget.Button).SetText(header)
+	}
+	
+	for i, size := range vm.Sizes {
+		table.SetColumnWidth(i, float32(size * 10))
+	}
+	
+	return container.NewBorder(nil, nil, nil, nil, table)
 }
 
 
