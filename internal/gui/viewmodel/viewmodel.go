@@ -114,77 +114,36 @@ type BookReadVM struct {
 	Rating     string
 }
 
-type Table struct {
-	Header    []string
-	Sizes     []int
-	Items     [][]string
-	listeners []binding.DataListener
-	
-	OrderField binding.String
-}
 
-func NewTable() *Table {
-	t := &Table{
-		Items: make([][]string, 0),
-		listeners: make([]binding.DataListener, 0),
-		Header: []string{"Title", "Author", "Genre"},
+
+
+
+
+type TableData struct {
+	Header []string
+	Items  [][]string
+	Sizes  []int
+}
+func newTableData() *TableData {
+	return &TableData{
+		Header: make([]string, 0),
+		Items:  make([][]string, 0),
+		Sizes:  make([]int, 0),
 	}
-	t.Sizes = make([]int, len(t.Header))
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	t.Append("Example Title", "Example Author", "Example Genre")
-	return t
 }
 
-func (t *Table) Append(values... string) error {
+func (t *TableData) SetHeader(h []string) {
+	t.Header = h
+	t.Items = make([][]string, 0)
+	t.Sizes = make([]int, len(h))
+}
+
+
+func (t *TableData) Length() int {
+	return len(t.Items)
+}
+
+func (t *TableData) Append(values... string) error {
 	if len(values) != len(t.Header) {
 		return errors.New("length of values missmatch header length")
 	}
@@ -197,26 +156,121 @@ func (t *Table) Append(values... string) error {
 	return nil
 }
 
-func (t *Table) Length() int {
-	return len(t.Items)
+
+func translateExcludedIndex(idx int, header, exclude []string) int {
+	indexes  := []int{}
+	for i, h := range header {
+		if tmp := slices.Index(exclude, h); tmp == -1 {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes[idx]
 }
-func (t *Table) GetValue(index int) ([]string, error) {
-	if len(t.Items) >= index || 0 > index {
-		return nil, errors.New("index out of range")
-	}
-	return t.Items[index], nil
+
+
+
+
+
+
+type ColumnExcluder struct {
+	selected  []string
+	listeners []binding.DataListener
 }
-func (t *Table) SetValue(index int, key string, value string) error {
-	if len(t.Items) >= index || 0 > index {
-		return errors.New("index out of range")
+func NewColumnExcluder() *ColumnExcluder {
+	cs := &ColumnExcluder{}
+	return cs
+}
+func (cs *ColumnExcluder) SetHeader(header []string) {
+	cs.selected = header
+	cs.notify()
+}
+func (cs *ColumnExcluder) GetHeader() []string {
+	return cs.selected
+}
+
+func (cs *ColumnExcluder) notify() {
+	for _, l := range cs.listeners {
+		l.DataChanged()
 	}
-	field := slices.Index(t.Header, key)
-	if field == -1 {
-		return errors.New("key not found")
+}
+
+func (cs *ColumnExcluder) AddListener(l binding.DataListener) {
+	cs.listeners = append(cs.listeners, l)
+}
+func (cs *ColumnExcluder) RemoveListener(l binding.DataListener) {
+	index := -1
+	for i, listener := range cs.listeners {
+		if listener == l {
+			index = i
+		}
 	}
-	t.Items[index][field] = value
-	t.notify()
-	return nil
+	if index == -1 {
+		return
+	}
+	cs.listeners = append(cs.listeners[:index], cs.listeners[index-1:]...)
+}
+
+
+
+
+
+
+
+
+type Table struct {
+	
+	Data *TableData
+	Excluder *ColumnExcluder
+
+	ShowColumns binding.BoolList
+
+	OrderField binding.String
+	OrderASC   binding.Bool
+
+	listeners []binding.DataListener
+}
+
+func NewTable() *Table {
+	t := &Table{
+		Data: newTableData(),
+		Excluder: NewColumnExcluder(),
+		ShowColumns: binding.NewBoolList(),
+
+		OrderField: binding.NewString(),
+		OrderASC: binding.NewBool(),
+
+		listeners: make([]binding.DataListener, 0),
+	}
+	t.Data.SetHeader([]string{"Title", "Author", "Genre"})
+	t.Data.Append("Example Title", "Author", "Example Genre")
+	t.Data.Append("Example Title", "Author", "Example Genre")
+	t.Data.Append("Example Title", "Author", "Example Genre")
+	_ = t.OrderField.Set(t.Data.Header[0])
+
+
+	t.Excluder.AddListener(binding.NewDataListener(func(){
+		if len(t.Excluder.selected) != len(t.Data.Header) {
+			idx := translateExcludedIndex(0, t.Data.Header, t.Excluder.selected)
+			t.OrderField.Set(t.Data.Header[idx])
+		}
+		t.notify()
+	}))
+
+
+	return t
+}
+
+func (t *Table) Size() (int, int) {
+	return len(t.Data.Items), len(t.Data.Header) - len(t.Excluder.selected)
+}
+
+func (t *Table) GetValue(row, column int) string {
+	col := translateExcludedIndex(column, t.Data.Header, t.Excluder.selected)
+	return t.Data.Items[row][col]
+}
+func (t *Table) GetHeader(column int) string {
+	idx := translateExcludedIndex(column, t.Data.Header, t.Excluder.selected)
+	return t.Data.Header[idx]
 }
 
 func (t *Table) notify() {
@@ -240,4 +294,3 @@ func (t *Table) RemoveListener(l binding.DataListener) {
 	}
 	t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)
 }
-

@@ -1,6 +1,7 @@
 package view
 
 import (
+	
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -100,41 +101,153 @@ func BookTables() *fyne.Container {
 
 func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
 
+	//
+	// Table
+	//
+	// Code sections (A) are to allow user to resize the last column with the header.
+	// By adding an invisable header, with an empty column, allows the user to move 
+	// the last visable header / column to be resized with the mouse. Down side is
+	// that there is an empty selectable item on the first entry of that last column.
+
 	table := widget.NewTableWithHeaders(
-		func() (row, col int) {
-			row = vm.Length()
-			col = len(vm.Header)
-			return row, col
+		func() (rowLen, colLen int) {
+			rowLen, colLen = vm.Size()
+			colLen += 1 // (A) have an extra header.
+			return 
 		},
 		func() fyne.CanvasObject {
-			object := widget.NewLabel("placeholder")
+			object := widget.NewLabel("")
+			object.Truncation = fyne.TextTruncateEllipsis
 			return object
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
-			bind := vm.Items[cellID.Row][cellID.Col]
-			object.(*widget.Label).SetText(bind)
+			_, colLen := vm.Size()
+			if cellID.Col < colLen {
+				data := vm.GetValue(cellID.Row, cellID.Col)
+				object.(*widget.Label).SetText(data)
+			} else { // (A) create empty column.
+				object.(*widget.Label).SetText("")
+			}
 		},
 	)
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return widget.NewButton("", nil)
+		return NewColumnButton("placeholder", vm.OrderField, vm.OrderASC)
 	}
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
-		header := vm.Header[cellID.Col]
-		object.(*widget.Button).SetText(header)
+		_, colLen := vm.Size()
+		if cellID.Col < colLen {
+			header := vm.GetHeader(cellID.Col)
+			object.(*ColumnButton).SetLabel(header)
+			object.(*ColumnButton).Show()
+		} else { // (A) create hidden header.
+			object.(*ColumnButton).Hide()
+		}
 	}
-	
-	for i, size := range vm.Sizes {
-		table.SetColumnWidth(i, float32(size * 10))
+
+	for i, size := range vm.Data.Sizes {
+		table.SetColumnWidth(i, float32(size * 20))
 	}
+
+	//
+	// Search 
+	//
+	search := widget.NewEntry()
 	
-	return container.NewBorder(nil, nil, nil, nil, table)
+	join := widget.NewRadioGroup([]string{"Read", "Loan"}, nil)
+	join.Horizontal = true
+
+	//
+	// Column Excluder
+	//
+	column := widget.NewCheckGroup(vm.Data.Header, func(list []string) {
+		vm.Excluder.SetHeader(list)
+	})
+	column.Horizontal = true
+	column.SetSelected(vm.Excluder.GetHeader())
+
+	vm.AddListener(binding.NewDataListener(func() {
+		table.Refresh()
+	}))
+
+	top := container.NewAdaptiveGrid(1, search, join, column)
+	return container.NewBorder(top, nil, nil, nil, table)
 }
 
 
+type ColumnButton struct {
+	widget.Button
+	minSize    fyne.Size
+	label      string
+	orderASC   binding.Bool
+	orderField binding.String
+}
+
+func NewColumnButton(label string, orderField binding.String, orderASC binding.Bool) *ColumnButton {
+	hb := &ColumnButton{
+		label: label,
+		orderASC: orderASC,
+		orderField: orderField,
+	}
+	orderField.AddListener(binding.NewDataListener(func() {
+		field, _ := orderField.Get()
+		if field == hb.label {
+			_ = orderASC.Set(true)
+			hb.SetText(hb.ASCLabel())
+		}
+		if field != hb.label {
+			hb.SetText(hb.NormalLabel())
+		}
+			
+	}))
+
+	hb.OnTapped = func() {
+		switch hb.Text {
+		case hb.NormalLabel():
+			orderField.Set(hb.label)
+
+		case hb.ASCLabel():
+			_ = orderASC.Set(false)
+			hb.SetText(hb.DESCLabel())
+
+		case hb.DESCLabel():
+			_ = orderASC.Set(true)
+			hb.SetText(hb.ASCLabel())
+		}
+	}
+	hb.minSize = fyne.NewSize(80, 30)
+	hb.ExtendBaseWidget(hb)
+	return hb
+}
+func (hb *ColumnButton) SetLabel(s string) {
+	hb.label = s
+	field, _ := hb.orderField.Get()
+	if field == hb.label {
+		_ = hb.orderASC.Set(true)
+		hb.SetText(hb.ASCLabel())
+	} else {
+		hb.SetText(hb.NormalLabel())
+	}
+}
+
+func (hb *ColumnButton) NormalLabel() string {
+	return "- " + hb.label
+}
+
+func (hb *ColumnButton) ASCLabel() string {
+	return "↑ " + hb.label
+}
+
+func (hb *ColumnButton) DESCLabel() string {
+	return "↓ " + hb.label
+}
+
+func (hb *ColumnButton) MinSize() fyne.Size {
+	return hb.minSize
+}
 
 

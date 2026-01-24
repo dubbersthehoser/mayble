@@ -12,6 +12,10 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/gui/controller"
 )
 
+
+
+
+
 func (f *FunkView) Table() fyne.CanvasObject {
 
 	heading := NewHeader(f.broker)
