@@ -158,8 +158,12 @@ func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
 	//
 	search := widget.NewEntry()
 	
-	join := widget.NewRadioGroup([]string{"Read", "Loan"}, nil)
+	join := widget.NewRadioGroup(vm.TableKeys(), func(s string) {
+		vm.SetTable(s)
+	})
 	join.Horizontal = true
+	join.Required = true
+	join.Selected = vm.TableKeys()[0]
 
 	//
 	// Column Excluder

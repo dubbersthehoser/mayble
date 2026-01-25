@@ -124,12 +124,14 @@ type TableData struct {
 	Items  [][]string
 	Sizes  []int
 }
-func newTableData() *TableData {
-	return &TableData{
+func newTableData(header []string) *TableData {
+	td := &TableData{
 		Header: make([]string, 0),
 		Items:  make([][]string, 0),
 		Sizes:  make([]int, 0),
 	}
+	td.SetHeader(header)
+	return td
 }
 
 func (t *TableData) SetHeader(h []string) {
@@ -211,15 +213,12 @@ func (cs *ColumnExcluder) RemoveListener(l binding.DataListener) {
 }
 
 
-
-
-
-
-
-
 type Table struct {
 	
 	Data *TableData
+	Table string
+	Tables map[string]*TableData
+
 	Excluder *ColumnExcluder
 
 	ShowColumns binding.BoolList
@@ -232,7 +231,7 @@ type Table struct {
 
 func NewTable() *Table {
 	t := &Table{
-		Data: newTableData(),
+		Tables: make(map[string]*TableData),
 		Excluder: NewColumnExcluder(),
 		ShowColumns: binding.NewBoolList(),
 
@@ -241,11 +240,15 @@ func NewTable() *Table {
 
 		listeners: make([]binding.DataListener, 0),
 	}
-	t.Data.SetHeader([]string{"Title", "Author", "Genre"})
+	t.Tables["Books"] = newTableData([]string{"Title", "Author", "Genre"})
+	t.Data = t.Tables["Books"]
 	t.Data.Append("Example Title", "Author", "Example Genre")
 	t.Data.Append("Example Title", "Author", "Example Genre")
 	t.Data.Append("Example Title", "Author", "Example Genre")
 	_ = t.OrderField.Set(t.Data.Header[0])
+
+	t.Tables["Loan"] = newTableData([]string{"Title", "Author", "Genre", "Date", "Borrower"})
+	t.Tables["Loan"].Append("title", "author", "genre", "Date", "Jorge")
 
 
 	t.Excluder.AddListener(binding.NewDataListener(func(){
@@ -258,6 +261,24 @@ func NewTable() *Table {
 
 
 	return t
+}
+
+func (t *Table) SetTable(s string) {
+	data, ok := t.Tables[s]
+	if !ok {
+		panic("table not found")
+	}
+	t.Data = data
+	t.notify()
+}
+func (t *Table) TableKeys() []string {
+	ret := make([]string, len(t.Tables))
+	i := 0
+	for key := range t.Tables {
+		ret[i] = key
+		i+=1
+	}
+	return ret
 }
 
 func (t *Table) Size() (int, int) {
