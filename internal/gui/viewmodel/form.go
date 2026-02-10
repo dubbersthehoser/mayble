@@ -2,13 +2,14 @@ package viewmodel
 
 import (
 	"errors"
-	"time"
 
 	"fyne.io/fyne/v2/data/binding"
+
+	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
 type BookForm struct {
-	bus       *eventBus
+	bus       *bus.Bus
 	Title     binding.String
 	Author    binding.String
 	Genre     binding.String
@@ -31,7 +32,7 @@ type BookForm struct {
 
 func NewBookForm(err, success binding.String) *BookForm {
 	bf := &BookForm{
-		bus: &eventBus{},
+		bus: &bus.Bus{},
 
 		Title: binding.NewString(),
 		Author: binding.NewString(),
@@ -67,8 +68,6 @@ func (bf *BookForm) validate() error {
 		return errors.New("Missing Genre")
 	}
 
-	dateFormat := "02/01/2006"
-
 	isLoaned, _ := bf.IsLoaned.Get()
 	isRead, _ := bf.IsRead.Get()
 
@@ -82,7 +81,7 @@ func (bf *BookForm) validate() error {
 		if date == "" {
 			return errors.New("Missing Borrower Date")
 		}
-		_, err := time.Parse(dateFormat, date)
+		_, err := parseDate(date)
 		if err != nil {
 			return errors.New("Invalid Borrower Date (DD/MM/YYYY)")
 		}
@@ -95,7 +94,7 @@ func (bf *BookForm) validate() error {
 		if completed == "" {
 			return errors.New("Missing Completion Date")
 		}
-		_, err := time.Parse(dateFormat, completed)
+		_, err := parseDate(completed)
 		if err != nil {
 			return errors.New("Invalid Completion Date (DD/MM/YYYY)")
 		}
@@ -106,9 +105,9 @@ func (bf *BookForm) validate() error {
 }
 
 func (bf *BookForm) Submit() {
-	bf.bus.publish(event{
-		name: "BookFormSubmit",
-		data: bf,
+	bf.bus.Publish(bus.Event{
+		On: "BookFormSubmit",
+		Data: bf,
 	})
 	err := bf.validate()
 	if err != nil {
@@ -133,7 +132,7 @@ func (bf *BookForm) Submit() {
 }
 
 func (bf *BookForm) Cancel() {
-	bf.bus.publish(event{
-		name: "BookFormClose",
+	bf.bus.Publish(bus.Event{
+		On: "BookFormClose",
 	})
 }

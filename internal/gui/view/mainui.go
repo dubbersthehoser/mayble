@@ -61,6 +61,7 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 	)
 
 	form := BookForm(formVM)
+
 	tableVM := viewmodel.NewTable()
 	table := BookTable(w, tableVM)
 
@@ -99,19 +100,19 @@ func BookTables() *fyne.Container {
 	return nil
 }
 
-func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
+func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	//
 	// Table
 	//
-	// Code sections (A) are to allow user to resize the last column with the header.
-	// By adding an invisable header, with an empty column, allows the user to move 
+	// Code sections (A) are to allow user to resize the last column with the header,
+	// by adding an invisable header with an empty column, allows the user to move 
 	// the last visable header / column to be resized with the mouse. Down side is
 	// that there is an empty selectable item on the first entry of that last column.
 
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
-			rowLen, colLen = vm.Size()
+			rowLen, colLen = vm.Table().Size()
 			colLen += 1 // (A) have an extra header.
 			return 
 		},
@@ -121,9 +122,12 @@ func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
 			return object
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
-			_, colLen := vm.Size()
+			_, colLen := vm.Table().Size()
 			if cellID.Col < colLen {
-				data := vm.GetValue(cellID.Row, cellID.Col)
+				data, err := vm.Table().GetString(cellID.Row, cellID.Col)
+				if err != nil {
+					panic(err)
+				}
 				object.(*widget.Label).SetText(data)
 			} else { // (A) create empty column.
 				object.(*widget.Label).SetText("")
@@ -135,13 +139,14 @@ func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
 	table.CreateHeader = func() fyne.CanvasObject {
 		return NewColumnButton("placeholder", vm.OrderField, vm.OrderASC)
 	}
+
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
-		_, colLen := vm.Size()
+		_, colLen := vm.Table().Size()
 		if cellID.Col < colLen {
-			header := vm.GetHeader(cellID.Col)
+			header := vm.Table().Headers()[cellID.Col]
 			object.(*ColumnButton).SetLabel(header)
 			object.(*ColumnButton).Show()
 		} else { // (A) create hidden header.
@@ -149,36 +154,49 @@ func BookTable(w fyne.Window, vm *viewmodel.Table) fyne.CanvasObject {
 		}
 	}
 
-	for i, size := range vm.Data.Sizes {
+	// Selection
+	table.OnSelected = func(id widget.TableCellID) {
+		
+	}
+
+	for i, h := range vm.Table().Headers() {
+		size := vm.Table().GetMaxTextLength(h)
 		table.SetColumnWidth(i, float32(size * 20))
 	}
+
+	//
+	// Edit Field
+	//
+	editBtn := widget.NewButton("EDIT", nil)
 
 	//
 	// Search 
 	//
 	search := widget.NewEntry()
-	
-	join := widget.NewRadioGroup(vm.TableKeys(), func(s string) {
-		vm.SetTable(s)
+
+	//
+	// Join
+	//
+	join := widget.NewRadioGroup(vm.TableJoins(), func(s string) {
+		vm.OnJoin(s)
 	})
 	join.Horizontal = true
 	join.Required = true
-	join.Selected = vm.TableKeys()[0]
+	join.Selected = vm.Table().Headers()[0]
 
 	//
-	// Column Excluder
+	// Column 
 	//
-	column := widget.NewCheckGroup(vm.Data.Header, func(list []string) {
-		vm.Excluder.SetHeader(list)
+	column := widget.NewCheckGroup(vm.Table().Headers(), func(list []string) {
+		vm.OnDropColumns(list)
 	})
 	column.Horizontal = true
-	column.SetSelected(vm.Excluder.GetHeader())
 
 	vm.AddListener(binding.NewDataListener(func() {
 		table.Refresh()
 	}))
 
-	top := container.NewAdaptiveGrid(1, search, join, column)
+	top := container.NewAdaptiveGrid(2, search, editBtn, join, column, )
 	return container.NewBorder(top, nil, nil, nil, table)
 }
 
