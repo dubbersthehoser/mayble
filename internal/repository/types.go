@@ -4,19 +4,22 @@ import (
 	"time"
 )
 
+
 type Book struct {
-	id int64
+	id     int64
 	Title  string
 	Author string
 	Genre  string
 }
+
+var _ Resultable = &Book{}
 
 func (b *Book) ID() int64 {
 	return b.id
 }
 
 func (b *Book) Type() string {
-	return "Book"
+	return string(Main)
 }
 
 
@@ -32,7 +35,7 @@ func (bl *BookLoan) ID() int64 {
 }
 
 func (bl *BookLoan) Type() string {
-	return "BookLoan"
+	return string(Loaned)
 }
 
 
@@ -48,5 +51,45 @@ func (br *BookRead) ID() int64 {
 }
 
 func (br *BookRead) Type() string {
-	return "BookRead"
+	return string(Read)
+}
+
+
+type BookBuilder struct {
+	id int64
+	book struct{
+		title string
+		author string
+		genre  string
+	}
+}
+
+func (bb *BookBuilder) SetID(i int64) *BookBuilder {
+	bb.id = i
+	return bb
+}
+
+func (bb *BookBuilder) SetTitle(s string) *BookBuilder {
+	bb.book.title = s
+	return bb
+}
+
+func (bb *BookBuilder) SetAuthor(s string) *BookBuilder {
+	bb.book.author = s
+	return bb
+}
+
+func (bb *BookBuilder) SetGenre(s string) *BookBuilder {
+	bb.book.genre = s
+	return bb
+}
+
+func (bb *BookBuilder) Build() (Resultable, error) {
+	r := &Book{
+		id: bb.id,
+		Title: bb.book.title,
+		Author: bb.book.author,
+		Genre: bb.book.genre,
+	}
+	return r, nil
 }

@@ -36,7 +36,7 @@ type Resultable interface {
 
 
 type ResultSet struct {
-	Items []Resultable
+	Items  []Resultable
 	Fields []string
 }
 

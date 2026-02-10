@@ -62,8 +62,11 @@ func newDataTable(headers []string) *DataTable {
 	dt := &DataTable{
 		headers: headers,
 		data: make([][]*DataItem, 0),
+		textLength: make(map[string]int),
 	}
-
+	for _, h := range headers {
+		dt.textLength[h] = len(h)
+	}
 	return dt
 }
 
@@ -149,18 +152,24 @@ type TableVM struct {
 func NewTable(bs repo.BookSearcher) *TableVM {
 	t := &TableVM{
 		SearchText: binding.NewString(),
+		SearchFrom: binding.NewString(),
+
 		OrderField: binding.NewString(),
 		OrderASC: binding.NewBool(),
 
 		join: repo.Main,
 
+		query: bs,
+
 		listeners: make([]binding.DataListener, 0),
 
 		avaliableTables: []string{
+			"Main",
 			"Loaned",
 			"Read",
 		},
 	}
+	t.search()
 	return t
 }
 

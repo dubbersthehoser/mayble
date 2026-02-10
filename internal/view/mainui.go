@@ -10,7 +10,7 @@ import (
 	//"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func NewMainUI(w fyne.Window) *fyne.Container {
@@ -62,7 +62,7 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 
 	form := BookForm(formVM)
 
-	tableVM := viewmodel.NewTable()
+	tableVM := viewmodel.NewTable(uiVM.Repo)
 	table := BookTable(w, tableVM)
 
 	body := container.NewStack(form)
@@ -161,7 +161,9 @@ func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	for i, h := range vm.Table().Headers() {
 		size := vm.Table().GetMaxTextLength(h)
-		table.SetColumnWidth(i, float32(size * 20))
+		if size > 0 {
+			table.SetColumnWidth(i, float32(size * 20))
+		}
 	}
 
 	//
@@ -182,7 +184,7 @@ func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
 	})
 	join.Horizontal = true
 	join.Required = true
-	join.Selected = vm.Table().Headers()[0]
+	join.Selected = vm.TableJoins()[0]
 
 	//
 	// Column 

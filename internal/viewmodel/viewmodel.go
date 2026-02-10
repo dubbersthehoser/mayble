@@ -4,25 +4,66 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/data/binding"
+
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
+
+
+type mockBookSearcher struct {}
+
+func (m *mockBookSearcher) BookSearch(param repo.BookSearchParams) (repo.ResultSet, error) {
+	rs := repo.ResultSet{
+		Fields: []string{
+			"Title",
+			"Author",
+			"Genre",
+		},
+	}
+	rs.Items = []repo.Resultable{
+		&repo.Book{
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+		&repo.Book{
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+		&repo.Book{
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+	}
+	return rs, nil
+}
+
 
 const (
 	BodyData int = iota
 	BodyForm
 	BodyMenu
 )
-type MainUI struct {
+
+type MainUI struct {	
 
 	OpenedBody binding.Int
+
+	Repo       repo.BookSearcher      
 
 	Error      binding.String
 	Success    binding.String
 	Info       binding.String
 
 }
+
 func NewMainUI() *MainUI {
 	mu := &MainUI{
+		
 		OpenedBody:  binding.NewInt(),
+
+		Repo: &mockBookSearcher{},
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),

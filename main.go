@@ -1,11 +1,10 @@
 package main
 
 import (
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
-	"github.com/dubbersthehoser/mayble/internal/gui/view"
+	"github.com/dubbersthehoser/mayble/internal/view"
 	//"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
 )
 
