@@ -92,13 +92,32 @@ func NewBookVM(id int64, title, author, genre string) *BookVM {
 	return vm
 }
 
+
 const dateFormat = "02/01/2006"
+
 func formatDate(t *time.Time) string {
 	return t.Format(dateFormat)
 }
+
 func parseDate(t string) (*time.Time, error) {
 	ret, err := time.Parse(t, dateFormat)
 	return &ret, err
 }
 
 
+func formatRating(r int) string {
+	switch r {
+	case 1:
+		return "⭐"
+	case 2:
+		return "⭐⭐"
+	case 3:
+		return "⭐⭐⭐"
+	case 4:
+		return "⭐⭐⭐⭐"
+	case 5:
+		return "⭐⭐⭐⭐⭐"
+	default:
+		return "N/A"
+	}
+}

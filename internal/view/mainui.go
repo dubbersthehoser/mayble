@@ -7,7 +7,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
 
-	"fyne.io/fyne/v2/layout"
+	//"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
@@ -62,8 +62,8 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 
 	form := BookForm(formVM)
 
-	tableVM := viewmodel.NewTable(uiVM.Repo)
-	table := BookTable(w, tableVM)
+	tableVM := viewmodel.NewTablesVM(uiVM.Repo)
+	table := BookTables(tableVM)
 
 	body := container.NewStack(form)
 
@@ -97,31 +97,29 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 }
 
 
-func BookTables(vm *viewmodel.TableVM) *fyne.Container {
+func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
 
 	editBtn := widget.NewButton("EDIT", nil)
+	_ = editBtn
 
-	search := widget.NewEntry()
-
-	selected := viewmodel.NewItemSelected()
-
-	tables := layout.NewStackLayout()
+	search := widget.NewEntryWithData(vm.Query.SearchText)
+	_ = search
 
 	// switch 
-	switcher := widget.NewRadioGroup(vm.TableJoins(), func(s string) {
-	})
-
-
-
-	switcher.Horizontal = true
-	switcher.Required = true
-	switcher.Selected = vm.TableJoins()[0]
-
-	return nil
+	tabTables := container.NewAppTabs()
+	for _, table := range vm.TableNames() {
+		tvm := vm.GetTable(table)
+		println(tvm)
+		tab := container.NewTabItem(table, BookTable(tvm))
+		tabTables.Append(tab)
+	}
+	return tabTables
 
 }
 
 func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
+	
+	println(vm)
 
 	//
 	// Table
@@ -133,8 +131,7 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
-			rowLen, colLen = vm.Table().Size()
-			println(rowLen, colLen)
+			rowLen, colLen = vm.Size()
 			colLen += 1 // (A) have an extra header.
 			return 
 		},
@@ -144,13 +141,13 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 			return object
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
-			_, colLen := vm.Table().Size()
+			_, colLen := vm.Size()
 			if cellID.Col < colLen {
-				data, err := vm.Table().GetString(cellID.Row, cellID.Col)
+				data, err := vm.Get(cellID.Row, cellID.Col)
 				if err != nil {
 					panic(err)
 				}
-				object.(*widget.Label).SetText(data)
+				object.(*widget.Label).SetText(data.AsString())
 			} else { // (A) create empty column.
 				object.(*widget.Label).SetText("")
 			}
@@ -159,16 +156,16 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return NewColumnButton("placeholder", vm.OrderField, vm.OrderASC)
+		return NewColumnButton("placeholder", vm.Query.OrderField, vm.Query.OrderASC)
 	}
 
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
-		_, colLen := vm.Table().Size()
+		_, colLen := vm.Size()
 		if cellID.Col < colLen {
-			header := vm.Table().Headers()[cellID.Col]
+			header := vm.Headers()[cellID.Col]
 			object.(*ColumnButton).SetLabel(header)
 			object.(*ColumnButton).Show()
 		} else { // (A) create hidden header.
@@ -181,15 +178,18 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		
 	}
 
-	for i, h := range vm.Table().Headers() {
-		size := vm.Table().GetMaxTextLength(h)
+	println(vm)
+
+	for i, h := range vm.Headers() {
+		//size := vm.Table().GetMaxTextLength(h)
+		size := len(h)
 		if size > 0 {
 			table.SetColumnWidth(i, float32(size * 20))
 		}
 	}
 
-	column := widget.NewCheckGroup(vm.Table().Headers(), func(list []string) {
-		vm.OnDropColumns(list)
+	column := widget.NewCheckGroup(vm.Headers(), func(list []string) {
+		println("not implemented")
 	})
 	column.Horizontal = true
 

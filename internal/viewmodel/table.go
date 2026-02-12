@@ -2,10 +2,8 @@ package viewmodel
 
 
 import (
-	"time"
 	"errors"
 	"slices"
-	"strconv"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -13,11 +11,20 @@ import (
 )
 
 
+
+type ValueItemView interface {
+	Header()   string
+	AsString() string
+	ID()       int64
+}
+
+
 type cellIndex uint
 
-const nilIndex cellIndex = 0
 
 type cellKind int 
+
+
 const (
 	cellNone = iota
 	cellTable      // root grand parent of all cells
@@ -25,37 +32,50 @@ const (
 	cellData
 )
 
+
 type dataCell struct {
 	kind      cellKind
 
-	label     string    // header label
-	name      string    // table name
-	data      any       // data
+	table     string
+	header    string
+	data      ValueItemView // data
 
+	parent cellIndex
 	first cellIndex
 	next  cellIndex
 	prev  cellIndex
 }
 
+
 type cellList struct {
-	cells []dataCell
+	cells    []dataCell
+	freeList cellIndex  // freelist of avaliable cells
 }
+
 func newCellList() *cellList{
-	return &cellList{
-		cells: make([]dataCell, 1),
+	cl := &cellList{
+		cells: make([]dataCell, 2),
+		freeList: cellIndex(1),
 	}
+	return cl
 }
-func (cl *cellList) avaliable() (cellIndex, error) {
-	for i, cell := range cl.cells[1:] {
-		if cell.kind == cellNone {
-			return cellIndex(i), nil
-		}
+
+func (cl *cellList) avaliable(k cellKind) (cellIndex, error) {
+	// use free list to get next wiped cell.
+	first := cl.get(cl.freeList).first
+	if first == 0 {
+		return cl.newCell(k)
 	}
-	return cl.newCell(cellNone)
+	cell := first
+	cl.get(cl.freeList).first = cl.get(first).next
+	cl.get(cell).next = 0
+	cl.get(cell).kind = k
+	return cell, nil
 }
 
 func (cl *cellList) wipe(i cellIndex) {
 	cl.cells[i] = dataCell{}
+	appendCellToParent(cl, cl.freeList, i)
 }
 
 func (cl *cellList) newCell(k cellKind) (cellIndex, error) {
@@ -67,220 +87,335 @@ func (cl *cellList) newCell(k cellKind) (cellIndex, error) {
 	index := len(cl.cells) - 1
 	return cellIndex(index), nil
 }
+
 func (cl *cellList) get(i cellIndex) *dataCell {
 	return &cl.cells[i]
 }
 
 type table struct {
+	name  string
 	cells *cellList
 	root  cellIndex
 }
 
-func NewTable(cl *cellList, headers []string) *table {
+
+func appendCellToParent(cells *cellList, parent, item cellIndex) {
+	first := cells.get(parent).first
+	if cells.get(first).kind == cellNone {
+		cells.get(parent).first = item
+		cells.get(item).next = item
+		cells.get(item).prev = item
+	} else {
+		last := cells.get(first).prev
+		cells.get(first).prev = item
+		cells.get(item).prev = last
+		cells.get(item).next = first
+		cells.get(last).next = item
+	}
+	cells.get(item).parent = parent
+}
+func cellRowLength(cells *cellList, parent cellIndex) int {
+	first := cells.get(parent).first
+	if cells.get(first).kind == cellNone {
+		return 0
+	}
+	curr := first
+	count := 0
+	for {
+		curr = cells.get(curr).next
+		count += 1
+		if curr == first {
+			break
+		}
+	}
+	return count
+}
+
+
+func newTable(cl *cellList, name string, headers []string) *table {
 	t := &table{
 		cells: cl,
-		
+		name: name,
 	}
 
-	curr, _ := t.cells.newCell(cellTable)
-
-	t.root = curr
-
-	var first cellIndex
-
-	for i, h := range headers {
+	root, _ := t.cells.newCell(cellTable)
+	t.root = root
+	for _, h := range headers {
 		cell, _ := t.cells.newCell(cellHeader)
-		if i == 0 {
-			t.cells.get(t.root).first = cell
-			t.cells.get(t.root).prev = cell
-			t.cells.get(t.root).next = cell
-			curr = cell
-			first = cell
-		} else {
-			t.cells.get(curr).next = cell
-			t.cells.get(first).prev = cell
-			curr = cell
-		}
-		t.cells.get(cell).label = h
+		t.cells.get(cell).header = h
+		t.cells.get(cell).table = name
+		t.cells.get(cell).parent = root
+		appendCellToParent(t.cells, root, cell)
 	}
 	return t
 }
 
-func (t *table) dataClear() {
+func (t *table) addValue(data ValueItemView) error {
+
+	newCell, _ := t.cells.avaliable(cellData)
+	t.cells.get(newCell).data = data
+	t.cells.get(newCell).header = data.Header()
+	t.cells.get(newCell).table = t.name
+
+	first := t.cells.get(t.root).first
+	curr := first
+
+	for { // do loop; God's loop
+
+		if t.cells.get(curr).header == data.Header() {
+			appendCellToParent(t.cells, curr, newCell)
+			return nil
+		}
+		
+		curr = t.cells.get(curr).next
+
+		if curr == first {
+			break
+		}
+	}
+	return errors.New("table: header not found")
+}
+
+func (t *table) headers() []string {
 	
+	headers := make([]string, 0)
+
+	first := t.cells.get(t.root).first
+	curr := first
+
+	for {
+		headers = append(headers, t.cells.get(curr).header)
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return headers
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-type DataItem struct {
-	field string
-	id   int64
-	data any
-}
-
-func newDataItem(id int64, data any, field string) *DataItem {
-	return &DataItem{
-		id: id,
-		data: data,
-		field: field,
+func (t *table) clearValues() {
+	headerFirst := t.cells.get(t.root).first
+	headerCurr := headerFirst
+	for {
+		first := t.cells.get(headerCurr).first
+		curr := first
+		for {
+			remove := curr
+			curr = t.cells.get(remove).next
+			t.cells.wipe(remove)
+			if curr == first {
+				break
+			}
+		}
+		if headerCurr == headerFirst {
+			break
+		}
 	}
 }
 
-func (di *DataItem) Field() string {
-	return di.field
-}
-
-func (di *DataItem) GetID() (int64) {
-	return di.id
-}
-
-func (di *DataItem) AsView() (string, error) {
-	switch v := di.data.(type) {
-	case string:
-		return v, nil
-	case *time.Time:
-		return formatDate(v), nil
-	case int:
-		return strconv.Itoa(v) , nil
-	default:
-		return "", errors.New("as view: invalid value")
-	}
-}
-
-
-type DataTable struct {
-	name       string
-	headers    []string
-	exclude    []string
-	data       [][]DataItem
-	textLength map[string]int
-}
-
-func newDataTable(name string, headers []string) *DataTable {
-	dt := &DataTable{
-		name: name,
-		headers: headers,
-		data: make([][]DataItem, 0),
-		textLength: make(map[string]int),
-	}
-	for _, h := range headers {
-		dt.textLength[h] = len(h)
-	}
-	return dt
-}
-
-func (dt *DataTable) deleteData() {
-	dt.data = dt.data[:0]
-}
-
-func (dt *DataTable) add(row []DataItem) {
-	if len(row) != len(dt.Headers()) {
-		panic("row length header length missmatch")
+func (t *table) getValue(row int, header string) (ValueItemView, error) {
+	rootHeader := cellIndex(0)
+	firstHeader := t.cells.get(t.root).first
+	currHeader := firstHeader
+	for {
+		if t.cells.get(currHeader).header == header {
+			rootHeader = currHeader
+		}
+		currHeader = t.cells.get(currHeader).next
+		if currHeader == firstHeader {
+			break
+		}
 	}
 
-	dt.data = append(dt.data, row)
+	first := t.cells.get(rootHeader).first
+	curr := first
+	count := 0
+	for {
+		if count == row {
+			return t.cells.get(curr).data, nil
+		}
+		count += 1
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return nil, errors.New("table: value not found")
 }
 
-func (dt *DataTable) Size() (row, col int) {
-	row = len(dt.data)
-	if row == 0 {
-		return 0, 0
-	}
-	col = len(dt.data[0])
+func (t *table) size() (row int, col int) {
+	col = len(t.headers())
+	first := t.cells.get(t.root).first
+	row = cellRowLength(t.cells, first)
 	return row, col
 }
 
 
-// Headers list current header labels in table.
-func (dt *DataTable) Headers() []string {
-	if len(dt.exclude) == 0 {
-		return dt.headers
-	}
-	set := []string{}
-	for _, h := range dt.headers {
-		if slices.Contains(dt.exclude, h) {
-			continue
+func searchTable(t *table, s string) (float64, int, int) {
+	firstHeader := t.cells.get(t.root).first
+	currHeader := firstHeader
+
+	row := 0
+	col := 0
+
+	for {
+		currHeader = t.cells.get(currHeader).next
+		
+		first := t.cells.get(currHeader).first
+		curr := first
+		for {
+			data := t.cells.get(curr).data
+			if data.AsString() == s {
+				return 1.0, row, col
+			}
+			row += 1
+			curr = t.cells.get(curr).next
+			if curr == first {
+				break
+			}
 		}
-		set = append(set, h)
+		col += 1
+		
+		if currHeader == firstHeader {
+			break
+		}
 	}
-	return set
-}
+	return 0.0, row, col
+} 
 
-func (dt *DataTable) GetMaxTextLength(header string) int {
-	s, ok := dt.textLength[header]
-	if !ok {
-		panic("header not found in text size")
-	}
-	return s
-}
 
-func (dt *DataTable) GetItem(row, col int) (*DataItem, error) {
-	if row < 0 || col < 0 {
-		return nil, errors.New("get item: out of range")
-	}
 
-	rowSize, colSize := dt.Size()
-	
-	if row >= rowSize || col >= colSize {
-		return nil, errors.New("get item: out of range")
-	}
-
-	if len(dt.exclude) == 0 {
-		return &dt.data[row][col], nil
-	}
-
-	headers := dt.Headers()
-	col = slices.Index(dt.headers, headers[col])
-	return &dt.data[row][col], nil
-}
-
-func (dt *DataTable) GetString(row, col int) (string, error) {
-	item, err := dt.GetItem(row, col)
-	if err != nil {
-		return "", err
-	}
-	switch v := item.data.(type) {
-	case string:
-		return v, nil
-	case time.Time:
-		return formatDate(&v), nil
+func getResultFields(r repo.Resultable) []string {
+	switch r.(type) {
+	case *repo.Book:
+		return []string{
+			"Title",
+			"Author",
+			"Genre",
+		}
+	case *repo.BookLoan:
+		return []string{
+			"Title",
+			"Author",
+			"Genre",
+			"Borrower",
+			"Loaned",
+		}
+	case *repo.BookRead:
+		return []string{
+			"Title",
+			"Author",
+			"Genre",
+			"Rating",
+			"Completed",
+		}
 	default:
-		return "", errors.New("unknown data in table")
+		return []string{}
 	}
 }
+
+
+func getTableHeaders(name repo.BookJoin) []string {
+	switch name {
+	case repo.Main:
+		return getResultFields(&repo.Book{})
+	case repo.Loaned:
+		return getResultFields(&repo.BookLoan{})
+	case repo.Read:
+		return getResultFields(&repo.BookRead{})
+	default:
+		return []string{}
+	}
+}
+
+
+
+type loadedItem struct {
+	field  string
+	column int
+	table *TableVM
+}
+
+func newLoadedItem(t *TableVM, column int, field string) *loadedItem {
+	return &loadedItem{
+		field: field,
+		table: t,
+		column: column,
+	}
+} 
+
+func (bi *loadedItem) ID() int64 {
+	data := bi.table.loaded[bi.column]
+	return data.ID()
+}
+
+func (bi *loadedItem) AsString() string {
+	r := bi.table.loaded[bi.column]
+	switch data := r.(type) {
+	case *repo.Book:
+		switch bi.field {
+		case "Title":
+			return data.Title
+		case "Author":
+			return data.Author
+		case "Genre":
+			return data.Genre
+		default:
+			panic("bookItem: field not found")
+		}
+	case *repo.BookLoan:
+		switch bi.field {
+		case "Title":
+			return data.Title
+		case "Author":
+			return data.Author
+		case "Genre":
+			return data.Genre
+		case "Borrower":
+			return data.Borrower
+		case "Loaned":
+			return formatDate(data.Loaned)
+		default:
+			panic("bookItem: field not found")
+		}
+	case *repo.BookRead:
+		switch bi.field {
+		case "Title":
+			return data.Title
+		case "Author":
+			return data.Author
+		case "Genre":
+			return data.Genre
+		case "Rating":
+			return formatRating(data.Rating)
+		case "Loaned":
+			return formatDate(data.Completed)
+		default:
+			panic("bookItem: field not found")
+		}
+	default:
+		return "PlaceHolder"
+	}
+}
+
 
 
 // itemSelected manage selected item form table.
 type ItemSelected struct {
 	listeners []binding.DataListener
-	item *DataItem
+	item ValueItemView
 }
 
 // Get return item when item isn't nil otherwise returns an error.
-func (is *ItemSelected) Get() (*DataItem, error) {
+func (is *ItemSelected) Get() (ValueItemView, error) {
 	if is.item == nil {
 		return nil, errors.New("item not selected")
 	}
 	return is.item, nil
 }
 
-func (is *ItemSelected) Set(di *DataItem) (error) {
-	is.item = di
+func (is *ItemSelected) Set(vi ValueItemView) (error) {
+	is.item = vi
 	is.notify()
 	return nil
 }
@@ -310,46 +445,111 @@ func NewItemSelected() *ItemSelected {
 	}
 }
 
-type QueryVM struct {
-	
-	table      repo.BookJoin
 
+type QueryVM struct {
+	table      *repo.BookJoin
 	SearchText binding.String
 	SearchFrom binding.String
-
 	OrderField binding.String
 	OrderASC   binding.Bool
 }
 
+func newQueryVM(table *repo.BookJoin) *QueryVM {
+	return &QueryVM{
+		table: table,
+		OrderField: binding.NewString(),
+		OrderASC:   binding.NewBool(),
+		SearchText: binding.NewString(),
+	}
+} 
+
+
+type TableVM struct {
+	selected *ItemSelected
+	repo     repo.BookSearcher
+	Query    *QueryVM
+	loaded   []repo.Resultable
+	view     *table
+	
+	l        *listener
+}
+
+func NewTableVM(table repo.BookJoin, headers []string, query *QueryVM) *TableVM {
+	return &TableVM{
+		view: newTable(newCellList(), string(table), headers),
+		loaded: make([]repo.Resultable, 0),
+		selected: &ItemSelected{},
+		Query: query,
+		l: &listener{},
+	}
+}
+
+func (t *TableVM) AddListener(l binding.DataListener) {
+	t.l.AddListener(l)
+}
+
+func (t *TableVM) Headers() []string {
+	return t.view.headers()
+}
+
+func (t *TableVM) load() error {
+	
+	param := repo.BookSearchParams{
+		Join: *t.Query.table,
+	}
+
+	rSet, err := t.repo.BookSearch(param)
+	if err != nil {
+		return err
+	}
+
+	t.loaded = rSet.Items
+	return nil
+}
+
+func (t *TableVM) Size() (int, int) {
+	return t.view.size()
+}
+
+func (t *TableVM) Get(row, col int) (ValueItemView, error) {
+	name := t.view.headers()[col]
+	v, err := t.view.getValue(row, name)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+
+
 type TablesVM struct {
 	
 	table    repo.BookJoin
-	tables   map[repo.BookJoin]DataTable
-
-	selected *ItemSelected
+	tables   map[repo.BookJoin]TableVM
 
 	repo  repo.BookSearcher
 	Query *QueryVM
 
-	listeners []binding.DataListener
-
+	l *listener
 }
 
 func NewTablesVM(bs repo.BookSearcher) *TablesVM {
 	t := &TablesVM{
 		table:     repo.Main,
-		tables:    make(map[repo.BookJoin]DataTable),
-		selected: &ItemSelected{},
+		tables:    make(map[repo.BookJoin]TableVM),
 		repo: bs,
+		l: &listener{},
 	}
+	t.Query = newQueryVM(&t.table)
+	t.LoadTables()
 	return t
 }
 
 func (t *TablesVM) LoadTables() error {
 	for _, name := range t.TableNames() {
-		t.tables[repo.BookJoin(name)] = DataTable{name: string(name)}
+		table := repo.BookJoin(name)
+		t.tables[table] = *NewTableVM(table, getTableHeaders(table), t.Query)
 	}
-
 	return nil
 }
 
@@ -357,9 +557,19 @@ func (t *TablesVM) TableName() string {
 	return string(t.table)
 }
 
-func (t *TablesVM) Table() *DataTable {
+func (t *TablesVM) GetTable(s string) *TableVM {
+	table := t.tables[repo.BookJoin(s)]
+	return &table
+}
+
+func (t *TablesVM) Table() *TableVM {
 	table := t.tables[t.table]
 	return &table
+}
+
+func (t *TablesVM) SetTable(s string) {
+	t.table = repo.BookJoin(s)
+	t.notify()
 }
 
 func (t *TablesVM) TableNames() []string {
@@ -370,80 +580,34 @@ func (t *TablesVM) TableNames() []string {
 	}
 }
 
-func (t *TablesVM) search() {
-	search, _ := t.Query.SearchText.Get()
-	from, _ := t.Query.SearchFrom.Get()
-	sortBy, _ := t.Query.OrderField.Get()
-	sortASC, _ := t.Query.OrderASC.Get()
-
-	direction := repo.DESC
-	if sortASC {
-		direction = repo.ASC
-	}
-
-	p := repo.BookSearchParams{
-		Join: t.table,
-		SortOrder: direction,
-		SortBy: sortBy,
-		Query: search,
-		QueryBy: from,
-	}
-
-	rs, err := t.repo.BookSearch(p)
-	if err != nil {
-		panic(err)
-	}
-
-	table := t.tables[t.table]
-	table.deleteData()
-	for i := range rs.Items {
-		switch v := rs.Items[i].(type) {
-		case *repo.Book:
-			row := []DataItem{
-				*newDataItem(v.ID(), v.Title, rs.Fields[0]),
-				*newDataItem(v.ID(), v.Author, rs.Fields[1]),
-				*newDataItem(v.ID(), v.Genre, rs.Fields[2]),
-			}
-			table.add(row)
-		case *repo.BookLoan:
-			row := []DataItem{
-				*newDataItem(v.ID(), v.Title, rs.Fields[0]),
-				*newDataItem(v.ID(), v.Author, rs.Fields[1]),
-				*newDataItem(v.ID(), v.Genre, rs.Fields[2]),
-
-				*newDataItem(v.ID(), v.Borrower, rs.Fields[3]),
-				*newDataItem(v.ID(), v.Loaned, rs.Fields[4]),
-			}
-			table.add(row)
-		case *repo.BookRead:
-			row := []DataItem{
-				*newDataItem(v.ID(), v.Title, rs.Fields[0]),
-				*newDataItem(v.ID(), v.Author, rs.Fields[1]),
-				*newDataItem(v.ID(), v.Genre, rs.Fields[2]),
-
-				*newDataItem(v.ID(), v.Rating, rs.Fields[3]),
-				*newDataItem(v.ID(), v.Completed, rs.Fields[4]),
-			}
-			table.add(row)
-		}
-	}
-	t.tables[t.table] = table
+func (t *TablesVM) notify() {
+	t.l.notify()
 }
 
-func (t *TablesVM) notify() {
+func (t *TablesVM) AddListener(l binding.DataListener) {
+	t.l.AddListener(l)
+}
+
+
+
+type listener struct {
+	listeners []binding.DataListener
+}
+
+func (t *listener) notify() {
 	for _, listener := range t.listeners {
 		listener.DataChanged()
 	}
 }
 
-func (t *TablesVM) AddListener(l binding.DataListener) {
+func (t *listener) AddListener(l binding.DataListener) {
 	if t.listeners == nil {
 		t.listeners = make([]binding.DataListener, 0)
 	}
 	t.listeners = append(t.listeners, l)
 }
 
-func (t *TablesVM) RemoveListener(l binding.DataListener) {
+func (t *listener) RemoveListener(l binding.DataListener) {
 	if t.listeners == nil {
 		return
 	}
