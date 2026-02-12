@@ -5,8 +5,8 @@ type BookJoin string
 
 const (
 	Main   BookJoin = "Book"
-	Read   BookJoin = "BookRead"
-	Loaned BookJoin = "BookLoaned"
+	Read   BookJoin = "Read"
+	Loaned BookJoin = "Loaned"
 )
 
 

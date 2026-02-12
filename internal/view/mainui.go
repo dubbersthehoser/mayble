@@ -7,7 +7,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
 
-	//"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
@@ -96,11 +96,32 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 	return frame
 }
 
-func BookTables() *fyne.Container {
+
+func BookTables(vm *viewmodel.TableVM) *fyne.Container {
+
+	editBtn := widget.NewButton("EDIT", nil)
+
+	search := widget.NewEntry()
+
+	selected := viewmodel.NewItemSelected()
+
+	tables := layout.NewStackLayout()
+
+	// switch 
+	switcher := widget.NewRadioGroup(vm.TableJoins(), func(s string) {
+	})
+
+
+
+	switcher.Horizontal = true
+	switcher.Required = true
+	switcher.Selected = vm.TableJoins()[0]
+
 	return nil
+
 }
 
-func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
+func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	//
 	// Table
@@ -113,6 +134,7 @@ func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
 			rowLen, colLen = vm.Table().Size()
+			println(rowLen, colLen)
 			colLen += 1 // (A) have an extra header.
 			return 
 		},
@@ -166,39 +188,17 @@ func BookTable(w fyne.Window, vm *viewmodel.TableVM) fyne.CanvasObject {
 		}
 	}
 
-	//
-	// Edit Field
-	//
-	editBtn := widget.NewButton("EDIT", nil)
-
-	//
-	// Search 
-	//
-	search := widget.NewEntry()
-
-	//
-	// Join
-	//
-	join := widget.NewRadioGroup(vm.TableJoins(), func(s string) {
-		vm.OnJoin(s)
-	})
-	join.Horizontal = true
-	join.Required = true
-	join.Selected = vm.TableJoins()[0]
-
-	//
-	// Column 
-	//
 	column := widget.NewCheckGroup(vm.Table().Headers(), func(list []string) {
 		vm.OnDropColumns(list)
 	})
 	column.Horizontal = true
 
+	// Listen for changes
 	vm.AddListener(binding.NewDataListener(func() {
 		table.Refresh()
 	}))
 
-	top := container.NewAdaptiveGrid(2, search, editBtn, join, column, )
+	top := container.NewAdaptiveGrid(1, column)
 	return container.NewBorder(top, nil, nil, nil, table)
 }
 
@@ -226,7 +226,6 @@ func NewColumnButton(label string, orderField binding.String, orderASC binding.B
 		if field != hb.label {
 			hb.SetText(hb.NormalLabel())
 		}
-			
 	}))
 
 	hb.OnTapped = func() {
@@ -247,6 +246,7 @@ func NewColumnButton(label string, orderField binding.String, orderASC binding.B
 	hb.ExtendBaseWidget(hb)
 	return hb
 }
+
 func (hb *ColumnButton) SetLabel(s string) {
 	hb.label = s
 	field, _ := hb.orderField.Get()
@@ -273,5 +273,3 @@ func (hb *ColumnButton) DESCLabel() string {
 func (hb *ColumnButton) MinSize() fyne.Size {
 	return hb.minSize
 }
-
-
