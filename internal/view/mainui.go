@@ -18,13 +18,13 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 	uiVM := viewmodel.NewMainUI()
 	formVM := viewmodel.NewBookForm(uiVM.Error, uiVM.Success)
 
-	addButton := widget.NewButton("SUBMIT", func() {
+	addButton := widget.NewButton("Create", func() {
 		_ = uiVM.OpenedBody.Set(viewmodel.BodyForm)
 	})
-	menuButton := widget.NewButton("MENU", func() {
+	menuButton := widget.NewButton("Menu", func() {
 		_ = uiVM.OpenedBody.Set(viewmodel.BodyMenu)
 	})
-	tablesButton := widget.NewButton("DATA", func() {
+	tablesButton := widget.NewButton("Tables", func() {
 		_ = uiVM.OpenedBody.Set(viewmodel.BodyData)
 	})
 
@@ -109,17 +109,19 @@ func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
 	tabTables := container.NewAppTabs()
 	for _, table := range vm.TableNames() {
 		tvm := vm.GetTable(table)
-		println(tvm)
-		tab := container.NewTabItem(table, BookTable(tvm))
+		tab := container.NewTabItem(viewmodel.TableLabel(table), BookTable(tvm))
 		tabTables.Append(tab)
 	}
+
+	tabTables.OnSelected = func(tab *container.TabItem) {
+		vm.SetTable(viewmodel.TableName(tab.Text))
+	}
+
 	return tabTables
 
 }
 
 func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
-	
-	println(vm)
 
 	//
 	// Table
@@ -142,12 +144,21 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
 			_, colLen := vm.Size()
+			println(colLen)
 			if cellID.Col < colLen {
 				data, err := vm.Get(cellID.Row, cellID.Col)
 				if err != nil {
 					panic(err)
 				}
-				object.(*widget.Label).SetText(data.AsString())
+				println("hello?")
+				hide, err := vm.IsItemHidden(cellID.Row, cellID.Col) 
+				if hide {
+					object.(*widget.Label).SetText("")
+					object.(*widget.Label).Hide()
+				} else {
+					object.(*widget.Label).Show()
+					object.(*widget.Label).SetText(data)
+				}
 			} else { // (A) create empty column.
 				object.(*widget.Label).SetText("")
 			}
@@ -165,9 +176,17 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		}
 		_, colLen := vm.Size()
 		if cellID.Col < colLen {
-			header := vm.Headers()[cellID.Col]
-			object.(*ColumnButton).SetLabel(header)
-			object.(*ColumnButton).Show()
+			hide, err := vm.IsHeaderHidden(cellID.Col) 
+			if err != nil {
+				panic(err)
+			}
+			if hide {
+				object.(*ColumnButton).Hide()
+			} else {
+				header := vm.Headers()[cellID.Col]
+				object.(*ColumnButton).SetLabel(header)
+				object.(*ColumnButton).Show()
+			}
 		} else { // (A) create hidden header.
 			object.(*ColumnButton).Hide()
 		}
@@ -175,10 +194,7 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	// Selection
 	table.OnSelected = func(id widget.TableCellID) {
-		
 	}
-
-	println(vm)
 
 	for i, h := range vm.Headers() {
 		//size := vm.Table().GetMaxTextLength(h)
@@ -189,16 +205,19 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	}
 
 	column := widget.NewCheckGroup(vm.Headers(), func(list []string) {
-		println("not implemented")
+		vm.SetHidden(list)
 	})
 	column.Horizontal = true
 
-	// Listen for changes
+	search := widget.NewEntry()
+
+	// Listen for updates
 	vm.AddListener(binding.NewDataListener(func() {
+		println("refresh")
 		table.Refresh()
 	}))
 
-	top := container.NewAdaptiveGrid(1, column)
+	top := container.NewAdaptiveGrid(1, column, search)
 	return container.NewBorder(top, nil, nil, nil, table)
 }
 
