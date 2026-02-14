@@ -121,3 +121,12 @@ func formatRating(r int) string {
 		return "N/A"
 	}
 }
+
+func RatingsStrings() []string {
+	s := 6
+	r := make([]string, s)
+	for i := range s {
+		r[i] = formatRating(i+1)
+	}
+	return r
+}

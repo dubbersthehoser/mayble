@@ -4,7 +4,6 @@ package viewmodel
 import (
 	"errors"
 	"slices"
-	"fmt"
 	"cmp"
 
 	"fyne.io/fyne/v2/data/binding"
@@ -170,7 +169,6 @@ func (t *table) addValue(header, s string) error {
 	curr := first
 
 	for { // do loop; God's loop
-
 		if t.cells.get(curr).header == header {
 			appendCellToParent(t.cells, curr, newCell)
 			return nil
@@ -198,12 +196,9 @@ func (t *table) appendRow(headers, values []string) error {
 }
 
 func (t *table) headers() []string {
-	
 	headers := make([]string, 0)
-
 	first := t.cells.get(t.root).first
 	curr := first
-
 	for {
 		headers = append(headers, t.cells.get(curr).header)
 		curr = t.cells.get(curr).next
@@ -235,7 +230,6 @@ func (t *table) clearValues() {
 }
 
 func (t *table) getCell(row, col int) (cellIndex, error) {
-	// 
 	headerIdx, err := t.getHeaderCell(col)
 	if err != nil {
 		return 0, err
@@ -306,7 +300,7 @@ func (t *table) size() (row int, col int) {
 	col = len(t.headers())
 	first := t.cells.get(t.root).first
 	row = cellRowLength(t.cells, first)
-	return row, col
+	return t.rowCount, col
 }
 
 func (t *table) setHidden(headers []string) {
@@ -561,7 +555,6 @@ func NewTableVM(table repo.BookJoin, headers []string, query *QueryVM, store rep
 }
 
 func (t *TableVM) SetHidden(hide []string) {
-	fmt.Println("Set: ", hide)
 	t.table.setHidden(hide)
 	t.l.notify()
 }
@@ -586,24 +579,22 @@ func (t *TableVM) load() error {
 		return nil
 	}
 
-	for y, result := range rSet.Items {
+	for _, result := range rSet.Items {
 		fields := getResultFields(result)
-		for x, field := range fields {
-			idx, err := t.table.getCell(y, x)
-			if err != nil {
-				 return err
-			}
-			cell := t.table.cells.get(idx)
-			cell.view = resultAsString(result, field)
-			cell.id = result.ID()
+		values := make([]string, len(fields))
+		for i, field := range fields {
+			value := resultAsString(result, field)
+			values[i] = value
+		}
+		err := t.table.appendRow(fields, values)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (t *TableVM) Size() (int, int) {
-	row, col := t.table.size()
-	fmt.Println("size:", row, col)
 	return t.table.size()
 }
 
@@ -640,11 +631,9 @@ func (t *TableVM) IsHeaderHidden(col int) (bool, error) {
 
 }
 
-
 func (t *TableVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
-
 
 
 type TablesVM struct {

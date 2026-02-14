@@ -144,13 +144,11 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
 			_, colLen := vm.Size()
-			println(colLen)
 			if cellID.Col < colLen {
 				data, err := vm.Get(cellID.Row, cellID.Col)
 				if err != nil {
 					panic(err)
 				}
-				println("hello?")
 				hide, err := vm.IsItemHidden(cellID.Row, cellID.Col) 
 				if hide {
 					object.(*widget.Label).SetText("")
@@ -213,7 +211,6 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	// Listen for updates
 	vm.AddListener(binding.NewDataListener(func() {
-		println("refresh")
 		table.Refresh()
 	}))
 
