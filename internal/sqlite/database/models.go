@@ -11,7 +11,6 @@ type Book struct {
 	Title     string
 	Author    string
 	Genre     string
-	Ratting   int64
 }
 
 type LoanedBook struct {
@@ -20,4 +19,12 @@ type LoanedBook struct {
 	Date      string
 	Name      string
 	BookID    int64
+}
+
+type ReadBook struct {
+	CreatedAt     int64
+	UpdatedAt     int64
+	Rating        int64
+	DateCompleted string
+	BookID        int64
 }

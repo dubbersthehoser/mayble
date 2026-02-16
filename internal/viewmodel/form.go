@@ -5,11 +5,10 @@ import (
 
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
 type BookForm struct {
-	bus       *bus.Bus
+//	bus       *bus.Bus
 	Title     binding.String
 	Author    binding.String
 	Genre     binding.String
@@ -32,7 +31,7 @@ type BookForm struct {
 
 func NewBookForm(err, success binding.String) *BookForm {
 	bf := &BookForm{
-		bus: &bus.Bus{},
+	//	bus: &bus.Bus{},
 
 		Title: binding.NewString(),
 		Author: binding.NewString(),
@@ -105,10 +104,10 @@ func (bf *BookForm) validate() error {
 }
 
 func (bf *BookForm) Submit() {
-	bf.bus.Publish(bus.Event{
-		On: "BookFormSubmit",
-		Data: bf,
-	})
+	//bf.bus.Publish(bus.Event{
+	//	On: "BookFormSubmit",
+	//	Data: bf,
+	//})
 	err := bf.validate()
 	if err != nil {
 		_ = bf.Valid.Set(false)
@@ -132,7 +131,7 @@ func (bf *BookForm) Submit() {
 }
 
 func (bf *BookForm) Cancel() {
-	bf.bus.Publish(bus.Event{
-		On: "BookFormClose",
-	})
+	//bf.bus.Publish(bus.Event{
+	//	On: "BookFormClose",
+	//})
 }

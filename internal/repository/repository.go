@@ -1,57 +1,71 @@
 package repository
 
-
-type BookJoin string
-
-const (
-	Main   BookJoin = "Book"
-	Read   BookJoin = "Read"
-	Loaned BookJoin = "Loaned"
+import (
+	"time"
 )
 
-
-type SortDirection int
-
+type Action string
 const (
-	ASC SortDirection = iota
-	DESC
+	Delete Action = "delete"
+	Update Action = "update"
+	Create Action = "create"
+	Select Action = "select"
 )
 
-func (sd SortDirection) String() string {
-	switch sd {
-	case ASC:
-		return "ASC"
-	case DESC:
-		return "DESC"
+type Query struct {
+	
+	Variant Variant
+
+	Action   Action
+
+	BookID    int64
+	SortBy    string
+	OrderBy   string
+
+	Entry    *BookEntry
+}
+
+type Variant int
+
+const (
+	Book   Variant = 1 << iota
+	Loaned
+	Read
+)
+
+func (v Variant) String() string {
+	switch v {
+	case (Book|Loaned|Read):
+		return "book|loaned|Read"
+	case (Book|Loaned):
+		return "book|loaned"
+	case (Book|Read):
+		return "book|read"
+	case (Book):
+		return "book"
+	case 0:
+		return ""
 	default:
-		panic("invalid sort direction")
+		panic("variant not found")
 	}
 }
 
+type BookEntry struct {
+	Variant Variant
+	ID      int64
 
-type Resultable interface {
-	ID()   int64
-	Type() string
+	Title  string
+	Author string
+	Genre  string
+
+	Rating int
+	Read   time.Time
+
+	Borrower string
+	Loaned   time.Time
 }
 
-
-type ResultSet struct {
-	Items  []Resultable
-	Fields []string
-}
-
-
-type BookSearchParams struct {
-	Query     string
-	QueryBy   string
-
-	Join      BookJoin
-
-	SortBy    string
-	SortOrder SortDirection
-}
-
-type BookSearcher interface {
-	BookSearch(params BookSearchParams) (ResultSet, error)
+type BookQuerier interface {
+	BookQuery(q *Query) ([]BookEntry, error)
 }
 

@@ -10,25 +10,23 @@ import (
 )
 
 const createBook = `-- name: CreateBook :one
-INSERT INTO books(created_at, updated_at, id, title, author, genre, ratting)
+INSERT INTO books(created_at, updated_at, id, title, author, genre)
 VALUES (
 	unixepoch(),
 	unixepoch(),
 	?,
 	?,
 	?,
-	?,
 	?
 )
-RETURNING id, created_at, updated_at, title, author, genre, ratting
+RETURNING id, created_at, updated_at, title, author, genre
 `
 
 type CreateBookParams struct {
-	ID      int64
-	Title   string
-	Author  string
-	Genre   string
-	Ratting int64
+	ID     int64
+	Title  string
+	Author string
+	Genre  string
 }
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
@@ -37,7 +35,6 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		arg.Title,
 		arg.Author,
 		arg.Genre,
-		arg.Ratting,
 	)
 	var i Book
 	err := row.Scan(
@@ -47,7 +44,6 @@ func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, e
 		&i.Title,
 		&i.Author,
 		&i.Genre,
-		&i.Ratting,
 	)
 	return i, err
 }
@@ -62,15 +58,14 @@ func (q *Queries) DeleteBook(ctx context.Context, id int64) error {
 }
 
 const getAllBooks = `-- name: GetAllBooks :many
-SELECT id, title, author, genre, ratting FROM books
+SELECT id, title, author, genre FROM books
 `
 
 type GetAllBooksRow struct {
-	ID      int64
-	Title   string
-	Author  string
-	Genre   string
-	Ratting int64
+	ID     int64
+	Title  string
+	Author string
+	Genre  string
 }
 
 func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
@@ -87,7 +82,6 @@ func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
 			&i.Title,
 			&i.Author,
 			&i.Genre,
-			&i.Ratting,
 		); err != nil {
 			return nil, err
 		}
@@ -103,16 +97,15 @@ func (q *Queries) GetAllBooks(ctx context.Context) ([]GetAllBooksRow, error) {
 }
 
 const getBookByID = `-- name: GetBookByID :one
-SELECT id, title, author, genre, ratting FROM books
+SELECT id, title, author, genre FROM books
 WHERE id = ?
 `
 
 type GetBookByIDRow struct {
-	ID      int64
-	Title   string
-	Author  string
-	Genre   string
-	Ratting int64
+	ID     int64
+	Title  string
+	Author string
+	Genre  string
 }
 
 func (q *Queries) GetBookByID(ctx context.Context, id int64) (GetBookByIDRow, error) {
@@ -123,7 +116,6 @@ func (q *Queries) GetBookByID(ctx context.Context, id int64) (GetBookByIDRow, er
 		&i.Title,
 		&i.Author,
 		&i.Genre,
-		&i.Ratting,
 	)
 	return i, err
 }
@@ -134,19 +126,17 @@ SET
 	updated_at = unixepoch(),
 	title  = ?,
 	author = ?,
-	genre  = ?,
-	ratting = ?
+	genre  = ?
 
 WHERE id = ?
-RETURNING id, created_at, updated_at, title, author, genre, ratting
+RETURNING id, created_at, updated_at, title, author, genre
 `
 
 type UpdateBookParams struct {
-	Title   string
-	Author  string
-	Genre   string
-	Ratting int64
-	ID      int64
+	Title  string
+	Author string
+	Genre  string
+	ID     int64
 }
 
 func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, error) {
@@ -154,7 +144,6 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		arg.Title,
 		arg.Author,
 		arg.Genre,
-		arg.Ratting,
 		arg.ID,
 	)
 	var i Book
@@ -165,7 +154,6 @@ func (q *Queries) UpdateBook(ctx context.Context, arg UpdateBookParams) (Book, e
 		&i.Title,
 		&i.Author,
 		&i.Genre,
-		&i.Ratting,
 	)
 	return i, err
 }

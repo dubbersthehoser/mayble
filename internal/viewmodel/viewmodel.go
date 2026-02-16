@@ -11,32 +11,36 @@ import (
 
 type mockBookSearcher struct {}
 
-func (m *mockBookSearcher) BookSearch(param repo.BookSearchParams) (repo.ResultSet, error) {
-	rs := repo.ResultSet{
-		Fields: []string{
-			"Title",
-			"Author",
-			"Genre",
+var _ repo.BookQuerier = &mockBookSearcher{}
+
+func (m *mockBookSearcher) BookQuery(q *repo.Query) ([]repo.BookEntry, error) {
+	es := []repo.BookEntry{
+		{
+			Variant: repo.Book,
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+		{
+			Variant: repo.Book,
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+		{
+			Variant: repo.Book,
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
+		},
+		{
+			Variant: repo.Book,
+			Title: "Example Title",
+			Author: "Example Author",
+			Genre: "Example Genre",
 		},
 	}
-	rs.Items = []repo.Resultable{
-		&repo.Book{
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-		&repo.Book{
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-		&repo.Book{
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-	}
-	return rs, nil
+	return es, nil
 }
 
 
@@ -50,7 +54,7 @@ type MainUI struct {
 
 	OpenedBody binding.Int
 
-	Repo       repo.BookSearcher      
+	Repo       repo.BookQuerier
 
 	Error      binding.String
 	Success    binding.String

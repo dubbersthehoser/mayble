@@ -102,19 +102,16 @@ func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
 	editBtn := widget.NewButton("EDIT", nil)
 	_ = editBtn
 
-	search := widget.NewEntryWithData(vm.Query.SearchText)
-	_ = search
-
 	// switch 
 	tabTables := container.NewAppTabs()
 	for _, table := range vm.TableNames() {
 		tvm := vm.GetTable(table)
-		tab := container.NewTabItem(viewmodel.TableLabel(table), BookTable(tvm))
+		tab := container.NewTabItem(table, BookTable(tvm))
 		tabTables.Append(tab)
 	}
 
 	tabTables.OnSelected = func(tab *container.TabItem) {
-		vm.SetTable(viewmodel.TableName(tab.Text))
+		vm.SetTable(tab.Text)
 	}
 
 	return tabTables
@@ -145,12 +142,8 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
 			_, colLen := vm.Size()
 			if cellID.Col < colLen {
-				data, err := vm.Get(cellID.Row, cellID.Col)
-				if err != nil {
-					panic(err)
-				}
-				hide, err := vm.IsItemHidden(cellID.Row, cellID.Col) 
-				if hide {
+				data := vm.Get(cellID.Row, cellID.Col)
+				if vm.IsItemHidden(cellID.Row, cellID.Col) {
 					object.(*widget.Label).SetText("")
 					object.(*widget.Label).Hide()
 				} else {
@@ -165,20 +158,22 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return NewColumnButton("placeholder", vm.Query.OrderField, vm.Query.OrderASC)
+		return NewColumnButton("placeholder", vm.SortBy, vm.SortOrder)
+	}
+
+	for i := range vm.Headers() {
+		width := vm.GetColumnWidth(i)
+		table.SetColumnWidth(i, width)
 	}
 
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
+		vm.StoreColumnWidth(cellID.Col, object.Size().Width)
 		_, colLen := vm.Size()
 		if cellID.Col < colLen {
-			hide, err := vm.IsHeaderHidden(cellID.Col) 
-			if err != nil {
-				panic(err)
-			}
-			if hide {
+			if vm.IsHeaderHidden(cellID.Col) {
 				object.(*ColumnButton).Hide()
 			} else {
 				header := vm.Headers()[cellID.Col]
@@ -194,27 +189,19 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	table.OnSelected = func(id widget.TableCellID) {
 	}
 
-	for i, h := range vm.Headers() {
-		//size := vm.Table().GetMaxTextLength(h)
-		size := len(h)
-		if size > 0 {
-			table.SetColumnWidth(i, float32(size * 20))
-		}
-	}
-
 	column := widget.NewCheckGroup(vm.Headers(), func(list []string) {
 		vm.SetHidden(list)
 	})
 	column.Horizontal = true
 
-	search := widget.NewEntry()
+	search := widget.NewEntryWithData(vm.SearchText)
 
 	// Listen for updates
 	vm.AddListener(binding.NewDataListener(func() {
 		table.Refresh()
 	}))
 
-	top := container.NewAdaptiveGrid(1, column, search)
+	top := container.NewAdaptiveGrid(1, search, column)
 	return container.NewBorder(top, nil, nil, nil, table)
 }
 
@@ -223,20 +210,20 @@ type ColumnButton struct {
 	widget.Button
 	minSize    fyne.Size
 	label      string
-	orderASC   binding.Bool
+	sortOrder  binding.String
 	orderField binding.String
 }
 
-func NewColumnButton(label string, orderField binding.String, orderASC binding.Bool) *ColumnButton {
+func NewColumnButton(label string, orderField binding.String, sortOrder binding.String) *ColumnButton {
 	hb := &ColumnButton{
 		label: label,
-		orderASC: orderASC,
+		sortOrder: sortOrder,
 		orderField: orderField,
 	}
 	orderField.AddListener(binding.NewDataListener(func() {
 		field, _ := orderField.Get()
 		if field == hb.label {
-			_ = orderASC.Set(true)
+			_ = sortOrder.Set("ASC")
 			hb.SetText(hb.ASCLabel())
 		}
 		if field != hb.label {
@@ -250,11 +237,11 @@ func NewColumnButton(label string, orderField binding.String, orderASC binding.B
 			orderField.Set(hb.label)
 
 		case hb.ASCLabel():
-			_ = orderASC.Set(false)
+			_ = sortOrder.Set("DESC")
 			hb.SetText(hb.DESCLabel())
 
 		case hb.DESCLabel():
-			_ = orderASC.Set(true)
+			_ = sortOrder.Set("ASC")
 			hb.SetText(hb.ASCLabel())
 		}
 	}
@@ -267,7 +254,7 @@ func (hb *ColumnButton) SetLabel(s string) {
 	hb.label = s
 	field, _ := hb.orderField.Get()
 	if field == hb.label {
-		_ = hb.orderASC.Set(true)
+		_ = hb.sortOrder.Set("ASC")
 		hb.SetText(hb.ASCLabel())
 	} else {
 		hb.SetText(hb.NormalLabel())

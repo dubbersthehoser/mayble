@@ -12,31 +12,33 @@ import (
 )
 
 
-
+// cellIndex handle for a cell.
 type cellIndex uint
 
+// noneIndex a handle to the None cell.
+const noneIndex cellIndex = 0
 
 type cellKind int 
 
-
 const (
-	cellNone = iota
-	cellTable      // root grand parent of all cells
-	cellHeader 
-	cellView
-	cellData
+	cellNone = iota // A free, avaliable, or stub cell.
+	cellTable       // Root grand parent of all cells
+	cellHeader      // Cell representing a table's header
+	cellView        // Cell representing a table's view data
 )
 
-
+// dataCell is a genric table cell type foreach kind of cell that can be linked
+// to other cells intrusively, via cellPool.
 type dataCell struct {
-	kind      cellKind
+	kind cellKind
 
-	hidden    bool
-	table     string
-	header    string
+	hidden bool
+	table  string
+	header string
 
-	view      string
-	id        int64
+	view string
+	id   int64
+	v    repo.Variant
 
 	parent cellIndex
 	first  cellIndex
@@ -45,48 +47,48 @@ type dataCell struct {
 }
 
 
+// cellPool manages the collection of cells, their handels and creation.
 type cellPool struct {
 	cells    []dataCell
-	freeList cellIndex  // freelist of avaliable cells
+	nextFree cellIndex // single linked free list of cells
 }
 
-func newCellList() *cellPool{
+func newCellPool() *cellPool{
 	cl := &cellPool{
-		cells: make([]dataCell, 2),
-		freeList: cellIndex(1),
+		cells: make([]dataCell, 1),
 	}
+	cl.cells[0].view = "STUB"
+	cl.cells[0].header = "STUB"
 	return cl
 }
 
-func (cl *cellPool) avaliable(k cellKind) (cellIndex, error) {
-	// use free list to get next wiped cell.
-	first := cl.get(cl.freeList).first
+func (cl *cellPool) create(k cellKind) cellIndex {
+	first := cl.nextFree
 	if first == 0 {
-		return cl.newCell(k)
+		cell := dataCell{
+			kind: k,
+		}
+		cl.cells = append(cl.cells, cell)
+		index := len(cl.cells) - 1
+		return cellIndex(index)
 	}
-	cell := first
-	cl.get(cl.freeList).first = cl.get(first).next
-	cl.get(cell).next = 0
-	cl.get(cell).kind = k
-	return cell, nil
+	cl.nextFree = cl.cells[first].next
+	cl.cells[first].next = noneIndex
+	return first
 }
 
-func (cl *cellPool) wipe(i cellIndex) {
-	cl.cells[i] = dataCell{}
-	appendCellToParent(cl, cl.freeList, i)
-}
-
-func (cl *cellPool) newCell(k cellKind) (cellIndex, error) {
-	cell := dataCell{
-		kind: k,
-	}
-
-	cl.cells = append(cl.cells, cell)
-	index := len(cl.cells) - 1
-	return cellIndex(index), nil
+func (cl *cellPool) destroy(idx cellIndex) {
+	cl.cells[idx] = dataCell{}
+	next := cl.nextFree
+	cl.cells[idx].next = next 
+	cl.cells[next].prev = idx
+	cl.nextFree = idx
 }
 
 func (cl *cellPool) get(i cellIndex) *dataCell {
+	if i >= cellIndex(len(cl.cells)) {
+		i = noneIndex
+	}
 	return &cl.cells[i]
 }
 
@@ -124,20 +126,23 @@ func cellRowLength(cells *cellPool, parent cellIndex) int {
 }
 
 
-
 type table struct {
-	name     string
-	headerOrder map[string]int
-	cells    *cellPool
-	root     cellIndex
-	rowCount int
+	name          string
+	headerOrder   map[string]int // maintain original header locations
+	cells         *cellPool
+	root          cellIndex
+	rowCount      int
 }
 
-func newTable(cl *cellPool, name string, headers []string) *table {
+func newTable(name string, headers []string) *table {
 	t := &table{
-		cells: cl,
+		cells: newCellPool(),
 		name: name,
 	}
+
+	t.cells.get(noneIndex).view = "STUB"
+	t.cells.get(noneIndex).header = "STUB"
+	t.cells.get(noneIndex).id = 0
 
 	t.headerOrder = make(map[string]int)
 
@@ -146,10 +151,10 @@ func newTable(cl *cellPool, name string, headers []string) *table {
 	}
 
 
-	root, _ := t.cells.newCell(cellTable)
+	root  := t.cells.create(cellTable)
 	t.root = root
 	for _, h := range headers {
-		cell, _ := t.cells.newCell(cellHeader)
+		cell := t.cells.create(cellHeader)
 		t.cells.get(cell).header = h
 		t.cells.get(cell).table = name
 		t.cells.get(cell).parent = root
@@ -158,12 +163,13 @@ func newTable(cl *cellPool, name string, headers []string) *table {
 	return t
 }
 
-func (t *table) addValue(header, s string) error {
+func (t *table) addValue(id int64, header, s string) error {
 
-	newCell, _ := t.cells.avaliable(cellView)
+	newCell := t.cells.create(cellView)
 	t.cells.get(newCell).view = s
 	t.cells.get(newCell).header = header
 	t.cells.get(newCell).table = t.name
+	t.cells.get(newCell).id = id
 
 	first := t.cells.get(t.root).first
 	curr := first
@@ -173,23 +179,23 @@ func (t *table) addValue(header, s string) error {
 			appendCellToParent(t.cells, curr, newCell)
 			return nil
 		}
-		
 		curr = t.cells.get(curr).next
-
 		if curr == first {
 			break
 		}
 	}
 	return errors.New("table: header not found")
 }
-func (t *table) appendRow(headers, values []string) error {
+
+func (t *table) appendRow(id int64, values []string) error {
+	headers := t.headers()
 	if len(headers) != len(values) {
 		return errors.New("missmatch headers to values")
 	}
 	for i := range headers {
 		header := headers[i]
 		value := values[i]
-		t.addValue(header, value)
+		t.addValue(id, header, value)
 	}
 	t.rowCount += 1
 	return nil
@@ -212,34 +218,37 @@ func (t *table) headers() []string {
 func (t *table) clearValues() {
 	headerFirst := t.cells.get(t.root).first
 	headerCurr := headerFirst
+	if headerCurr == noneIndex { // nothing to remove
+		return
+	}
+	t.rowCount -= 1
 	for {
 		first := t.cells.get(headerCurr).first
 		curr := first
 		for {
 			remove := curr
-			curr = t.cells.get(remove).next
-			t.cells.wipe(remove)
+			curr = t.cells.get(curr).next
+			t.cells.destroy(remove)
 			if curr == first {
 				break
 			}
 		}
+		t.rowCount -= 1
+		headerCurr = t.cells.get(headerCurr).next
 		if headerCurr == headerFirst {
 			break
 		}
 	}
 }
 
-func (t *table) getCell(row, col int) (cellIndex, error) {
-	headerIdx, err := t.getHeaderCell(col)
-	if err != nil {
-		return 0, err
-	}
+func (t *table) getCell(row, col int) cellIndex {
+	headerIdx := t.getHeaderCell(col)
 	first := t.cells.get(headerIdx).first
 	curr := first
 	count := 0
 	for {
 		if count == row {
-			return curr, nil
+			return curr
 		}
 		count += 1
 		curr = t.cells.get(curr).next
@@ -247,7 +256,7 @@ func (t *table) getCell(row, col int) (cellIndex, error) {
 			break
 		}
 	}
-	return 0, errors.New("table: row not found")
+	return noneIndex
 }
 
 func (t *table) getID(idx cellIndex) (int64, error) {
@@ -258,21 +267,18 @@ func (t *table) getID(idx cellIndex) (int64, error) {
 	return cell.id, nil
 }
 
-func (t *table) getValue(idx cellIndex) (string, error) {
+func (t *table) getValue(idx cellIndex) string {
 	cell := t.cells.get(idx)
-	if cell.kind != cellView {
-		return "", errors.New("table: invalid cell kind")
-	}
-	return cell.view, nil
+	return cell.view
 }
 
-func (t *table) getHeaderCell(col int) (cellIndex, error) {
+func (t *table) getHeaderCell(col int) cellIndex {
 	first := t.cells.get(t.root).first
 	curr := first
 	count := 0
 	for {
 		if count == col {
-			return curr, nil
+			return curr
 		}
 		count+=1
 		curr = t.cells.get(curr).next
@@ -280,19 +286,18 @@ func (t *table) getHeaderCell(col int) (cellIndex, error) {
 			break
 		}
 	}
-	return 0, errors.New("table: header not found")
+	return noneIndex
 }
 
-
-func (t *table) isHidden(idx cellIndex) (bool, error) {
+func (t *table) isHidden(idx cellIndex) bool {
 	cell := t.cells.get(idx)
 	switch cell.kind {
 	case cellView:
-		return t.cells.get(cell.parent).hidden, nil
+		return t.cells.get(cell.parent).hidden
 	case cellHeader:
-		return cell.hidden, nil
+		return cell.hidden
 	default:
-		return false, errors.New("invalid cell kind")
+		return t.cells.get(noneIndex).hidden
 	}
 }
 
@@ -344,16 +349,52 @@ func (t *table) setHidden(headers []string) {
 	}
 }
 
+func (t *table) WalkAllValues(fn func(*dataCell)) {
+	firstHeader := t.cells.get(t.root).first
+	currHeader := firstHeader
+	for {
+		first := t.cells.get(currHeader).first
+		curr := first
+		for {
+			fn(t.cells.get(curr))
+			curr = t.cells.get(curr).next
+			if curr == first {
+				break
+			}
+		}
+		currHeader = t.cells.get(currHeader).next
+		if currHeader == firstHeader {
+			break
+		}
+	}
+}
 
-func getResultFields(r repo.Resultable) []string {
-	switch r.(type) {
-	case *repo.Book:
+
+
+
+
+func VariantToTableName(v repo.Variant) string {
+	switch v {
+	case repo.Book:
+		return "All Books"
+	case repo.Book | repo.Loaned:
+		return "On Loaned"
+	case repo.Book | repo.Read:
+		return "Read"
+	default:
+		return "N/A"
+	}
+}
+
+func VariantFields(v repo.Variant) []string {
+	switch v {
+	case (repo.Book):
 		return []string{
 			"Title",
 			"Author",
 			"Genre",
 		}
-	case *repo.BookLoan:
+	case (repo.Book|repo.Loaned):
 		return []string{
 			"Title",
 			"Author",
@@ -361,197 +402,86 @@ func getResultFields(r repo.Resultable) []string {
 			"Borrower",
 			"Loaned",
 		}
-	case *repo.BookRead:
+	case (repo.Book|repo.Read):
 		return []string{
 			"Title",
 			"Author",
 			"Genre",
 			"Rating",
-			"Completed",
+			"Read",
 		}
 	default:
 		return []string{}
 	}
 }
 
-
-func getTableHeaders(name repo.BookJoin) []string {
-	switch name {
-	case repo.Main:
-		return getResultFields(&repo.Book{})
-	case repo.Loaned:
-		return getResultFields(&repo.BookLoan{})
-	case repo.Read:
-		return getResultFields(&repo.BookRead{})
-	default:
-		return []string{"N/A"}
-	}
-}
-
-func TableLabel(name string) string {
-	r := repo.BookJoin(name)
-	switch r {
-	case repo.Main:
-		return "All Books"
-	case repo.Loaned:
-		return "On Loan"
-	case repo.Read:
-		return "Read"
-	default:
-		return "n/a"
-	}
-}
-func TableName(label string) string {
-	switch label {
-	case "Books":
-		return string(repo.Main)
-	case "On Loan":
-		return string(repo.Loaned)
-	case "Read":
-		return string(repo.Read)
-	default:
-		return "n/a"
-	}
-	
-}
-
-
-func resultAsString(r repo.Resultable, field string) string {
-	switch data := r.(type) {
-	case *repo.Book:
-		switch field {
-		case "Title":
-			return data.Title
-		case "Author":
-			return data.Author
-		case "Genre":
-			return data.Genre
-		default:
-			panic("bookItem: field not found")
+func EntryValues(e *repo.BookEntry) []string {
+	switch e.Variant {
+	case (repo.Book):
+		return []string{
+			e.Title,
+			e.Author,
+			e.Genre,
 		}
-	case *repo.BookLoan:
-		switch field {
-		case "Title":
-			return data.Title
-		case "Author":
-			return data.Author
-		case "Genre":
-			return data.Genre
-		case "Borrower":
-			return data.Borrower
-		case "Loaned":
-			return formatDate(data.Loaned)
-		default:
-			panic("bookItem: field not found")
+	case (repo.Book|repo.Loaned):
+		return []string{
+			e.Title,
+			e.Author,
+			e.Genre,
+			e.Borrower,
+			formatDate(&e.Loaned),
 		}
-	case *repo.BookRead:
-		switch field {
-		case "Title":
-			return data.Title
-		case "Author":
-			return data.Author
-		case "Genre":
-			return data.Genre
-		case "Rating":
-			return formatRating(data.Rating)
-		case "Loaned":
-			return formatDate(data.Completed)
-		default:
-			panic("bookItem: field not found")
+	case (repo.Book|repo.Read):
+		return []string{
+			e.Title,
+			e.Author,
+			e.Genre,
+			formatRating(e.Rating),
+			formatDate(&e.Read),
 		}
 	default:
-		return "PlaceHolder"
+		return []string{}
 	}
 }
-
-
-
-// itemSelected manage selected item form table.
-//type ItemSelected struct {
-//	listeners []binding.DataListener
-//	id        int64 
-//}
-//
-//// Get return item when item isn't nil otherwise returns an error.
-//func (is *ItemSelected) Get() (int64, error) {
-//	if is.id == -1 {
-//		return is.id, errors.New("item not selected")
-//	}
-//	return is.id, nil
-//}
-//
-//func (is *ItemSelected) Set(id int64) (error) {
-//	is.id = id
-//	is.notify()
-//	return nil
-//}
-//
-//func (is *ItemSelected) notify() {
-//	for _, l := range is.listeners {
-//		l.DataChanged()
-//	}
-//}
-//
-//func (is *ItemSelected) AddListener(l binding.DataListener) {
-//	is.listeners = append(is.listeners, l)
-//	
-//}
-//
-//func (is *ItemSelected) RemoveListener(l binding.DataListener) {
-//	index := slices.Index(is.listeners, l)
-//	if index == -1 {
-//		return
-//	}
-//	is.listeners = append(is.listeners[:index], is.listeners[index-1:]...)
-//}
-//
-//func NewItemSelected() *ItemSelected {
-//	return &ItemSelected{
-//		listeners: make([]binding.DataListener, 0),
-//	}
-//}
-
-
-
-type QueryVM struct {
-	table      *repo.BookJoin
-	SearchText binding.String
-	SearchFrom binding.String
-	OrderField binding.String
-	OrderASC   binding.Bool
-}
-
-func newQueryVM(table *repo.BookJoin) *QueryVM {
-	return &QueryVM{
-		table: table,
-		OrderField: binding.NewString(),
-		OrderASC:   binding.NewBool(),
-		SearchText: binding.NewString(),
-	}
-} 
-
 
 type TableVM struct {
-	repo     repo.BookSearcher
-	Query    *QueryVM
+	repo     repo.BookQuerier
+
+	SortBy     binding.String
+	SortOrder  binding.String
+	SearchText binding.String
+	
 	table    *table
 	
 	l        *listener
 }
 
-func NewTableVM(table repo.BookJoin, headers []string, query *QueryVM, store repo.BookSearcher) *TableVM {
+
+func NewTableVM(table repo.Variant, headers []string, store repo.BookQuerier) *TableVM {
 	t := &TableVM{
-		table: newTable(newCellList(), string(table), headers),
-		Query: query,
+
+		table: newTable(VariantToTableName(table), headers),
 		repo: store,
+
+		SortBy: binding.NewString(),
+		SortOrder: binding.NewString(),
+		SearchText: binding.NewString(),
+
 		l: &listener{},
 	}
 
-	if table == repo.Main {
+	if table == repo.Book {
 		t.load()
 	}
 
 	return t
+}
+
+func (t *TableVM) StoreColumnWidth(col int, width float32) {
+	println(col, width)
+}
+func (t *TableVM) GetColumnWidth(col int) float32 {
+	return 100.0
 }
 
 func (t *TableVM) SetHidden(hide []string) {
@@ -564,29 +494,29 @@ func (t *TableVM) Headers() []string {
 	return t.table.headers()
 }
 
-func (t *TableVM) load() error {
-	
-	param := repo.BookSearchParams{
-		Join: *t.Query.table,
-	}
 
-	rSet, err := t.repo.BookSearch(param)
+func (t *TableVM) load() error {
+
+	param := repo.Query{
+		Variant: repo.Book,
+		Action: repo.Select,
+		SortBy: "",
+		OrderBy: "",
+	}
+	
+	items, err := t.repo.BookQuery(&param)
 	if err != nil {
 		return err
 	}
-
-	if len(rSet.Items) == 0 {
+	if len(items) == 0 {
 		return nil
 	}
 
-	for _, result := range rSet.Items {
-		fields := getResultFields(result)
-		values := make([]string, len(fields))
-		for i, field := range fields {
-			value := resultAsString(result, field)
-			values[i] = value
-		}
-		err := t.table.appendRow(fields, values)
+	for _, item := range items {
+		err := t.table.appendRow(
+			item.ID,
+			EntryValues(&item),
+		)
 		if err != nil {
 			return err
 		}
@@ -598,35 +528,30 @@ func (t *TableVM) Size() (int, int) {
 	return t.table.size()
 }
 
-func (t *TableVM) Get(row, col int) (string, error) {
-	idx, err := t.table.getCell(row, col)
-	if err != nil {
-		return "N/A", err
-	}
+func (t *TableVM) Get(row, col int) string {
+	idx := t.table.getCell(row, col)
 	return t.table.getValue(idx)
 }
 
 func (t *TableVM) GetID(row, col int) (int64, error) {
-	idx, err := t.table.getCell(row, col)
-	if err != nil {
-		return -1, err
-	}
+	idx := t.table.getCell(row, col)
 	return t.table.getID(idx)
 }
 
+func (t *TableVM) GetLabel(row, col int) (string, error) {
+	idx := t.table.getCell(row, col)
+	v := t.table.cells.get(idx).v
+	return VariantToTableName(v), nil
+}
 
-func (t *TableVM) IsItemHidden(row, col int) (bool, error) {
-	idx, err := t.table.getCell(row, col)
-	if err != nil {
-		return false, err
-	}
+// IsItemHidden check whether cell item is hidden.
+func (t *TableVM) IsItemHidden(row, col int) bool {
+	idx := t.table.getCell(row, col)
 	return t.table.isHidden(idx)
 }
-func (t *TableVM) IsHeaderHidden(col int) (bool, error) {
-	idx, err := t.table.getHeaderCell(col)
-	if err != nil {
-		return false, err
-	}
+// IsHeaderHidden check whether Header is hidden.
+func (t *TableVM) IsHeaderHidden(col int) bool {
+	idx := t.table.getHeaderCell(col)
 	return t.table.isHidden(idx)
 
 }
@@ -635,41 +560,52 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
 
-
 type TablesVM struct {
 	
-	table    repo.BookJoin
-	tables   map[repo.BookJoin]TableVM
+	table    string
+	tables   map[string]TableVM
 
-	repo  repo.BookSearcher
-	Query *QueryVM
+	repo  repo.BookQuerier
 
 	l *listener
 }
 
-func NewTablesVM(bs repo.BookSearcher) *TablesVM {
+func NewTablesVM(q repo.BookQuerier) *TablesVM {
 	t := &TablesVM{
-		table:     repo.Main,
-		tables:    make(map[repo.BookJoin]TableVM),
-		repo: bs,
+		table:     VariantToTableName(repo.Book),
+		tables:    make(map[string]TableVM),
+		repo: q,
 		l: &listener{},
 	}
-	t.Query = newQueryVM(&t.table)
-	_ = t.LoadTables()
+	t.loadTables()
 	return t
 }
 
-func (t *TablesVM) LoadTables() error {
-	for _, name := range t.TableNames() {
-		table := repo.BookJoin(name)
-		t.tables[table] = *NewTableVM(
-			table,
-			getTableHeaders(table),
-			t.Query,
+func (t *TablesVM) loadTables() {
+	names := []struct{
+		name string
+		v    repo.Variant
+	}{
+		{
+			name: VariantToTableName(repo.Book),
+			v: repo.Book,
+		},
+		{
+			name: VariantToTableName(repo.Book|repo.Loaned),
+			v: repo.Book | repo.Loaned,
+		},
+		{
+			name: VariantToTableName(repo.Book|repo.Read),
+			v: repo.Book | repo.Read,
+		},
+	}
+	for _, name := range names {
+		t.tables[name.name] = *NewTableVM(
+			name.v,
+			VariantFields(name.v),
 			t.repo,
 		)
 	}
-	return nil
 }
 
 func (t *TablesVM) TableName() string {
@@ -677,21 +613,30 @@ func (t *TablesVM) TableName() string {
 }
 
 func (t *TablesVM) GetTable(s string) *TableVM {
-	table := t.tables[repo.BookJoin(s)]
+	table := t.tables[s]
 	return &table
 }
 
 func (t *TablesVM) SetTable(s string) {
-	t.table = repo.BookJoin(s)
+	t.table = s
 	t.notify()
 }
 
-func (t *TablesVM) TableNames() []string {
-	return []string{
-		string(repo.Main),
-		string(repo.Loaned),
-		string(repo.Read),
+func (t *TablesVM) Variants() []repo.Variant {
+	return []repo.Variant{
+		repo.Book,
+		repo.Book|repo.Loaned,
+		repo.Book|repo.Read,
 	}
+}
+
+func (t *TablesVM) TableNames() []string {
+	vs := t.Variants()
+	names := make([]string, len(vs))
+	for i, v := range vs {
+		names[i] = VariantToTableName(v)
+	}
+	return names
 }
 
 func (t *TablesVM) notify() {
@@ -701,7 +646,6 @@ func (t *TablesVM) notify() {
 func (t *TablesVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
-
 
 
 type listener struct {

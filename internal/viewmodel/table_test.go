@@ -5,20 +5,22 @@ import (
 	"time"
 	"slices"
 	"testing"
-	"strconv"
+
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
 func unexpectedError(t *testing.T, err error) {
+	t.Helper()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
 
-func TextCellList(t *testing.T) {
-	cells := newCellList()
 
-	idx, err := cells.newCell(cellTable)
-	unexpectedError(t, err)
+func TextCellPool(t *testing.T) {
+	cells := newCellPool()
+
+	idx := cells.create(cellTable)
 
 	if cells.get(idx).kind != cellTable {
 		t.Fatalf("expect kind %d, got %d", cellTable, cells.get(idx).kind)
@@ -32,21 +34,6 @@ func TextCellList(t *testing.T) {
 }
 
 
-type testDataItem struct {
-	id int64
-	header string
-}
-func (td *testDataItem) AsString() string {
-	return strconv.Itoa(int(td.id))
-}
-func (td *testDataItem) Header() string {
-	return td.header
-}
-func (td *testDataItem) ID() int64 {
-	return td.id
-}
-
-
 func TestTable(t *testing.T) {
 	
 	name := "TableA"
@@ -54,174 +41,247 @@ func TestTable(t *testing.T) {
 		"Title",
 		"Author",
 		"Genre",
-		"Borrower",
-		"Rating",
 	}
+
 	table := newTable(
-		newCellList(),
 		name,
 		header,
 	)
 
+	//
+	// Check headers()
+	//
 	if c := slices.Compare(header, table.headers()); c != 0 {
 		t.Fatalf("expect\n\t%#v\ngot\n\t%#v\n", header, table.headers())
 	}
 
+	
+	//	
+	// Check append rows
+	//
 	tests := []struct{
-		id     int64
-		header string
-		row    int
-	}{
-		{ id: 1242, header: "Title", row: 0},
-		{ id: 4323, header: "Title", row: 1},
-		{ id: 431, header: "Title", row: 2},
-		{ id: 432, header: "Title", row: 3},
-
-		{ id: 33, header: "Author", row: 0},
-		{ id: 8423, header: "Author", row: 1},
-		{ id: 840, header: "Author", row: 2},
-		{ id: 84342, header: "Author", row: 3},
-
-		{ id: 1021, header: "Genre", row: 0},
-		{ id: 1324, header: "Genre", row: 1},
-		{ id: 1324, header: "Genre", row: 2},
-		{ id: 1324, header: "Genre", row: 3},
-
-		{ id: 1, header: "Rating", row: 0},
-		{ id: 13, header: "Rating", row: 1},
-		{ id: 24, header: "Rating", row: 2},
-		{ id: 32, header: "Rating", row: 3},
+		 	header []string
+			values []string
+		}{
+			{
+				header: header,
+				values: []string{
+					"example title 1",
+					"example author 1",
+					"example genre 1",
+				},
+			},
+			{
+				header: header,
+				values: []string{
+					"example title 2",
+					"example author 2",
+					"example genre 2",
+				},
+			},
+			{
+				header: header,
+				values: []string{
+					"example title 3",
+					"example author 3",
+					"example genre 3",
+				},
+			},
+			{
+				header: header,
+				values: []string{
+					"example title 4",
+					"example author 4",
+					"example genre 4",
+				},
+			},
 	}
 
 	for i, c := range tests {
-		value := &testDataItem{
-			id: c.id,
-			header: c.header,
-		}
-		table.addValue(value)
-		v, err := table.getValue(c.row, c.header)
+		err := table.appendRow(int64(i), c.values)
 		unexpectedError(t, err)
-		if v.ID() != value.ID() {
-			t.Fatalf("%d: expect %d, got %d", i, value.ID(), v.ID())
-		}
 	}
+	//
+	// Check size
+	//
+	erow, ecol := 4, 3
 	row, col := table.size()
-	titleLen := 4
-	if row != titleLen {
-		t.Fatalf("expect %d, got %d", titleLen, row)
+	if row != erow {
+		t.Fatalf("expect %d, got %d", erow, row)
 	}
-	if col != len(header) {
-		t.Fatalf("expect %d, got %d", titleLen, col)
+	if col != ecol {
+		t.Fatalf("expect %d, got %d", ecol, col)
 	}
+
+	//
+	// Check Value
+	//
+	cell := table.getCell(2, 1)
+	v := table.getValue(cell)
+	ev := tests[2].values[1]
+	if v != ev {
+		t.Fatalf("expect %s, got %s", ev, v)
+	}
+
+	//	
+	// Check ID
+	//
+	id, err := table.getID(cell)
+	unexpectedError(t, err)
+	eid := int64(2)
+	if id != eid {
+		t.Fatalf("expect %d, got %d", eid, id)
+	}
+
+	//
+	// Check hide header
+	//
+	hide := []string{"Author"}
+	table.setHidden(hide)
+	eh := []string{"Title", "Genre", "Author"}
+	if r := slices.Compare(eh, table.headers()); r != 0 {
+		t.Fatalf("expect\n\t%#v\ngot\n\t%#v", eh, table.headers())
+	}
+	ok := table.isHidden(cell)
+	unexpectedError(t, err)
+	if !ok {
+		t.Fatalf("expect %t, got %t", true, ok)
+	}
+	hide = []string{"Author", "Title"}
+	table.setHidden(hide)
+	eh = []string{"Genre", "Title", "Author", }
+	if r := slices.Compare(eh, table.headers()); r != 0 {
+		t.Fatalf("expect\n\t%#v\ngot\n\t%#v", eh, table.headers())
+	}
+	hide = []string{"Author"}
+	table.setHidden(hide)
+	eh = []string{"Title", "Genre", "Author"}
+	if r := slices.Compare(eh, table.headers()); r != 0 {
+		t.Fatalf("expect\n\t%#v\ngot\n\t%#v", eh, table.headers())
+	}
+	hide = []string{}
+	table.setHidden(hide)
+	eh = []string{"Title", "Author", "Genre"}
+	if r := slices.Compare(eh, table.headers()); r != 0 {
+		t.Fatalf("expect\n\t%#v\ngot\n\t%#v", eh, table.headers())
+	}
+
+
+	//
+	// Check Clear
+	//
 	table.clearValues()
+	erow, ecol = 0, 3
 	row, col = table.size()
-	if row != 0 {
-		t.Fatalf("expect %d, got %d", 0, row)
+	if row != erow {
+		t.Fatalf("expect %d, got %d", erow, row)
 	}
-	if col != len(header) {
-		t.Fatalf("expect %d, got %d", 0, col)
+	if col != ecol {
+		t.Fatalf("expect %d, got %d", ecol, col)
 	}
 }
 
 
-func TestDataItem(t *testing.T) {
-	item := newDataItem(123, "hello", "")
 
-	v, err := item.AsView()
-	unexpectedError(t, err)
-
-	if v != "hello" {
-		t.Fatalf("expect '%s', got '%s'", "hello", v)
+func TestVariantToTableName(t *testing.T) {
+	tests := []struct{
+		v repo.Variant
+		expect string
+	}{
+		{v: repo.Book, expect: "All Books"},
+		{v: repo.Book | repo.Loaned, expect: "On Loaned"},
+		{v: repo.Book | repo.Read, expect: "Read"},
 	}
 
-	if item.GetID() != 123 {
-		t.Fatalf("expect %d, got %d", 123, item.GetID())
-	}
-
-	item2 := newDataItem(32, 21, "")
-	v, err = item2.AsView()
-	unexpectedError(t, err)
-	if v != "21" { // Note: This will be changed to use stars.
-		t.Fatalf("expect \"21\", got \"%s\"", v)
-	}
-
-	date := time.Date(2000, 02, 01, 0,0,0,0, time.UTC)
-	item3 := newDataItem(43, &date, "")
-	v, err = item3.AsView()
-	unexpectedError(t, err)
-	if v != "01/02/2000" {
-		t.Fatalf("expect '01/02/2000', got %s", v)
-	}
-
-}
-
-func TestDataTable(t *testing.T) {
-	
-	table := newDataTable(
-		"Main",
-		[]string{
-			"Title",
-			"Author",
-			"Genre",
-		},
-	)
-
-	rows := [][]string{
-		{
-		"book 0",
-		"author 0",
-		"genre 0",
-		},
-		{
-		"book 1",
-		"author 1",
-		"genre 1",
-		},
-		{
-		"book 2",
-		"author 2",
-		"genre 2",
-		},
-	}
-
-	for i, row := range rows {
-		items := []DataItem{
-			*newDataItem(int64(i), row[0], "Title"),
-			*newDataItem(int64(i), row[1], "Author"),
-			*newDataItem(int64(i), row[2], "Genre"),
+	for i, c := range tests {
+		actual := VariantToTableName(c.v)
+		if c.expect != actual {
+			t.Fatalf("case[%d] expect %s, got %s", i, c.expect, actual)
 		}
-		table.add(items)
+	}
+}
+
+
+func TestEntryValues(t *testing.T) {
+	entry := repo.BookEntry{
+		Title: "Expect Title",
+		Author: "Expect Author",
+		Genre: "Expect Genre",
+
+		Borrower: "Expect Borrower",
+		Loaned: time.Date(2020, 11, 01, 0, 0, 0, 0, time.UTC),
+
+		Rating: 3,
+		Read: time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC),
+	}
+	
+	tests := []struct{
+		v      repo.Variant
+		expect []string
+	}{
+		{
+			v: repo.Book,
+			expect: []string{
+				entry.Title,
+				entry.Author,
+				entry.Genre,
+			},
+		},
+		{
+			v: repo.Book | repo.Loaned,
+			expect: []string{
+				entry.Title,
+				entry.Author,
+				entry.Genre,
+				entry.Borrower,
+				formatDate(&entry.Loaned),
+			},
+		},
+		{
+			v: repo.Book | repo.Read,
+			expect: []string{
+				entry.Title,
+				entry.Author,
+				entry.Genre,
+				formatRating(entry.Rating),
+				formatDate(&entry.Read),
+			},
+		},
+		{
+			v: repo.Book | repo.Read | repo.Loaned,
+			expect: []string{},
+		},
 	}
 
-	table.exclude = []string{}
+	for i, c := range tests {
+		entry.Variant = c.v
+		actual := EntryValues(&entry)
+		if r := slices.Compare(c.expect, actual); r != 0 {
+			t.Fatalf("[%d] expect\n\t%#v\ngot\n\t%#v", i, c.expect, actual)
+		}
+	}
+}
 
-	v, err := table.GetString(2, 0)
-	unexpectedError(t, err)
 
-	expect := rows[2][0]
-	if v != expect {
-		t.Fatalf("expect '%s', got '%s'", expect, v)
+func TestVariantFields(t *testing.T) {
+	tests := []struct{
+		v      repo.Variant
+		expect []string
+	}{
+		{
+			v: repo.Book,
+			expect: []string{
+				"Title",
+				"Author",
+				"Genre",
+			},
+		},
 	}
 
-	table.exclude = []string{
-		"Author",
-	}
-
-	ha := table.Headers()
-	he := []string{
-		"Title",
-		"Genre",
-	}
-
-	if r := slices.Compare(ha, he); r != 0 {
-		t.Fatalf("expect headers\n\t%#v\ngot\n\t%#v", he, ha)
-	}
-
-	v, err = table.GetString(1, 1)
-	unexpectedError(t, err)
-
-	expect = rows[1][2]
-	if v != expect {
-		t.Fatalf("expect '%s', got '%s'", expect, v)
+	for i, c := range tests {
+		actual := VariantFields(c.v)
+		if r := slices.Compare(c.expect, actual); r != 0 {
+			t.Fatalf("[%d] expect\n\t%#vgot\n\t%#v", i, c.expect, actual)
+		}
 	}
 }
