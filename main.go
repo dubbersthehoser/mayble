@@ -5,7 +5,7 @@ import (
 	"fyne.io/fyne/v2/app"
 
 	"github.com/dubbersthehoser/mayble/internal/view"
-	//"github.com/dubbersthehoser/mayble/internal/gui/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 
@@ -14,7 +14,8 @@ func main() {
 	window := a.NewWindow("New Mayble")
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
-	content := view.NewMainUI(window)
+	uiVM := viewmodel.NewMainUI()
+	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()
 }

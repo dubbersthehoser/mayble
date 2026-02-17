@@ -6,24 +6,18 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-func BookForm(vm *viewmodel.BookForm) fyne.CanvasObject {
+func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
+
 	submit := widget.NewButton("Submit", vm.Submit)
-	cancel := widget.NewButton("Cancel", vm.Cancel)
-	message := widget.NewLabel("")
+	add := widget.NewButton("Add Submission", vm.AddSubmission)
 
-	//vm.Error.AddListener(binding.NewDataListener(func() {
-	//	msg, _ := vm.Error.Get()
-	//	message.SetText(msg)
-	//}))
-
-	//vm.Success.AddListener(binding.NewDataListener(func() {
-	//	msg, _ := vm.Success.Get()
-	//	message.SetText(msg)
-	//}))
+	submit.Alignment = widget.ButtonAlignLeading
+	add.Alignment = widget.ButtonAlignLeading
 
 	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)
@@ -36,15 +30,6 @@ func BookForm(vm *viewmodel.BookForm) fyne.CanvasObject {
 	authorEntry.SetPlaceHolder("Author...")
 	genreEntry.SetPlaceHolder("Genre...")
 
-	vm.Valid.AddListener(binding.NewDataListener(func() {
-		ok, _ := vm.Valid.Get()
-		if ok {
-			message.Importance = widget.SuccessImportance
-		} else {
-			message.Importance = widget.DangerImportance
-		}
-	}))
-
 	return container.New(layout.NewVBoxLayout(), 
 		titleEntry,
 		authorEntry,
@@ -53,9 +38,9 @@ func BookForm(vm *viewmodel.BookForm) fyne.CanvasObject {
 		newLoanForm(vm.IsLoaned, vm.Date, vm.Borrower),
 		readCheck,
 		newReadForm(vm.IsRead, vm.Completed, vm.Rating), 
-		message,
-		submit,
-		cancel,
+		container.NewBorder(nil, nil, add, submit, add, submit),
+		widget.NewLabel(""),
+		newSubmitionList(vm.SubmissionList()),
 	)
 }
 
@@ -94,13 +79,13 @@ func newLoanForm(isLoaned binding.Bool, date binding.String, borrower binding.St
 }
 
 func newReadForm(isRead binding.Bool, completed binding.String, rating binding.String) *fyne.Container {
-	ratingEntry := widget.NewSelect([]string{}, nil)
+	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), rating)
 	completedEntry := widget.NewDateEntry()
 
 	ratingEntry.Bind(rating)
 	completedEntry.Bind(completed)
 
-	ratingEntry.PlaceHolder = "Rating"
+	ratingEntry.PlaceHolder = viewmodel.Ratings()[0]
 	completedEntry.SetPlaceHolder("Completed DD/MM/YYYY")
 
 	c := container.NewVBox(
@@ -124,10 +109,50 @@ func newReadForm(isRead binding.Bool, completed binding.String, rating binding.S
 			completedEntry.Disable()
 		}
 	}))
-
 	return c
 }
 
 
+func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {	
+	content := container.NewVBox()
+	update := func() {
+		content.RemoveAll()
+		for i := range sl.Length() {
+			v := sl.Get(i)
+			del := widget.NewButtonWithIcon(
+				"",
+				theme.DeleteIcon(),
+				func(id int) func() {
+					return func() {
+						sl.Remove(id)
+					}
+				}(i),
+			)
+			edt := widget.NewButtonWithIcon(
+				"",
+				theme.DocumentCreateIcon(),
+				func(id int) func() {
+					return func() {
+						sl.Edit(id)
+					}
+				}(i),
+			)
 
+			del.Importance = widget.DangerImportance
+			edt.Importance = widget.SuccessImportance
 
+			btns := container.NewHBox(edt, del)
+
+			object := container.NewBorder(nil, nil, nil, btns, btns, widget.NewLabel(v), )
+			content.Add(object)
+		}
+
+	}
+	sl.AddListener(binding.NewDataListener(func() {
+		update()
+	}))
+	update()
+	
+	list := container.NewHScroll(container.NewStack(content))
+	return container.NewStack(list)
+}

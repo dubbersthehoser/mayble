@@ -6,14 +6,15 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
+type mockBookRetriever struct {}
 
-type mockBookSearcher struct {}
+var _ repo.BookRetriever = &mockBookRetriever{}
 
-var _ repo.BookQuerier = &mockBookSearcher{}
-
-func (m *mockBookSearcher) BookQuery(q *repo.Query) ([]repo.BookEntry, error) {
+func (m *mockBookRetriever) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	es := []repo.BookEntry{
 		{
 			Variant: repo.Book,
@@ -45,6 +46,13 @@ func (m *mockBookSearcher) BookQuery(q *repo.Query) ([]repo.BookEntry, error) {
 
 
 const (
+	msgUserError   string = "message.user.error"
+	msgUserSuccess string = "message.user.success"
+	msgUserInfo    string = "message.user.info"
+)
+
+
+const (
 	BodyData int = iota
 	BodyForm
 	BodyMenu
@@ -52,28 +60,82 @@ const (
 
 type MainUI struct {	
 
-	OpenedBody binding.Int
+	repo   repo.BookRetriever
+	config *config.Config
+	bus    *bus.Bus
 
-	Repo       repo.BookQuerier
+	OpenedBody binding.Int
 
 	Error      binding.String
 	Success    binding.String
 	Info       binding.String
-
 }
 
 func NewMainUI() *MainUI {
 	mu := &MainUI{
 		
-		OpenedBody:  binding.NewInt(),
-
-		Repo: &mockBookSearcher{},
+		OpenedBody: binding.NewInt(),
+		bus: &bus.Bus{},
+		repo: &mockBookRetriever{},
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),
 		Info: binding.NewString(),
 	}
+
+	mu.bus.Subscribe(bus.Handler{
+		Name: msgUserInfo,
+		Handler: func(e *bus.Event) {
+			if e.Data == nil {
+				return
+			}
+			v, ok := e.Data.(string)
+			if !ok {
+				return
+			}
+			_ = mu.Error.Set("")
+			_= mu.Success.Set("")
+			_ = mu.Info.Set(v)
+		},
+	})
+	mu.bus.Subscribe(bus.Handler{
+		Name: msgUserError,
+		Handler: func(e *bus.Event) {
+			if e.Data == nil {
+				return
+			}
+			v, ok := e.Data.(string)
+			if !ok {
+				return
+			}
+			_= mu.Success.Set("")
+			_ = mu.Info.Set("")
+			_ = mu.Error.Set(v)
+		},
+	})
+	mu.bus.Subscribe(bus.Handler{
+		Name: msgUserSuccess,
+		Handler: func(e *bus.Event) {
+			if e.Data == nil {
+				return
+			}
+			v, ok := e.Data.(string)
+			if !ok {
+				return
+			}
+			_ = mu.Info.Set("")
+			_ = mu.Error.Set("")
+			_ = mu.Success.Set(v)
+		},
+	})
 	return mu
+}
+
+func (m *MainUI) GetTablesVM() *TablesVM {
+	return NewTablesVM(m.config, m.repo)
+}
+func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
+	return NewCreateBookForm(m.bus)
 }
 
 
@@ -104,13 +166,16 @@ func formatDate(t *time.Time) string {
 }
 
 func parseDate(t string) (*time.Time, error) {
-	ret, err := time.Parse(t, dateFormat)
+	ret, err := time.Parse(dateFormat, t)
 	return &ret, err
 }
 
 
+const capRating = 6
 func formatRating(r int) string {
 	switch r {
+	case 0:
+		return "N/A"
 	case 1:
 		return "⭐"
 	case 2:
@@ -122,8 +187,15 @@ func formatRating(r int) string {
 	case 5:
 		return "⭐⭐⭐⭐⭐"
 	default:
-		return "N/A"
+		return "STUB"
 	}
+}
+func Ratings() []string{
+	r := make([]string, capRating)
+	for i := range capRating {
+		r[i] = formatRating(i)
+	}
+	return r
 }
 
 func RatingsStrings() []string {
@@ -133,4 +205,37 @@ func RatingsStrings() []string {
 		r[i] = formatRating(i+1)
 	}
 	return r
+}
+
+type listener struct {
+	listeners []binding.DataListener
+}
+
+func (t *listener) notify() {
+	for _, listener := range t.listeners {
+		listener.DataChanged()
+	}
+}
+
+func (t *listener) AddListener(l binding.DataListener) {
+	if t.listeners == nil {
+		t.listeners = make([]binding.DataListener, 0)
+	}
+	t.listeners = append(t.listeners, l)
+}
+
+func (t *listener) RemoveListener(l binding.DataListener) {
+	if t.listeners == nil {
+		return
+	}
+	index := -1
+	for i, listener := range t.listeners {
+		if listener == l {
+			index = i
+		}
+	}
+	if index == -1 {
+		return
+	}
+	t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)
 }

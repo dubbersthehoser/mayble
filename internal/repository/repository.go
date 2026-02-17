@@ -33,6 +33,12 @@ const (
 	Read
 )
 
+const (
+	BookLoaned Variant = Book | Loaned
+	BookRead Variant = Book | Read
+	BookReadAndLoaned = Book | Read | Loaned
+)
+
 func (v Variant) String() string {
 	switch v {
 	case (Book|Loaned|Read):
@@ -68,4 +74,31 @@ type BookEntry struct {
 type BookQuerier interface {
 	BookQuery(q *Query) ([]BookEntry, error)
 }
+
+type BookRetriever interface {
+	GetAllBooks(Variant) ([]BookEntry, error)
+}
+
+type BookGenreRetriever interface {
+	GetUniqueGenres([]string, error)
+}
+
+type BookCreator interface {
+	CreateBook(b *BookEntry) error
+}
+
+type BookUpdator interface {
+	UpdateBook(b *BookEntry) error
+}
+
+type BookDeleter interface {
+	DeleteBook(b *BookEntry) error
+}
+
+
+
+
+
+
+
 

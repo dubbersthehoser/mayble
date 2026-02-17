@@ -5,10 +5,12 @@ import (
 	"errors"
 	"slices"
 	"cmp"
+	"fmt"
 
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 
@@ -128,10 +130,10 @@ func cellRowLength(cells *cellPool, parent cellIndex) int {
 
 type table struct {
 	name          string
-	headerOrder   map[string]int // maintain original header locations
+	headerOrder   map[string]int // maintain original header locations.
 	cells         *cellPool
-	root          cellIndex
-	rowCount      int
+	root          cellIndex      // first left most header in table.
+	rowCount      int            // Keep track of rows
 }
 
 func newTable(name string, headers []string) *table {
@@ -308,6 +310,7 @@ func (t *table) size() (row int, col int) {
 	return t.rowCount, col
 }
 
+// setHidden set give headers to hidden and retaining, or restoring excluded headers.
 func (t *table) setHidden(headers []string) {
 
 	hiddenCells := make([]cellIndex, 0)
@@ -371,15 +374,13 @@ func (t *table) WalkAllValues(fn func(*dataCell)) {
 
 
 
-
-
 func VariantToTableName(v repo.Variant) string {
 	switch v {
 	case repo.Book:
 		return "All Books"
-	case repo.Book | repo.Loaned:
-		return "On Loaned"
-	case repo.Book | repo.Read:
+	case repo.BookLoaned:
+		return "On Loan"
+	case repo.BookRead:
 		return "Read"
 	default:
 		return "N/A"
@@ -394,7 +395,7 @@ func VariantFields(v repo.Variant) []string {
 			"Author",
 			"Genre",
 		}
-	case (repo.Book|repo.Loaned):
+	case (repo.BookLoaned):
 		return []string{
 			"Title",
 			"Author",
@@ -402,7 +403,7 @@ func VariantFields(v repo.Variant) []string {
 			"Borrower",
 			"Loaned",
 		}
-	case (repo.Book|repo.Read):
+	case (repo.BookRead):
 		return []string{
 			"Title",
 			"Author",
@@ -445,7 +446,9 @@ func EntryValues(e *repo.BookEntry) []string {
 }
 
 type TableVM struct {
-	repo     repo.BookQuerier
+	repo     repo.BookRetriever
+	config   *config.Config
+	v        repo.Variant
 
 	SortBy     binding.String
 	SortOrder  binding.String
@@ -457,11 +460,13 @@ type TableVM struct {
 }
 
 
-func NewTableVM(table repo.Variant, headers []string, store repo.BookQuerier) *TableVM {
+func NewTableVM(table repo.Variant, config *config.Config, store repo.BookRetriever) *TableVM {
 	t := &TableVM{
 
-		table: newTable(VariantToTableName(table), headers),
+		table: newTable(VariantToTableName(table), VariantFields(table)),
 		repo: store,
+		config: config,
+		v: table,
 
 		SortBy: binding.NewString(),
 		SortOrder: binding.NewString(),
@@ -477,11 +482,41 @@ func NewTableVM(table repo.Variant, headers []string, store repo.BookQuerier) *T
 	return t
 }
 
-func (t *TableVM) StoreColumnWidth(col int, width float32) {
-	println(col, width)
+const MinColWidth float32 = 100.0
+
+// cleanColumnIndex transform a column index given by the ui and change it to a
+// stable index of that column.
+func cleanColumnIndex(t *TableVM, col int) int {
+	idx := t.table.getHeaderCell(col)
+	label := t.table.cells.get(idx).header
+	i := slices.Index(VariantFields(t.v), label)
+	return i
 }
+
+func (t *TableVM) StoreColumnWidth(col int, width float32) {
+	if t.config == nil {
+		return
+	}
+	if width < MinColWidth {
+		width = MinColWidth
+	}
+	table := t.config.GetUITable(fmt.Sprint(t.v))
+	i := cleanColumnIndex(t, col)
+	_ = table.SetColWidth(i, width)
+}
+
+
 func (t *TableVM) GetColumnWidth(col int) float32 {
-	return 100.0
+	if t.config == nil {
+		return MinColWidth
+	}
+	table := t.config.GetUITable(fmt.Sprint(t.v))
+	i := cleanColumnIndex(t, col)
+	width := table.GetColWidth(i)
+	if width < MinColWidth {
+		width = MinColWidth
+	}
+	return width
 }
 
 func (t *TableVM) SetHidden(hide []string) {
@@ -497,17 +532,11 @@ func (t *TableVM) Headers() []string {
 
 func (t *TableVM) load() error {
 
-	param := repo.Query{
-		Variant: repo.Book,
-		Action: repo.Select,
-		SortBy: "",
-		OrderBy: "",
-	}
-	
-	items, err := t.repo.BookQuery(&param)
+	items, err := t.repo.GetAllBooks(t.v)
 	if err != nil {
 		return err
 	}
+
 	if len(items) == 0 {
 		return nil
 	}
@@ -549,6 +578,7 @@ func (t *TableVM) IsItemHidden(row, col int) bool {
 	idx := t.table.getCell(row, col)
 	return t.table.isHidden(idx)
 }
+
 // IsHeaderHidden check whether Header is hidden.
 func (t *TableVM) IsHeaderHidden(col int) bool {
 	idx := t.table.getHeaderCell(col)
@@ -561,16 +591,16 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 }
 
 type TablesVM struct {
-	
-	table    string
-	tables   map[string]TableVM
+	config *config.Config
+	table  string
+	tables map[string]TableVM
 
-	repo  repo.BookQuerier
+	repo  repo.BookRetriever
 
 	l *listener
 }
 
-func NewTablesVM(q repo.BookQuerier) *TablesVM {
+func NewTablesVM(cfg *config.Config, q repo.BookRetriever) *TablesVM {
 	t := &TablesVM{
 		table:     VariantToTableName(repo.Book),
 		tables:    make(map[string]TableVM),
@@ -592,24 +622,24 @@ func (t *TablesVM) loadTables() {
 		},
 		{
 			name: VariantToTableName(repo.Book|repo.Loaned),
-			v: repo.Book | repo.Loaned,
+			v: repo.BookLoaned,
 		},
 		{
 			name: VariantToTableName(repo.Book|repo.Read),
-			v: repo.Book | repo.Read,
+			v: repo.BookRead,
 		},
 	}
 	for _, name := range names {
 		t.tables[name.name] = *NewTableVM(
 			name.v,
-			VariantFields(name.v),
+			t.config,
 			t.repo,
 		)
 	}
 }
 
 func (t *TablesVM) TableName() string {
-	return string(t.table)
+	return t.table
 }
 
 func (t *TablesVM) GetTable(s string) *TableVM {
@@ -625,8 +655,8 @@ func (t *TablesVM) SetTable(s string) {
 func (t *TablesVM) Variants() []repo.Variant {
 	return []repo.Variant{
 		repo.Book,
-		repo.Book|repo.Loaned,
-		repo.Book|repo.Read,
+		repo.BookLoaned,
+		repo.BookRead,
 	}
 }
 
@@ -648,35 +678,3 @@ func (t *TablesVM) AddListener(l binding.DataListener) {
 }
 
 
-type listener struct {
-	listeners []binding.DataListener
-}
-
-func (t *listener) notify() {
-	for _, listener := range t.listeners {
-		listener.DataChanged()
-	}
-}
-
-func (t *listener) AddListener(l binding.DataListener) {
-	if t.listeners == nil {
-		t.listeners = make([]binding.DataListener, 0)
-	}
-	t.listeners = append(t.listeners, l)
-}
-
-func (t *listener) RemoveListener(l binding.DataListener) {
-	if t.listeners == nil {
-		return
-	}
-	index := -1
-	for i, listener := range t.listeners {
-		if listener == l {
-			index = i
-		}
-	}
-	if index == -1 {
-		return
-	}
-	t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)
-}

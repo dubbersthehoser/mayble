@@ -13,10 +13,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-func NewMainUI(w fyne.Window) *fyne.Container {
-
-	uiVM := viewmodel.NewMainUI()
-	formVM := viewmodel.NewBookForm(uiVM.Error, uiVM.Success)
+func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
 	addButton := widget.NewButton("Create", func() {
 		_ = uiVM.OpenedBody.Set(viewmodel.BodyForm)
@@ -60,11 +57,8 @@ func NewMainUI(w fyne.Window) *fyne.Container {
 		statusLabel,
 	)
 
-	form := BookForm(formVM)
-
-	tableVM := viewmodel.NewTablesVM(uiVM.Repo)
-	table := BookTables(tableVM)
-
+	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
+	table := BookTables(uiVM.GetTablesVM())
 	body := container.NewStack(form)
 
 	uiVM.OpenedBody.AddListener(binding.NewDataListener(func() {
