@@ -77,10 +77,11 @@ type BookQuerier interface {
 
 type BookRetriever interface {
 	GetAllBooks(Variant) ([]BookEntry, error)
+	GetBookByID(id int64) (BookEntry, error)
 }
 
-type BookGenreRetriever interface {
-	GetUniqueGenres([]string, error)
+type GenreRetriever interface {
+	GetUniqueGenres() ([]string, error)
 }
 
 type BookCreator interface {

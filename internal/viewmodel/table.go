@@ -6,11 +6,13 @@ import (
 	"slices"
 	"cmp"
 	"fmt"
+	//"strings"
 
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
 
@@ -24,6 +26,7 @@ type cellKind int
 
 const (
 	cellNone = iota // A free, avaliable, or stub cell.
+	cellFree        // Set as a free list cell. (this is to prevent a bug)
 	cellTable       // Root grand parent of all cells
 	cellHeader      // Cell representing a table's header
 	cellView        // Cell representing a table's view data
@@ -36,6 +39,7 @@ type dataCell struct {
 
 	hidden bool
 	table  string
+
 	header string
 
 	view string
@@ -65,8 +69,7 @@ func newCellPool() *cellPool{
 }
 
 func (cl *cellPool) create(k cellKind) cellIndex {
-	first := cl.nextFree
-	if first == 0 {
+	if cl.nextFree == noneIndex {
 		cell := dataCell{
 			kind: k,
 		}
@@ -74,16 +77,17 @@ func (cl *cellPool) create(k cellKind) cellIndex {
 		index := len(cl.cells) - 1
 		return cellIndex(index)
 	}
+	first := cl.nextFree
 	cl.nextFree = cl.cells[first].next
 	cl.cells[first].next = noneIndex
+	cl.cells[first].kind = k
 	return first
 }
 
 func (cl *cellPool) destroy(idx cellIndex) {
-	cl.cells[idx] = dataCell{}
+	cl.cells[idx] = dataCell{kind: cellFree}
 	next := cl.nextFree
 	cl.cells[idx].next = next 
-	cl.cells[next].prev = idx
 	cl.nextFree = idx
 }
 
@@ -168,10 +172,13 @@ func newTable(name string, headers []string) *table {
 func (t *table) addValue(id int64, header, s string) error {
 
 	newCell := t.cells.create(cellView)
+
 	t.cells.get(newCell).view = s
 	t.cells.get(newCell).header = header
 	t.cells.get(newCell).table = t.name
 	t.cells.get(newCell).id = id
+
+	// fmt.Println("cell:", newCell) // debug: cells are being created
 
 	first := t.cells.get(t.root).first
 	curr := first
@@ -236,6 +243,7 @@ func (t *table) clearValues() {
 			}
 		}
 		t.rowCount -= 1
+		t.cells.get(headerCurr).first = noneIndex
 		headerCurr = t.cells.get(headerCurr).next
 		if headerCurr == headerFirst {
 			break
@@ -352,19 +360,22 @@ func (t *table) setHidden(headers []string) {
 	}
 }
 
-func (t *table) WalkAllValues(fn func(*dataCell)) {
+func (t *table) WalkAllValues(fn func(int, int, *dataCell)) {
+	col, row := 0, 0
 	firstHeader := t.cells.get(t.root).first
 	currHeader := firstHeader
 	for {
 		first := t.cells.get(currHeader).first
 		curr := first
 		for {
-			fn(t.cells.get(curr))
+			fn(row, col, t.cells.get(curr))
 			curr = t.cells.get(curr).next
+			row += 1
 			if curr == first {
 				break
 			}
 		}
+		col += 1
 		currHeader = t.cells.get(currHeader).next
 		if currHeader == firstHeader {
 			break
@@ -449,6 +460,7 @@ type TableVM struct {
 	repo     repo.BookRetriever
 	config   *config.Config
 	v        repo.Variant
+	actions  []Action
 
 	SortBy     binding.String
 	SortOrder  binding.String
@@ -467,6 +479,7 @@ func NewTableVM(table repo.Variant, config *config.Config, store repo.BookRetrie
 		repo: store,
 		config: config,
 		v: table,
+		actions: make([]Action, 0),
 
 		SortBy: binding.NewString(),
 		SortOrder: binding.NewString(),
@@ -475,11 +488,35 @@ func NewTableVM(table repo.Variant, config *config.Config, store repo.BookRetrie
 		l: &listener{},
 	}
 
+	//t.SearchText.AddListener(binding.NewDataListener(func() {
+	//	t.table.WalkAllValues(func(row, col int, c *dataCell){
+	//		search, _ := t.SearchText.Get()
+	//		if search == "" {
+	//			return
+	//		}
+	//		strings.ToLower(search)
+	//		EditDist(search, c.view)
+	//		// TODO implement search
+	//	})
+	//}))
+
+	_ = t.SortOrder.Set("ASC")
+	_ = t.SortBy.Set(t.table.headers()[0])
 	if table == repo.Book {
 		t.load()
 	}
 
 	return t
+}
+
+func (t *TableVM) appendAction(a *Action) {
+	t.actions = append(t.actions, *a)
+}
+
+func (t *TableVM) Sort() {
+	t.table.clearValues()
+	t.load()
+	t.l.notify()
 }
 
 const MinColWidth float32 = 100.0
@@ -519,6 +556,7 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 	return width
 }
 
+
 func (t *TableVM) SetHidden(hide []string) {
 	t.table.setHidden(hide)
 	t.l.notify()
@@ -527,6 +565,11 @@ func (t *TableVM) SetHidden(hide []string) {
 
 func (t *TableVM) Headers() []string {
 	return t.table.headers()
+}
+
+
+func (t *TableVM) Actions() []Action {
+	return t.actions
 }
 
 
@@ -541,6 +584,40 @@ func (t *TableVM) load() error {
 		return nil
 	}
 
+	// This should be part of application,
+	// but whatever...
+	by, _ := t.SortBy.Get()
+	order, _ := t.SortOrder.Get()
+
+	index := slices.Index(VariantFields(t.v), by)
+
+	slices.SortFunc(items, func(a, b repo.BookEntry) int{
+		r := -1
+		switch index {
+		case 0:
+			r = cmp.Compare(a.Title, b.Title)
+		case 1:
+			r = cmp.Compare(a.Author, b.Author)
+		case 2:
+			r = cmp.Compare(a.Genre, b.Genre)
+		case 3:
+			r = cmp.Compare(a.Borrower, b.Borrower)
+		case 4:
+			r = a.Loaned.Compare(b.Loaned)
+		case 5:
+			r = cmp.Compare(a.Rating, b.Rating)
+		case 6:
+			r = a.Read.Compare(b.Read)
+		default:
+			fmt.Println("sort field not found", index, by)
+		}
+		if order == "DESC" {
+			return r * -1
+		} else {
+			return r
+		}
+	})
+
 	for _, item := range items {
 		err := t.table.appendRow(
 			item.ID,
@@ -550,6 +627,12 @@ func (t *TableVM) load() error {
 			return err
 		}
 	}
+
+	//fmt.Println("------------")
+	//t.table.WalkAllValues(func(row, col int, c *dataCell){
+	//	fmt.Println(c.view)
+	//})
+
 	return nil
 }
 
@@ -594,47 +677,99 @@ type TablesVM struct {
 	config *config.Config
 	table  string
 	tables map[string]TableVM
+	
+	EditIsOpen binding.Bool
+	Selected   *EntrySelect
 
-	repo  repo.BookRetriever
+	repo repo.BookRetriever
+
+	editor *EditBookVM
+
+	bus *bus.Bus
 
 	l *listener
 }
 
-func NewTablesVM(cfg *config.Config, q repo.BookRetriever) *TablesVM {
+func NewTablesVM(cfg *config.Config, b *bus.Bus, u repo.BookUpdator, g repo.GenreRetriever, q repo.BookRetriever) *TablesVM {
 	t := &TablesVM{
-		table:     VariantToTableName(repo.Book),
-		tables:    make(map[string]TableVM),
+		table: VariantToTableName(repo.Book),
+		tables: make(map[string]TableVM),
+		EditIsOpen: binding.NewBool(),
+		Selected: &EntrySelect{},
+		bus: b,
 		repo: q,
 		l: &listener{},
 	}
+	t.editor = NewEditBookVM(t.bus, t.EditIsOpen, u, g)
 	t.loadTables()
 	return t
 }
 
+func (t *TablesVM) EditBookVM() *EditBookVM {
+	return t.editor
+}
+
 func (t *TablesVM) loadTables() {
-	names := []struct{
+	tables := []struct{
 		name string
 		v    repo.Variant
+		a    []Action
 	}{
 		{
 			name: VariantToTableName(repo.Book),
 			v: repo.Book,
+			a: []Action{
+				{
+					Label: "Edit",
+					Action: func() {
+						t.EditIsOpen.Set(true)
+					},
+				},
+			},
 		},
 		{
 			name: VariantToTableName(repo.Book|repo.Loaned),
 			v: repo.BookLoaned,
+			a: []Action{},
 		},
 		{
 			name: VariantToTableName(repo.Book|repo.Read),
 			v: repo.BookRead,
+			a: []Action{},
 		},
 	}
-	for _, name := range names {
-		t.tables[name.name] = *NewTableVM(
-			name.v,
+	for _, conf := range tables {
+		table := *NewTableVM(
+			conf.v,
 			t.config,
 			t.repo,
 		)
+		table.appendAction(&Action{
+			Label: "Edit",
+			Action: func() {
+				if !t.Selected.HasSelected() {
+					t.bus.Notify(bus.Event{
+						Name: msgUserInfo,
+						Data: "Nothing selected",
+					})
+					return
+				}
+				t.EditIsOpen.Set(true)
+			},
+		})
+		table.appendAction(&Action{
+			Label: "Delete",
+			Action: func() {
+				if !t.Selected.HasSelected() {
+					t.bus.Notify(bus.Event{
+						Name: msgUserInfo,
+						Data: "Nothing selected",
+					})
+					return
+				}
+			},
+		})
+		t.tables[conf.name] = table
 	}
 }
 
@@ -677,4 +812,41 @@ func (t *TablesVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
 
+
+// Action act on a selected item.
+type Action struct {
+	Label  string
+	Action func()
+}
+
+type EntrySelect struct {
+	l          *listener
+	retriever  repo.BookRetriever
+	isSelected bool
+	selected   int64
+}
+
+func (e *EntrySelect) GetBook() (*repo.BookEntry, error) {
+	b, err := e.retriever.GetBookByID(e.selected)
+	return &b, err
+}
+
+func (e *EntrySelect) Select(id int64) {
+	e.selected = id
+	e.isSelected = true
+	e.l.notify()
+}
+
+func (e *EntrySelect) Unselect() {
+	e.isSelected = false
+	e.l.notify()
+}
+
+func (e *EntrySelect) HasSelected() bool {
+	return e.isSelected
+}
+
+func (e *EntrySelect) AddListener(l binding.DataListener) {
+	e.l.AddListener(l)
+}
 

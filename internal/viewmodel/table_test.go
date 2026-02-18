@@ -179,6 +179,7 @@ func TestTable(t *testing.T) {
 	if col != ecol {
 		t.Fatalf("expect %d, got %d", ecol, col)
 	}
+	
 }
 
 

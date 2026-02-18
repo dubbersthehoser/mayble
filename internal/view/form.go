@@ -3,7 +3,6 @@ package view
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
@@ -13,38 +12,59 @@ import (
 
 func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 
+	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
+	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)
 	submit := widget.NewButton("Submit", vm.Submit)
 	add := widget.NewButton("Add Submission", vm.AddSubmission)
-
 	submit.Alignment = widget.ButtonAlignLeading
 	add.Alignment = widget.ButtonAlignLeading
 
-	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
-	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)
+	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.UniqueGenres)
 
-	titleEntry := widget.NewEntryWithData(vm.Title)
-	authorEntry := widget.NewEntryWithData(vm.Author)
-	genreEntry := widget.NewEntryWithData(vm.Genre)
+	top := container.NewVBox(
+		bookEntry,
+		loanCheck,
+		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
+		readCheck,
+		newReadEntry(vm.IsRead, vm.Completed, vm.Rating), 
+		container.NewBorder(nil, nil, add, submit, add, submit),
+	)
+
+	//return container.New(layout.NewVBoxLayout(), 
+	return container.NewBorder(top, nil, nil, nil,
+		top,
+		newSubmitionList(vm.SubmissionList()),
+	)
+}
+
+func newBookEntry(title, author, genre binding.String, uniqueGenres binding.StringList) *fyne.Container {
+	
+	titleEntry := widget.NewEntryWithData(title)
+	authorEntry := widget.NewEntryWithData(author)
+
+	genres, _ := uniqueGenres.Get()
+	genreEntry := widget.NewSelectEntry(genres)
+	genreEntry.Bind(genre)
+
+	uniqueGenres.AddListener(binding.NewDataListener(func() {
+		genres, _ := uniqueGenres.Get()
+		genreEntry.SetOptions(genres)
+	}))
 
 	titleEntry.SetPlaceHolder("Title...")
 	authorEntry.SetPlaceHolder("Author...")
 	genreEntry.SetPlaceHolder("Genre...")
 
-	return container.New(layout.NewVBoxLayout(), 
-		titleEntry,
-		authorEntry,
-		genreEntry,
-		loanCheck,
-		newLoanForm(vm.IsLoaned, vm.Date, vm.Borrower),
-		readCheck,
-		newReadForm(vm.IsRead, vm.Completed, vm.Rating), 
-		container.NewBorder(nil, nil, add, submit, add, submit),
-		widget.NewLabel(""),
-		newSubmitionList(vm.SubmissionList()),
+	c := container.NewVBox(
+			titleEntry,
+			authorEntry,
+			genreEntry,
 	)
+	return c
+	
 }
 
-func newLoanForm(isLoaned binding.Bool, date binding.String, borrower binding.String) *fyne.Container {
+func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.String) *fyne.Container {
 	dateEntry := widget.NewDateEntry()
 	nameEntry := widget.NewEntry()
 
@@ -78,7 +98,7 @@ func newLoanForm(isLoaned binding.Bool, date binding.String, borrower binding.St
 	return c
 }
 
-func newReadForm(isRead binding.Bool, completed binding.String, rating binding.String) *fyne.Container {
+func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.String) *fyne.Container {
 	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), rating)
 	completedEntry := widget.NewDateEntry()
 
@@ -153,6 +173,6 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 	}))
 	update()
 	
-	list := container.NewHScroll(container.NewStack(content))
-	return container.NewStack(list)
+	list := container.NewStack(container.NewVScroll(container.NewStack(content)))
+	return list
 }

@@ -8,47 +8,14 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
-
-type mockBookRetriever struct {}
-
-var _ repo.BookRetriever = &mockBookRetriever{}
-
-func (m *mockBookRetriever) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
-	es := []repo.BookEntry{
-		{
-			Variant: repo.Book,
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-		{
-			Variant: repo.Book,
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-		{
-			Variant: repo.Book,
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-		{
-			Variant: repo.Book,
-			Title: "Example Title",
-			Author: "Example Author",
-			Genre: "Example Genre",
-		},
-	}
-	return es, nil
-}
-
 
 const (
 	msgUserError   string = "message.user.error"
 	msgUserSuccess string = "message.user.success"
 	msgUserInfo    string = "message.user.info"
+	msgDataChanged string = "message.data.changed"
 )
 
 
@@ -63,24 +30,38 @@ type MainUI struct {
 	repo   repo.BookRetriever
 	config *config.Config
 	bus    *bus.Bus
+	app    *app.Application
 
 	OpenedBody binding.Int
 
 	Error      binding.String
 	Success    binding.String
 	Info       binding.String
+	Clear      binding.Bool
 }
 
-func NewMainUI() *MainUI {
+func NewMainUI(a *app.Application) *MainUI {
 	mu := &MainUI{
-		
+		app: a,
 		OpenedBody: binding.NewInt(),
 		bus: &bus.Bus{},
-		repo: &mockBookRetriever{},
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),
 		Info: binding.NewString(),
+		Clear: binding.NewBool(),
+	}
+
+	countDown := time.Duration(time.Minute / 10)
+	timer := time.NewTimer(0)
+	clearLine := func() {
+		go func() {
+			_ = mu.Clear.Set(false)
+			timer.Stop()
+			timer.Reset(countDown)
+			<- timer.C
+			_ = mu.Clear.Set(true)
+		}()
 	}
 
 	mu.bus.Subscribe(bus.Handler{
@@ -96,6 +77,7 @@ func NewMainUI() *MainUI {
 			_ = mu.Error.Set("")
 			_= mu.Success.Set("")
 			_ = mu.Info.Set(v)
+			clearLine()
 		},
 	})
 	mu.bus.Subscribe(bus.Handler{
@@ -111,6 +93,7 @@ func NewMainUI() *MainUI {
 			_= mu.Success.Set("")
 			_ = mu.Info.Set("")
 			_ = mu.Error.Set(v)
+			clearLine()
 		},
 	})
 	mu.bus.Subscribe(bus.Handler{
@@ -126,16 +109,18 @@ func NewMainUI() *MainUI {
 			_ = mu.Info.Set("")
 			_ = mu.Error.Set("")
 			_ = mu.Success.Set(v)
+			clearLine()
 		},
 	})
 	return mu
 }
 
 func (m *MainUI) GetTablesVM() *TablesVM {
-	return NewTablesVM(m.config, m.repo)
+	return NewTablesVM(m.config, m.bus, m.app, m.app, m.app)
 }
+
 func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
-	return NewCreateBookForm(m.bus)
+	return NewCreateBookForm(m.bus, m.app, m.app)
 }
 
 
