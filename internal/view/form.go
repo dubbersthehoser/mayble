@@ -19,7 +19,7 @@ func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 	submit.Alignment = widget.ButtonAlignLeading
 	add.Alignment = widget.ButtonAlignLeading
 
-	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.UniqueGenres)
+	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
 
 	top := container.NewVBox(
 		bookEntry,
@@ -37,17 +37,17 @@ func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 	)
 }
 
-func newBookEntry(title, author, genre binding.String, uniqueGenres binding.StringList) *fyne.Container {
+func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.UniqueGenres) *fyne.Container {
 	
 	titleEntry := widget.NewEntryWithData(title)
 	authorEntry := widget.NewEntryWithData(author)
 
-	genres, _ := uniqueGenres.Get()
+	genres := uniqueGenres.Get()
 	genreEntry := widget.NewSelectEntry(genres)
 	genreEntry.Bind(genre)
 
 	uniqueGenres.AddListener(binding.NewDataListener(func() {
-		genres, _ := uniqueGenres.Get()
+		genres := uniqueGenres.Get()
 		genreEntry.SetOptions(genres)
 	}))
 

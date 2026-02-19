@@ -29,28 +29,32 @@ func (a *Application) DeleteBook(book *repo.BookEntry) error {
 func (a *Application) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	es := []repo.BookEntry{
 		{
+			ID: 0,
 			Variant: repo.Book,
-			Title: "A Example Title",
-			Author: "A Example Author",
-			Genre: "A Example Genre",
+			Title: "Harry Potter",
+			Author: "J.K. Rolling",
+			Genre: "Fantacy",
 		},
 		{
+			ID: 1,
 			Variant: repo.Book,
-			Title: "B Example Title",
-			Author: "B Example Author",
-			Genre: "B Example Genre",
+			Title: "Lord of the Rings",
+			Author: "J.R.R Tolkien",
+			Genre: "Fantacy",
 		},
 		{
+			ID: 2,
 			Variant: repo.Book,
-			Title: "C Example Title",
-			Author: "C Example Author",
-			Genre: "C Example Genre",
+			Title: "The Foundation",
+			Author: "Asimov",
+			Genre: "Sci-fi",
 		},
 		{
+			ID: 3,
 			Variant: repo.Book,
-			Title: "D Example Title",
-			Author: "D Example Author",
-			Genre: "D Example Genre",
+			Title: "The Elements of Style",
+			Author: "William Strunk jr.",
+			Genre: "Writing",
 		},
 	}
 	return es, nil

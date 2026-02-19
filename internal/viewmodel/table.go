@@ -6,7 +6,6 @@ import (
 	"slices"
 	"cmp"
 	"fmt"
-	//"strings"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -169,6 +168,7 @@ func newTable(name string, headers []string) *table {
 	return t
 }
 
+// addValue to column with header seting its value to s and its id.
 func (t *table) addValue(id int64, header, s string) error {
 
 	newCell := t.cells.create(cellView)
@@ -196,6 +196,7 @@ func (t *table) addValue(id int64, header, s string) error {
 	return errors.New("table: header not found")
 }
 
+// appendRow add a row of values to table, marked by its id.
 func (t *table) appendRow(id int64, values []string) error {
 	headers := t.headers()
 	if len(headers) != len(values) {
@@ -210,6 +211,7 @@ func (t *table) appendRow(id int64, values []string) error {
 	return nil
 }
 
+// headers
 func (t *table) headers() []string {
 	headers := make([]string, 0)
 	first := t.cells.get(t.root).first
@@ -224,6 +226,7 @@ func (t *table) headers() []string {
 	return headers
 }
 
+// clearValue by feeing all value cells from table, excluding headers.
 func (t *table) clearValues() {
 	headerFirst := t.cells.get(t.root).first
 	headerCurr := headerFirst
@@ -251,6 +254,7 @@ func (t *table) clearValues() {
 	}
 }
 
+// getCell with row to column number.
 func (t *table) getCell(row, col int) cellIndex {
 	headerIdx := t.getHeaderCell(col)
 	first := t.cells.get(headerIdx).first
@@ -269,6 +273,7 @@ func (t *table) getCell(row, col int) cellIndex {
 	return noneIndex
 }
 
+// getID get the id from cell of idx.
 func (t *table) getID(idx cellIndex) (int64, error) {
 	cell := t.cells.get(idx)
 	if cell.kind != cellView {
@@ -277,11 +282,13 @@ func (t *table) getID(idx cellIndex) (int64, error) {
 	return cell.id, nil
 }
 
+// getValue get the value of a cell.
 func (t *table) getValue(idx cellIndex) string {
 	cell := t.cells.get(idx)
 	return cell.view
 }
 
+// getHeaderCell find the cell index of header with column number.
 func (t *table) getHeaderCell(col int) cellIndex {
 	first := t.cells.get(t.root).first
 	curr := first
@@ -299,6 +306,7 @@ func (t *table) getHeaderCell(col int) cellIndex {
 	return noneIndex
 }
 
+// isHidden check whether cell if idx is hidden.
 func (t *table) isHidden(idx cellIndex) bool {
 	cell := t.cells.get(idx)
 	switch cell.kind {
@@ -311,6 +319,7 @@ func (t *table) isHidden(idx cellIndex) bool {
 	}
 }
 
+// size get the size of the table including the header.
 func (t *table) size() (row int, col int) {
 	col = len(t.headers())
 	first := t.cells.get(t.root).first
@@ -318,7 +327,7 @@ func (t *table) size() (row int, col int) {
 	return t.rowCount, col
 }
 
-// setHidden set give headers to hidden and retaining, or restoring excluded headers.
+// setHidden give headers to hidden and retaining, or restoring excluded headers.
 func (t *table) setHidden(headers []string) {
 
 	hiddenCells := make([]cellIndex, 0)
@@ -342,6 +351,7 @@ func (t *table) setHidden(headers []string) {
 		}
 	}
 
+	// mantain the column ording.
 	slices.SortFunc(showCells, func(a, b cellIndex) int {
 		APlace := t.headerOrder[t.cells.get(a).header]
 		BPlace := t.headerOrder[t.cells.get(b).header]
@@ -360,22 +370,28 @@ func (t *table) setHidden(headers []string) {
 	}
 }
 
-func (t *table) WalkAllValues(fn func(int, int, *dataCell)) {
-	col, row := 0, 0
+
+// walkVisableValues fallow all shown values from ui.
+func (t *table) walkVisableValues(fn func(vRow int, vCol int, cell *dataCell)) {
+	var vRow, vCol int
 	firstHeader := t.cells.get(t.root).first
 	currHeader := firstHeader
 	for {
 		first := t.cells.get(currHeader).first
+		if t.isHidden(first) {
+			return
+		}
 		curr := first
 		for {
-			fn(row, col, t.cells.get(curr))
+			fn(vRow, vCol, t.cells.get(curr))
 			curr = t.cells.get(curr).next
-			row += 1
+			vRow += 1
 			if curr == first {
 				break
 			}
 		}
-		col += 1
+		vRow = 0
+		vCol += 1
 		currHeader = t.cells.get(currHeader).next
 		if currHeader == firstHeader {
 			break
@@ -384,7 +400,7 @@ func (t *table) WalkAllValues(fn func(int, int, *dataCell)) {
 }
 
 
-
+// VariantToTableName get the table name for Variant
 func VariantToTableName(v repo.Variant) string {
 	switch v {
 	case repo.Book:
@@ -398,6 +414,8 @@ func VariantToTableName(v repo.Variant) string {
 	}
 }
 
+
+// VariantFields get the field names from particular book Variant.
 func VariantFields(v repo.Variant) []string {
 	switch v {
 	case (repo.Book):
@@ -427,6 +445,7 @@ func VariantFields(v repo.Variant) []string {
 	}
 }
 
+// EntryValues get the values from e in its in order of it's VariantFields.
 func EntryValues(e *repo.BookEntry) []string {
 	switch e.Variant {
 	case (repo.Book):
@@ -465,6 +484,8 @@ type TableVM struct {
 	SortBy     binding.String
 	SortOrder  binding.String
 	SearchText binding.String
+
+	selector   *EntrySelect
 	
 	table    *table
 	
@@ -472,33 +493,41 @@ type TableVM struct {
 }
 
 
-func NewTableVM(table repo.Variant, config *config.Config, store repo.BookRetriever) *TableVM {
+func NewTableVM(s *appService, table repo.Variant, selector *EntrySelect) *TableVM {
 	t := &TableVM{
-
-		table: newTable(VariantToTableName(table), VariantFields(table)),
-		repo: store,
-		config: config,
-		v: table,
+		table:   newTable(VariantToTableName(table), VariantFields(table)),
+		repo:    s.bookRetriever,
+		config:  s.cfg,
+		v:       table,
 		actions: make([]Action, 0),
 
-		SortBy: binding.NewString(),
-		SortOrder: binding.NewString(),
+		SortBy:     binding.NewString(),
+		SortOrder:  binding.NewString(),
 		SearchText: binding.NewString(),
+
+		selector: selector,
 
 		l: &listener{},
 	}
 
-	//t.SearchText.AddListener(binding.NewDataListener(func() {
-	//	t.table.WalkAllValues(func(row, col int, c *dataCell){
-	//		search, _ := t.SearchText.Get()
-	//		if search == "" {
-	//			return
-	//		}
-	//		strings.ToLower(search)
-	//		EditDist(search, c.view)
-	//		// TODO implement search
-	//	})
-	//}))
+	if t.selector == nil {
+		t.selector = newEntrySelect(s.bookRetriever)
+	}
+
+	t.SearchText.AddListener(binding.NewDataListener(func() {
+		t.selector.unselect(true)
+		search, _ := t.SearchText.Get()
+		if search == "" {
+			return
+		}
+		result := searchTable(t.table, search)
+		if len(result) == 0 {
+			return
+		}
+		r := result[0]
+		t.selector.selectID(r.id, false)
+		t.selector.selectCell(r.row, r.col, true)
+	}))
 
 	_ = t.SortOrder.Set("ASC")
 	_ = t.SortBy.Set(t.table.headers()[0])
@@ -509,16 +538,28 @@ func NewTableVM(table repo.Variant, config *config.Config, store repo.BookRetrie
 	return t
 }
 
+
 func (t *TableVM) appendAction(a *Action) {
 	t.actions = append(t.actions, *a)
 }
 
+
+// Selector returns the table's selector.
+func (t *TableVM) Selector() *EntrySelect {
+	return t.selector
+}
+
+
+// Sort table using sort bindings.
 func (t *TableVM) Sort() {
 	t.table.clearValues()
 	t.load()
 	t.l.notify()
 }
 
+
+
+// The smallest width that a column can be.
 const MinColWidth float32 = 100.0
 
 // cleanColumnIndex transform a column index given by the ui and change it to a
@@ -530,6 +571,8 @@ func cleanColumnIndex(t *TableVM, col int) int {
 	return i
 }
 
+// StoreColumnWidth to the config file if it exists, else nop.
+// When width is smaller then MinColWidth, MinColWidth will be used.
 func (t *TableVM) StoreColumnWidth(col int, width float32) {
 	if t.config == nil {
 		return
@@ -543,6 +586,7 @@ func (t *TableVM) StoreColumnWidth(col int, width float32) {
 }
 
 
+// GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
 func (t *TableVM) GetColumnWidth(col int) float32 {
 	if t.config == nil {
 		return MinColWidth
@@ -562,9 +606,24 @@ func (t *TableVM) SetHidden(hide []string) {
 	t.l.notify()
 }
 
-
 func (t *TableVM) Headers() []string {
 	return t.table.headers()
+}
+
+
+func (t *TableVM) Select(row, col int) {
+	idx := t.table.getCell(row, col)
+	id, err := t.table.getID(idx)
+	if err != nil {
+		return
+	}
+	t.selector.selectID(id, false)
+	t.selector.selectCell(row, col, false)
+	println("selected-id:", id)
+}
+
+func (t *TableVM) Unselect(row, col int) {
+	t.selector.unselect(false)
 }
 
 
@@ -628,11 +687,6 @@ func (t *TableVM) load() error {
 		}
 	}
 
-	//fmt.Println("------------")
-	//t.table.WalkAllValues(func(row, col int, c *dataCell){
-	//	fmt.Println(c.view)
-	//})
-
 	return nil
 }
 
@@ -673,13 +727,15 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
 
+
+
 type TablesVM struct {
 	config *config.Config
 	table  string
 	tables map[string]TableVM
 	
 	EditIsOpen binding.Bool
-	Selected   *EntrySelect
+	selector   *EntrySelect
 
 	repo repo.BookRetriever
 
@@ -690,18 +746,18 @@ type TablesVM struct {
 	l *listener
 }
 
-func NewTablesVM(cfg *config.Config, b *bus.Bus, u repo.BookUpdator, g repo.GenreRetriever, q repo.BookRetriever) *TablesVM {
+func NewTablesVM(vms *vmService) *TablesVM {
 	t := &TablesVM{
-		table: VariantToTableName(repo.Book),
-		tables: make(map[string]TableVM),
+		table:      VariantToTableName(repo.Book),
+		tables:     make(map[string]TableVM),
 		EditIsOpen: binding.NewBool(),
-		Selected: &EntrySelect{},
-		bus: b,
-		repo: q,
-		l: &listener{},
+		bus:        vms.bus,
+		selector:   newEntrySelect(vms.app.bookRetriever), 
+		repo:       vms.app.bookRetriever,
+		l:          &listener{},
 	}
-	t.editor = NewEditBookVM(t.bus, t.EditIsOpen, u, g)
-	t.loadTables()
+	t.editor = NewEditBookVM(vms, t.EditIsOpen)
+	t.loadTables(vms)
 	return t
 }
 
@@ -709,67 +765,37 @@ func (t *TablesVM) EditBookVM() *EditBookVM {
 	return t.editor
 }
 
-func (t *TablesVM) loadTables() {
-	tables := []struct{
-		name string
-		v    repo.Variant
-		a    []Action
-	}{
-		{
-			name: VariantToTableName(repo.Book),
-			v: repo.Book,
-			a: []Action{
-				{
-					Label: "Edit",
-					Action: func() {
-						t.EditIsOpen.Set(true)
-					},
-				},
-			},
-		},
-		{
-			name: VariantToTableName(repo.Book|repo.Loaned),
-			v: repo.BookLoaned,
-			a: []Action{},
-		},
-		{
-			name: VariantToTableName(repo.Book|repo.Read),
-			v: repo.BookRead,
-			a: []Action{},
-		},
+func (t *TablesVM) loadTables(vms *vmService) {
+	tableVarients := []repo.Variant{
+		repo.Book,
+		repo.BookLoaned,
+		repo.BookRead,
 	}
-	for _, conf := range tables {
-		table := *NewTableVM(
-			conf.v,
-			t.config,
-			t.repo,
-		)
-		table.appendAction(&Action{
+	sharedActions := []Action{
+		{	
 			Label: "Edit",
 			Action: func() {
-				if !t.Selected.HasSelected() {
-					t.bus.Notify(bus.Event{
-						Name: msgUserInfo,
-						Data: "Nothing selected",
-					})
-					return
-				}
 				t.EditIsOpen.Set(true)
 			},
-		})
-		table.appendAction(&Action{
+		}, 
+		{
 			Label: "Delete",
 			Action: func() {
-				if !t.Selected.HasSelected() {
-					t.bus.Notify(bus.Event{
-						Name: msgUserInfo,
-						Data: "Nothing selected",
-					})
-					return
-				}
+				fmt.Println("Delete not implmented")
 			},
-		})
-		t.tables[conf.name] = table
+		},
+	}
+	for _, v := range tableVarients {
+		name := VariantToTableName(v)
+		table := *NewTableVM(
+			vms.app,
+			v,
+			t.selector,
+		)
+		for i := range sharedActions {
+			table.appendAction(&sharedActions[i])
+		}
+		t.tables[name] = table
 	}
 }
 
@@ -819,34 +845,4 @@ type Action struct {
 	Action func()
 }
 
-type EntrySelect struct {
-	l          *listener
-	retriever  repo.BookRetriever
-	isSelected bool
-	selected   int64
-}
-
-func (e *EntrySelect) GetBook() (*repo.BookEntry, error) {
-	b, err := e.retriever.GetBookByID(e.selected)
-	return &b, err
-}
-
-func (e *EntrySelect) Select(id int64) {
-	e.selected = id
-	e.isSelected = true
-	e.l.notify()
-}
-
-func (e *EntrySelect) Unselect() {
-	e.isSelected = false
-	e.l.notify()
-}
-
-func (e *EntrySelect) HasSelected() bool {
-	return e.isSelected
-}
-
-func (e *EntrySelect) AddListener(l binding.DataListener) {
-	e.l.AddListener(l)
-}
 

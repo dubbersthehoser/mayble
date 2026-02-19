@@ -5,7 +5,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
-
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
@@ -74,9 +73,14 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		statusLabel,
 	)
 
+	menu := widget.NewLabel("not implemented")
 	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
 	table := BookTables(uiVM.GetTablesVM())
-	body := container.NewStack(form)
+	body := container.NewStack(
+		menu,
+		table,
+		form,
+	)
 
 	uiVM.OpenedBody.AddListener(binding.NewDataListener(func() {
 		open, _ := uiVM.OpenedBody.Get()
@@ -86,17 +90,23 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		switch open {
 		case viewmodel.BodyForm:
 			addButton.Disable()
-			body.Objects[0] = form
+			menu.Hide()
+			table.Hide()
+			form.Show()
 			statusLabel.SetText("")
 			body.Refresh()
 		case viewmodel.BodyMenu:
 			menuButton.Disable()
-			body.Objects[0] = widget.NewLabel("not implemented")
+			menu.Show()
+			table.Hide()
+			form.Hide()
 			statusLabel.SetText("")
 			body.Refresh()
 		case viewmodel.BodyData:
 			tablesButton.Disable()
-			body.Objects[0] = table
+			menu.Hide()
+			table.Show()
+			form.Hide()
 			statusLabel.SetText("")
 			body.Refresh()
 		default:

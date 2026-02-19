@@ -6,7 +6,6 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/app"
 )
@@ -26,11 +25,10 @@ const (
 )
 
 type MainUI struct {	
-
 	repo   repo.BookRetriever
-	config *config.Config
-	bus    *bus.Bus
 	app    *app.Application
+
+	vms    *vmService
 
 	OpenedBody binding.Int
 
@@ -41,10 +39,12 @@ type MainUI struct {
 }
 
 func NewMainUI(a *app.Application) *MainUI {
+	as := newAppService(nil, a) // TODO add config
+	vms := newVMService(as)
 	mu := &MainUI{
 		app: a,
 		OpenedBody: binding.NewInt(),
-		bus: &bus.Bus{},
+		vms: vms,
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),
@@ -64,7 +64,7 @@ func NewMainUI(a *app.Application) *MainUI {
 		}()
 	}
 
-	mu.bus.Subscribe(bus.Handler{
+	mu.vms.bus.Subscribe(bus.Handler{
 		Name: msgUserInfo,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -80,7 +80,7 @@ func NewMainUI(a *app.Application) *MainUI {
 			clearLine()
 		},
 	})
-	mu.bus.Subscribe(bus.Handler{
+	mu.vms.bus.Subscribe(bus.Handler{
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -96,7 +96,7 @@ func NewMainUI(a *app.Application) *MainUI {
 			clearLine()
 		},
 	})
-	mu.bus.Subscribe(bus.Handler{
+	mu.vms.bus.Subscribe(bus.Handler{
 		Name: msgUserSuccess,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -116,13 +116,12 @@ func NewMainUI(a *app.Application) *MainUI {
 }
 
 func (m *MainUI) GetTablesVM() *TablesVM {
-	return NewTablesVM(m.config, m.bus, m.app, m.app, m.app)
+	return NewTablesVM(m.vms)
 }
 
 func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
-	return NewCreateBookForm(m.bus, m.app, m.app)
+	return NewCreateBookForm(m.vms)
 }
-
 
 type BookVM struct {
 	id int64

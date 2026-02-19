@@ -17,7 +17,6 @@ type BookForm struct {
 	Author    binding.String
 	Genre     binding.String
 
-	UniqueGenres binding.StringList
 
 	IsLoaned binding.Bool
 	Borrower binding.String
@@ -27,12 +26,12 @@ type BookForm struct {
 	Rating    binding.String
 	Completed binding.String
 }
+
 func NewBookForm() *BookForm {
 	return &BookForm{
 		Title: binding.NewString(),
 		Author: binding.NewString(),
 		Genre: binding.NewString(),
-		UniqueGenres: binding.NewStringList(),
 
 		IsRead:    binding.NewBool(),
 		Rating:    binding.NewString(),
@@ -201,43 +200,18 @@ type CreateBookForm struct {
 	bus       *bus.Bus
 	sl        *SubmissionList
 	repo      repo.BookCreator
-	genres     repo.GenreRetriever
+	Genres    *UniqueGenres
 	BookForm
 }
 
-func NewCreateBookForm(b *bus.Bus, repo repo.BookCreator, genres repo.GenreRetriever) *CreateBookForm {
+func NewCreateBookForm(vms *vmService) *CreateBookForm {
 	bf := &CreateBookForm{
-		sl: NewSubmissionList(b),
-		bus: b,
-		repo: repo,
-		genres: genres, 
+		sl: NewSubmissionList(vms.bus),
+		bus: vms.bus,
+		Genres: vms.genres,
+		repo: vms.app.bookCreator,
 		BookForm: *NewBookForm(),
 	}
-
-	updateGenres := func() {
-		genres, err := genres.GetUniqueGenres()
-		if err != nil {
-			return 
-		}
-		for i := range bf.BookForm.UniqueGenres.Length() {
-			v, _ := bf.BookForm.UniqueGenres.GetValue(i)
-			_ = bf.BookForm.UniqueGenres.Remove(v)
-		}
-		for i := range genres {
-			_ = bf.BookForm.UniqueGenres.Append(genres[i])
-		}
-
-	}
-
-	b.Subscribe(bus.Handler{
-		Name: msgDataChanged,
-		Handler: func(e *bus.Event) {
-			updateGenres()
-		},
-	})
-
-	updateGenres()
-
 	bf.sl.form = bf
 	return bf
 }
@@ -333,16 +307,6 @@ func (bf *CreateBookForm) SubmissionList() *SubmissionList {
 	return bf.sl
 }
 
-func (bf *CreateBookForm) GetUniqueGenres() []string {
-	genres, err := bf.genres.GetUniqueGenres()
-	if err != nil {
-		return []string{
-			"_STUB_",
-		}
-	}
-	return genres
-}
-
 func (bf *CreateBookForm) Submit() {
 	if bf.sl.Length() == 0  {
 		bf.bus.Notify(bus.Event{
@@ -390,56 +354,23 @@ func (bf *CreateBookForm) Submit() {
 }
 
 
-type UniqueGenres struct {
-	list binding.StringList
-	genres repo.GenreRetriever
-}
-
-func NewUniqueGenres(b *bus.Bus, l binding.StringList, g repo.GenreRetriever) *UniqueGenres {
-	ug := &UniqueGenres{
-		list: l,
-		genres: g,
-	}
-	b.Subscribe(bus.Handler{
-		Name: msgDataChanged,
-		Handler: func(e *bus.Event) {
-			ug.Update()
-		},
-	})
-	return ug
-}
-
-func (u *UniqueGenres) Update() {
-	genres, err := u.genres.GetUniqueGenres()
-	if err != nil {
-		return 
-	}
-	for i := range u.list.Length() {
-		v, _ := u.list.GetValue(i)
-		_ = u.list.Remove(v)
-	}
-	for i := range genres {
-		_ = u.list.Append(genres[i])
-	}
-
-}
 
 
 type EditBookVM struct {
 	BookForm
-	genres    *UniqueGenres
-	bus        *bus.Bus
-	IsOpen     binding.Bool
+	Genres  *UniqueGenres
+	bus     *bus.Bus
+	IsOpen  binding.Bool
 
 }
 
-func NewEditBookVM(b *bus.Bus, isOpen binding.Bool, repo repo.BookUpdator, g repo.GenreRetriever) *EditBookVM {
+func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
 	ed := &EditBookVM{
-		bus: b,
+		bus:      vms.bus,
 		BookForm: *NewBookForm(),
-		IsOpen: isOpen,
+		Genres:   vms.genres,
+		IsOpen:   isOpen,
 	}
-	ed.genres = NewUniqueGenres(b, ed.UniqueGenres, g)
 	return ed
 }
 

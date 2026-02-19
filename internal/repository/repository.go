@@ -92,7 +92,7 @@ type BookUpdator interface {
 	UpdateBook(b *BookEntry) error
 }
 
-type BookDeleter interface {
+type BookDeletor interface {
 	DeleteBook(b *BookEntry) error
 }
 

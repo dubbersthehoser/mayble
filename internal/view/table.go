@@ -16,7 +16,7 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 	cancel := widget.NewButton("Cancel", vm.Close)
 	update := widget.NewButton("Update", vm.Submit)
 	
-	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.UniqueGenres)
+	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
 	isRead := widget.NewCheckWithData("Is Read", vm.IsRead)
 	isLoaned := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 
@@ -142,19 +142,39 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	// Selection
 	table.OnSelected = func(id widget.TableCellID) {
+		row, _ := table.Size()
+		if row <= id.Row {
+			vm.Select(id.Row, id.Col)
+		}
 	}
+	table.OnUnselected = func(id widget.TableCellID) {
+		vm.Unselect(id.Row, id.Col)
+		table.UnselectAll()
+	}
+	vm.Selector().AddListener(binding.NewDataListener(func() {
+		if vm.Selector().HasSelected() {
+			row, col := vm.Selector().SelectedCell()
+			println(row, col)
+			table.Select(widget.TableCellID{Row: row, Col: col})
+		} else {
+			table.UnselectAll()
+		}
+	}))
 
+	// Column Hidding
 	column := widget.NewCheckGroup(vm.Headers(), func(list []string) {
 		vm.SetHidden(list)
 	})
 	column.Horizontal = true
 
+	// Search
 	search := widget.NewEntryWithData(vm.SearchText)
 
 	// Listen for updates from table
 	vm.AddListener(binding.NewDataListener(func() {
 		table.Refresh()
 	}))
+
 
 	actions := container.NewHBox(
 	)
