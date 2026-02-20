@@ -36,44 +36,90 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 
 
 
-func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
+//func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
+//
+//	tabTables := container.NewAppTabs()
+//	for _, table := range vm.TableNames() {
+//		tvm := vm.GetTable(table)
+//		tab := container.NewTabItem(table, BookTable(tvm))
+//		tabTables.Append(tab)
+//	}
+//
+//	tabTables.OnSelected = func(tab *container.TabItem) {
+//		vm.SetTable(tab.Text)
+//	}
+//	
+//	edit := BookEditForm(vm.EditBookVM())
+//
+//	view := container.NewStack(
+//		edit,
+//		tabTables,
+//	)
+//
+//	edit.Hide()
+//
+//	vm.EditIsOpen.AddListener(binding.NewDataListener(func() {
+//		isOpen, _ := vm.EditIsOpen.Get()
+//		if isOpen {
+//			edit.Show()
+//			tabTables.Hide()
+//		} else {
+//			edit.Hide()
+//			tabTables.Show()
+//		}
+//	}))
+//
+//
+//	return view
+//}
 
-	tabTables := container.NewAppTabs()
-	for _, table := range vm.TableNames() {
-		tvm := vm.GetTable(table)
-		tab := container.NewTabItem(table, BookTable(tvm))
-		tabTables.Append(tab)
-	}
 
-	tabTables.OnSelected = func(tab *container.TabItem) {
-		vm.SetTable(tab.Text)
-	}
+func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fyne.CanvasObject {
+
+	editBtn := widget.NewButton("Edit", nil)
+	deleteBtn := widget.NewButton("Delete", nil)
+	search := widget.NewEntryWithData(vmt.Search.Text)
+	searchOptions := widget.NewSelect(vmt.SearchOptions(), func(s string) {
+		_ = vmt.Search.Option.Set(s)
+	})
+	searchOptions.SetSelected(vmt.SearchOptions()[0])
+
+	vmt.SetSelector(vmc.GetSelector())
+	table := bookTable(vmt)
 	
-	edit := BookEditForm(vm.EditBookVM())
+	fields := widget.NewCheckGroup(vmt.HideOptions(), func(list []string) {
+		vmt.SetHidden(list)
+	})
+	fields.Horizontal = true
 
-	view := container.NewStack(
-		edit,
-		tabTables,
+	controllers := container.NewVBox(
+		container.NewBorder(
+			nil, nil,
+			searchOptions,
+			nil,
+			search,
+		),
+		container.NewBorder(
+			nil, nil,
+			fields,
+			container.NewHBox(
+				editBtn,
+				deleteBtn,
+			),
+		),
 	)
 
-	edit.Hide()
+	fullTable := container.NewBorder(
+		controllers,
+		nil, nil, nil,
+		table,
+	)
 
-	vm.EditIsOpen.AddListener(binding.NewDataListener(func() {
-		isOpen, _ := vm.EditIsOpen.Get()
-		if isOpen {
-			edit.Show()
-			tabTables.Hide()
-		} else {
-			edit.Hide()
-			tabTables.Show()
-		}
-	}))
+	return fullTable
 
-
-	return view
 }
 
-func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
+func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	//
 	// Table
@@ -103,6 +149,7 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 					object.(*widget.Label).Hide()
 				} else {
 					object.(*widget.Label).Show()
+
 					object.(*widget.Label).SetText(data)
 				}
 			} else { // (A) create empty column.
@@ -110,6 +157,7 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 			}
 		},
 	)
+
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
@@ -142,52 +190,28 @@ func BookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 
 	// Selection
 	table.OnSelected = func(id widget.TableCellID) {
-		row, _ := table.Size()
-		if row <= id.Row {
-			vm.Select(id.Row, id.Col)
-		}
+		vm.Select(id.Row, id.Col)
 	}
 	table.OnUnselected = func(id widget.TableCellID) {
 		vm.Unselect(id.Row, id.Col)
 		table.UnselectAll()
 	}
+
 	vm.Selector().AddListener(binding.NewDataListener(func() {
 		if vm.Selector().HasSelected() {
 			row, col := vm.Selector().SelectedCell()
-			println(row, col)
 			table.Select(widget.TableCellID{Row: row, Col: col})
 		} else {
 			table.UnselectAll()
 		}
 	}))
 
-	// Column Hidding
-	column := widget.NewCheckGroup(vm.Headers(), func(list []string) {
-		vm.SetHidden(list)
-	})
-	column.Horizontal = true
-
-	// Search
-	search := widget.NewEntryWithData(vm.SearchText)
-
 	// Listen for updates from table
 	vm.AddListener(binding.NewDataListener(func() {
 		table.Refresh()
 	}))
 
-
-	actions := container.NewHBox(
-	)
-	for _, a := range vm.Actions() {
-		actions.Add(widget.NewButton(a.Label, a.Action))
-	}
-
-	top := container.NewAdaptiveGrid(
-		1,
-		search, 
-		container.NewBorder(nil, nil, column, actions, column, actions),
-	)
-	return container.NewBorder(top, nil, nil, nil, table)
+	return table
 }
 
 
@@ -225,9 +249,7 @@ func NewColumnButton(label string, vm *viewmodel.TableVM) *ColumnButton {
 }
 
 func (hb *ColumnButton) InitLabel(s string) {
-	if hb.label == "" {
-		hb.label = s
-	}	
+	hb.label = s
 	by, _ := hb.vm.SortBy.Get()
 	ording, _ := hb.vm.SortOrder.Get()
 	if by == hb.label {

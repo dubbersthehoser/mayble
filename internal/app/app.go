@@ -30,28 +30,28 @@ func (a *Application) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	es := []repo.BookEntry{
 		{
 			ID: 0,
-			Variant: repo.Book,
+			Variant: repo.BookLoaned | repo.BookRead,
 			Title: "Harry Potter",
 			Author: "J.K. Rolling",
 			Genre: "Fantacy",
 		},
 		{
 			ID: 1,
-			Variant: repo.Book,
+			Variant: repo.BookLoaned | repo.BookRead,
 			Title: "Lord of the Rings",
 			Author: "J.R.R Tolkien",
 			Genre: "Fantacy",
 		},
 		{
 			ID: 2,
-			Variant: repo.Book,
+			Variant: repo.BookLoaned | repo.BookRead,
 			Title: "The Foundation",
 			Author: "Asimov",
 			Genre: "Sci-fi",
 		},
 		{
 			ID: 3,
-			Variant: repo.Book,
+			Variant: repo.BookLoaned | repo.BookRead,
 			Title: "The Elements of Style",
 			Author: "William Strunk jr.",
 			Genre: "Writing",

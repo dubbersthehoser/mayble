@@ -115,8 +115,12 @@ func NewMainUI(a *app.Application) *MainUI {
 	return mu
 }
 
-func (m *MainUI) GetTablesVM() *TablesVM {
-	return NewTablesVM(m.vms)
+func (m *MainUI) GetTableVM() *TableVM {
+	return NewTableVM(m.vms.app)
+}
+
+func (m *MainUI) GetTableControllersVM() *TableControllersVM {
+	return NewTableControllersVM(m.vms)
 }
 
 func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
@@ -146,6 +150,9 @@ func NewBookVM(id int64, title, author, genre string) *BookVM {
 const dateFormat = "02/01/2006"
 
 func formatDate(t *time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Format(dateFormat)
 }
 
@@ -159,7 +166,7 @@ const capRating = 6
 func formatRating(r int) string {
 	switch r {
 	case 0:
-		return "N/A"
+		return ""
 	case 1:
 		return "⭐"
 	case 2:
@@ -171,7 +178,7 @@ func formatRating(r int) string {
 	case 5:
 		return "⭐⭐⭐⭐⭐"
 	default:
-		return "STUB"
+		return "ERROR"
 	}
 }
 func Ratings() []string{

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"cmp"
 
+	"fyne.io/fyne/v2/data/binding"
 )
 
 
@@ -100,13 +101,42 @@ type cellSearchResult struct {
 	row, col int
 	score    int
 }
-func searchTable(t *table, search string) []cellSearchResult {
+
+type TableSearch struct {
+	Text   binding.String
+	Option binding.String
+	table  *table
+}
+
+func NewTableSearch(t *table) *TableSearch {
+	return &TableSearch{
+		Text:   binding.NewString(),
+		Option: binding.NewString(),
+		table:  t,
+	}
+}
+
+func (ts *TableSearch) Options() []string {
+	return []string{
+		"All",
+		"Title",
+		"Author",
+		"Genre",
+		"Borrower",
+	}
+}
+
+func (ts *TableSearch) search(search string) []cellSearchResult {
 	if search == "" {
 		return []cellSearchResult{}
 	}
 	result := []cellSearchResult{}
-	t.walkVisableValues(func(row, col int, c *dataCell){
+	option, _ := ts.Option.Get()
+	ts.table.walkVisableValues(func(row, col int, c *dataCell){
 		if search == "" {
+			return
+		}
+		if option != ts.Options()[0] && c.header != option {
 			return
 		}
 		score := searchCompare(c.view, search)
@@ -126,3 +156,6 @@ func searchTable(t *table, search string) []cellSearchResult {
 	})
 	return result
 }
+
+
+

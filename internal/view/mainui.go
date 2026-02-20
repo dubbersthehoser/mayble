@@ -75,7 +75,14 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
 	menu := widget.NewLabel("not implemented")
 	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
-	table := BookTables(uiVM.GetTablesVM())
+
+
+	table := fullBookTable(
+		uiVM.GetTableControllersVM(),
+		uiVM.GetTableVM(),
+	)
+
+
 	body := container.NewStack(
 		menu,
 		table,

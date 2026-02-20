@@ -6,12 +6,12 @@ import (
 	"slices"
 	"cmp"
 	"fmt"
+	"log"
 
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
 
@@ -131,12 +131,17 @@ func cellRowLength(cells *cellPool, parent cellIndex) int {
 }
 
 
+
+// table stores the values of the table in a tree, like structure.
+// The structure's root node is the top-left most header linking to all the other headers.
+// Then then the header has children of their values linking next all the way 'down' the rows.
 type table struct {
 	name          string
-	headerOrder   map[string]int // maintain original header locations.
-	cells         *cellPool
-	root          cellIndex      // first left most header in table.
-	rowCount      int            // Keep track of rows
+	headerOrder   map[string]int        // maintain original header locations.
+	rows          map[int64][]cellIndex // entry values of row
+	cells         *cellPool             // pool storing all the cells.
+	root          cellIndex             // first left most header in table.
+	rowCount      int                   // Keep track of rows in table
 }
 
 func newTable(name string, headers []string) *table {
@@ -169,7 +174,7 @@ func newTable(name string, headers []string) *table {
 }
 
 // addValue to column with header seting its value to s and its id.
-func (t *table) addValue(id int64, header, s string) error {
+func (t *table) addValue(id int64, header, s string) (cellIndex, error) {
 
 	newCell := t.cells.create(cellView)
 
@@ -178,40 +183,46 @@ func (t *table) addValue(id int64, header, s string) error {
 	t.cells.get(newCell).table = t.name
 	t.cells.get(newCell).id = id
 
-	// fmt.Println("cell:", newCell) // debug: cells are being created
-
 	first := t.cells.get(t.root).first
 	curr := first
 
-	for { // do loop; God's loop
+	for { 
 		if t.cells.get(curr).header == header {
 			appendCellToParent(t.cells, curr, newCell)
-			return nil
+			return newCell, nil
 		}
 		curr = t.cells.get(curr).next
 		if curr == first {
 			break
 		}
 	}
-	return errors.New("table: header not found")
+	return noneIndex, errors.New("table: header not found")
 }
 
 // appendRow add a row of values to table, marked by its id.
 func (t *table) appendRow(id int64, values []string) error {
-	headers := t.headers()
-	if len(headers) != len(values) {
+	if len(t.headers()) != len(values) {
 		return errors.New("missmatch headers to values")
 	}
-	for i := range headers {
-		header := headers[i]
+	
+	// use the original header order to add value.
+	for header, i := range t.headerOrder {
 		value := values[i]
-		t.addValue(id, header, value)
+		idx, err := t.addValue(id, header, value)
+		if err != nil {
+			return err
+		}
+		_, ok := t.row[id]
+		if !ok {
+			t.row[id] = make([]cellIndex, len(values))
+		}
+		t.row[id][i] = idx
 	}
 	t.rowCount += 1
 	return nil
 }
 
-// headers
+// headers list current header order.
 func (t *table) headers() []string {
 	headers := make([]string, 0)
 	first := t.cells.get(t.root).first
@@ -226,14 +237,32 @@ func (t *table) headers() []string {
 	return headers
 }
 
+// visableHeader list of visable headers
+func (t *table) visableHeaders() []string {
+	headers := make([]string, 0)
+	first := t.cells.get(t.root).first
+	curr := first
+	for {
+		header := t.cells.get(curr)
+		if !header.hidden {
+			headers = append(headers, header.header)
+		}
+		curr = header.next
+		if curr == first {
+			break
+		}
+	}
+	return headers
+}
+
 // clearValue by feeing all value cells from table, excluding headers.
-func (t *table) clearValues() {
+func (t *table) clearValues() error {
 	headerFirst := t.cells.get(t.root).first
 	headerCurr := headerFirst
 	if headerCurr == noneIndex { // nothing to remove
-		return
+		return nil
 	}
-	t.rowCount -= 1
+
 	for {
 		first := t.cells.get(headerCurr).first
 		curr := first
@@ -245,13 +274,14 @@ func (t *table) clearValues() {
 				break
 			}
 		}
-		t.rowCount -= 1
 		t.cells.get(headerCurr).first = noneIndex
 		headerCurr = t.cells.get(headerCurr).next
 		if headerCurr == headerFirst {
 			break
 		}
 	}
+	t.rowCount = 0
+	return nil
 }
 
 // getCell with row to column number.
@@ -322,14 +352,14 @@ func (t *table) isHidden(idx cellIndex) bool {
 // size get the size of the table including the header.
 func (t *table) size() (row int, col int) {
 	col = len(t.headers())
-	first := t.cells.get(t.root).first
-	row = cellRowLength(t.cells, first)
+	//first := t.cells.get(t.root).first
+	//row = cellRowLength(t.cells, first)
 	return t.rowCount, col
 }
 
 // setHidden give headers to hidden and retaining, or restoring excluded headers.
 func (t *table) setHidden(headers []string) {
-
+	
 	hiddenCells := make([]cellIndex, 0)
 
 	showCells := make([]cellIndex, 0)
@@ -357,7 +387,6 @@ func (t *table) setHidden(headers []string) {
 		BPlace := t.headerOrder[t.cells.get(b).header]
 		return cmp.Compare(APlace, BPlace)
 	})
-
 
 	// rearrange columns to keep shown columns to the left and hidden to the right.
 	parent := t.root
@@ -399,93 +428,58 @@ func (t *table) walkVisableValues(fn func(vRow int, vCol int, cell *dataCell)) {
 	}
 }
 
-
-// VariantToTableName get the table name for Variant
-func VariantToTableName(v repo.Variant) string {
-	switch v {
-	case repo.Book:
-		return "All Books"
-	case repo.BookLoaned:
-		return "On Loan"
-	case repo.BookRead:
-		return "Read"
-	default:
-		return "N/A"
+func (t *table) searchWalk(fn func(vRow, vCol int, cell *dataCell)) {
+	var vRow, vCol int
+	firstRow := t.cells.get(t.root).first
+	currRow := firstRow
+	for {
+		vCol = 0
+		vRow += 1
+		if f
 	}
 }
 
 
-// VariantFields get the field names from particular book Variant.
-func VariantFields(v repo.Variant) []string {
-	switch v {
-	case (repo.Book):
-		return []string{
-			"Title",
-			"Author",
-			"Genre",
-		}
-	case (repo.BookLoaned):
-		return []string{
-			"Title",
-			"Author",
-			"Genre",
-			"Borrower",
-			"Loaned",
-		}
-	case (repo.BookRead):
-		return []string{
-			"Title",
-			"Author",
-			"Genre",
-			"Rating",
-			"Read",
-		}
-	default:
-		return []string{}
+// entryHeaders get the header labels for book entry.
+func entryHeaders() []string {
+	return []string{
+		"Title",
+		"Author",
+		"Genre",
+
+		"Rating",
+		"Read",
+
+		"Borrower",
+		"Loaned",
 	}
 }
 
 // EntryValues get the values from e in its in order of it's VariantFields.
 func EntryValues(e *repo.BookEntry) []string {
-	switch e.Variant {
-	case (repo.Book):
-		return []string{
-			e.Title,
-			e.Author,
-			e.Genre,
-		}
-	case (repo.Book|repo.Loaned):
-		return []string{
-			e.Title,
-			e.Author,
-			e.Genre,
-			e.Borrower,
-			formatDate(&e.Loaned),
-		}
-	case (repo.Book|repo.Read):
-		return []string{
-			e.Title,
-			e.Author,
-			e.Genre,
-			formatRating(e.Rating),
-			formatDate(&e.Read),
-		}
-	default:
-		return []string{}
+	return []string{
+		e.Title,
+		e.Author,
+		e.Genre,
+		formatRating(e.Rating),
+		formatDate(&e.Read),
+		e.Borrower,
+		formatDate(&e.Loaned),
 	}
 }
+
 
 type TableVM struct {
 	repo     repo.BookRetriever
 	config   *config.Config
 	v        repo.Variant
-	actions  []Action
 
 	SortBy     binding.String
 	SortOrder  binding.String
-	SearchText binding.String
 
 	selector   *EntrySelect
+
+	Search   *TableSearch
 	
 	table    *table
 	
@@ -493,34 +487,31 @@ type TableVM struct {
 }
 
 
-func NewTableVM(s *appService, table repo.Variant, selector *EntrySelect) *TableVM {
+func NewTableVM(s *appService) *TableVM {
+	v := (repo.Book | repo.Loaned | repo.Read)
 	t := &TableVM{
-		table:   newTable(VariantToTableName(table), VariantFields(table)),
+		table:   newTable("All Books", entryHeaders()),
 		repo:    s.bookRetriever,
 		config:  s.cfg,
-		v:       table,
-		actions: make([]Action, 0),
+		v:       v,
 
 		SortBy:     binding.NewString(),
 		SortOrder:  binding.NewString(),
-		SearchText: binding.NewString(),
 
-		selector: selector,
+		selector: newEntrySelect(s.bookRetriever),
 
 		l: &listener{},
 	}
 
-	if t.selector == nil {
-		t.selector = newEntrySelect(s.bookRetriever)
-	}
+	t.Search = NewTableSearch(t.table)
 
-	t.SearchText.AddListener(binding.NewDataListener(func() {
+	t.Search.Text.AddListener(binding.NewDataListener(func() {
 		t.selector.unselect(true)
-		search, _ := t.SearchText.Get()
+		search, _ := t.Search.Text.Get()
 		if search == "" {
 			return
 		}
-		result := searchTable(t.table, search)
+		result := t.Search.search(search)
 		if len(result) == 0 {
 			return
 		}
@@ -531,16 +522,28 @@ func NewTableVM(s *appService, table repo.Variant, selector *EntrySelect) *Table
 
 	_ = t.SortOrder.Set("ASC")
 	_ = t.SortBy.Set(t.table.headers()[0])
-	if table == repo.Book {
-		t.load()
+	err := t.load()
+	if err != nil {
+		log.Println(err)
 	}
 
 	return t
 }
 
+func (t *TableVM) SetSelector(es *EntrySelect) *TableVM {
+	t.selector = es
+	return t
+}
 
-func (t *TableVM) appendAction(a *Action) {
-	t.actions = append(t.actions, *a)
+
+func (t *TableVM) SearchOptions() []string {
+	return []string{
+		"All",
+		"Title",
+		"Author",
+		"Genre",
+		"Borrower",
+	}
 }
 
 
@@ -552,8 +555,17 @@ func (t *TableVM) Selector() *EntrySelect {
 
 // Sort table using sort bindings.
 func (t *TableVM) Sort() {
-	t.table.clearValues()
-	t.load()
+	err := t.table.clearValues()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	t.selector.unselect(true)
+	err = t.load()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	t.l.notify()
 }
 
@@ -567,7 +579,7 @@ const MinColWidth float32 = 100.0
 func cleanColumnIndex(t *TableVM, col int) int {
 	idx := t.table.getHeaderCell(col)
 	label := t.table.cells.get(idx).header
-	i := slices.Index(VariantFields(t.v), label)
+	i := slices.Index(entryHeaders(), label)
 	return i
 }
 
@@ -601,13 +613,34 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 }
 
 
-func (t *TableVM) SetHidden(hide []string) {
+func (t *TableVM) SetHidden(options []string) {
+	hide := []string{}
+	for _, o := range options {
+		switch o {
+		case "Loaned":
+			hide = append(hide, "Borrower", "Loaned")
+		case "Read":
+			hide = append(hide, "Rating", "Read")
+		default:
+			hide = append(hide, o)
+		}
+	}
 	t.table.setHidden(hide)
 	t.l.notify()
 }
 
+func (t *TableVM) HideOptions() []string {
+	return []string{
+		"Title",
+		"Author",
+		"Genre",
+		"Read",
+		"Loaned",
+	}
+}
+
 func (t *TableVM) Headers() []string {
-	return t.table.headers()
+	return t.table.visableHeaders()
 }
 
 
@@ -619,16 +652,10 @@ func (t *TableVM) Select(row, col int) {
 	}
 	t.selector.selectID(id, false)
 	t.selector.selectCell(row, col, false)
-	println("selected-id:", id)
 }
 
 func (t *TableVM) Unselect(row, col int) {
 	t.selector.unselect(false)
-}
-
-
-func (t *TableVM) Actions() []Action {
-	return t.actions
 }
 
 
@@ -648,9 +675,9 @@ func (t *TableVM) load() error {
 	by, _ := t.SortBy.Get()
 	order, _ := t.SortOrder.Get()
 
-	index := slices.Index(VariantFields(t.v), by)
+	index := slices.Index(entryHeaders(), by)
 
-	slices.SortFunc(items, func(a, b repo.BookEntry) int{
+	slices.SortFunc(items, func(a, b repo.BookEntry) int {
 		r := -1
 		switch index {
 		case 0:
@@ -668,7 +695,7 @@ func (t *TableVM) load() error {
 		case 6:
 			r = a.Read.Compare(b.Read)
 		default:
-			fmt.Println("sort field not found", index, by)
+			log.Println("load: sort field not found", index, by)
 		}
 		if order == "DESC" {
 			return r * -1
@@ -686,7 +713,6 @@ func (t *TableVM) load() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -696,18 +722,16 @@ func (t *TableVM) Size() (int, int) {
 
 func (t *TableVM) Get(row, col int) string {
 	idx := t.table.getCell(row, col)
-	return t.table.getValue(idx)
+	value := t.table.getValue(idx)
+	if value == "" {
+		value = "N/A"
+	}
+	return value
 }
 
 func (t *TableVM) GetID(row, col int) (int64, error) {
 	idx := t.table.getCell(row, col)
 	return t.table.getID(idx)
-}
-
-func (t *TableVM) GetLabel(row, col int) (string, error) {
-	idx := t.table.getCell(row, col)
-	v := t.table.cells.get(idx).v
-	return VariantToTableName(v), nil
 }
 
 // IsItemHidden check whether cell item is hidden.
@@ -729,120 +753,147 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 
 
 
-type TablesVM struct {
-	config *config.Config
-	table  string
-	tables map[string]TableVM
-	
+type TableControllersVM struct {
+	SearchText    binding.String
+	selector      *EntrySelect
+	hiddenColumns []string
+	vms           *vmService
 	EditIsOpen binding.Bool
-	selector   *EntrySelect
 
-	repo repo.BookRetriever
+	table *TableVM
 
 	editor *EditBookVM
-
-	bus *bus.Bus
-
-	l *listener
 }
 
-func NewTablesVM(vms *vmService) *TablesVM {
-	t := &TablesVM{
-		table:      VariantToTableName(repo.Book),
-		tables:     make(map[string]TableVM),
-		EditIsOpen: binding.NewBool(),
-		bus:        vms.bus,
-		selector:   newEntrySelect(vms.app.bookRetriever), 
-		repo:       vms.app.bookRetriever,
-		l:          &listener{},
+func NewTableControllersVM(vms *vmService) *TableControllersVM {
+	tc := &TableControllersVM{
+		SearchText: binding.NewString(),
+		hiddenColumns: make([]string, 0),
+		selector: newEntrySelect(vms.app.bookRetriever),
+		vms: vms,
 	}
-	t.editor = NewEditBookVM(vms, t.EditIsOpen)
-	t.loadTables(vms)
-	return t
+	return tc
 }
 
-func (t *TablesVM) EditBookVM() *EditBookVM {
-	return t.editor
+func (tc *TableControllersVM) GetSelector() *EntrySelect {
+	return tc.selector
 }
 
-func (t *TablesVM) loadTables(vms *vmService) {
-	tableVarients := []repo.Variant{
-		repo.Book,
-		repo.BookLoaned,
-		repo.BookRead,
-	}
-	sharedActions := []Action{
-		{	
-			Label: "Edit",
-			Action: func() {
-				t.EditIsOpen.Set(true)
-			},
-		}, 
-		{
-			Label: "Delete",
-			Action: func() {
-				fmt.Println("Delete not implmented")
-			},
-		},
-	}
-	for _, v := range tableVarients {
-		name := VariantToTableName(v)
-		table := *NewTableVM(
-			vms.app,
-			v,
-			t.selector,
-		)
-		for i := range sharedActions {
-			table.appendAction(&sharedActions[i])
-		}
-		t.tables[name] = table
-	}
-}
 
-func (t *TablesVM) TableName() string {
-	return t.table
-}
+//type TablesVM struct {
+//	config *config.Config
+//	table  string
+//	tables map[string]TableVM
+//	
+//	EditIsOpen binding.Bool
+//	selector   *EntrySelect
+//
+//	repo repo.BookRetriever
+//
+//	editor *EditBookVM
+//
+//	bus *bus.Bus
+//
+//	l *listener
+//}
+//
+//func NewTablesVM(vms *vmService) *TablesVM {
+//	t := &TablesVM{
+//		table:      VariantToTableName(repo.Book),
+//		tables:     make(map[string]TableVM),
+//		EditIsOpen: binding.NewBool(),
+//		bus:        vms.bus,
+//		selector:   newEntrySelect(vms.app.bookRetriever), 
+//		repo:       vms.app.bookRetriever,
+//		l:          &listener{},
+//	}
+//	t.editor = NewEditBookVM(vms, t.EditIsOpen)
+//	t.loadTables(vms)
+//	return t
+//}
+//
+//func (t *TablesVM) EditBookVM() *EditBookVM {
+//	return t.editor
+//}
 
-func (t *TablesVM) GetTable(s string) *TableVM {
-	table := t.tables[s]
-	return &table
-}
+//func (t *TablesVM) loadTables(vms *vmService) {
+//	tableVarients := []repo.Variant{
+//		repo.Book,
+//		repo.BookLoaned,
+//		repo.BookRead,
+//	}
+//	sharedActions := []Action{
+//		{	
+//			Label: "Edit",
+//			Action: func() {
+//				t.EditIsOpen.Set(true)
+//			},
+//		}, 
+//		{
+//			Label: "Delete",
+//			Action: func() {
+//				fmt.Println("Delete not implmented")
+//			},
+//		},
+//	}
+//	for _, v := range tableVarients {
+//		name := VariantToTableName(v)
+//		table := *NewTableVM(
+//			vms.app,
+//			v,
+//			t.selector,
+//		)
+//		for i := range sharedActions {
+//			table.appendAction(&sharedActions[i])
+//		}
+//		t.tables[name] = table
+//	}
+//}
 
-func (t *TablesVM) SetTable(s string) {
-	t.table = s
-	t.notify()
-}
-
-func (t *TablesVM) Variants() []repo.Variant {
-	return []repo.Variant{
-		repo.Book,
-		repo.BookLoaned,
-		repo.BookRead,
-	}
-}
-
-func (t *TablesVM) TableNames() []string {
-	vs := t.Variants()
-	names := make([]string, len(vs))
-	for i, v := range vs {
-		names[i] = VariantToTableName(v)
-	}
-	return names
-}
-
-func (t *TablesVM) notify() {
-	t.l.notify()
-}
-
-func (t *TablesVM) AddListener(l binding.DataListener) {
-	t.l.AddListener(l)
-}
+//func (t *TablesVM) TableName() string {
+//	return t.table
+//}
+//
+//func (t *TablesVM) GetTable(s string) *TableVM {
+//	table := t.tables[s]
+//	return &table
+//}
+//
+//func (t *TablesVM) SetTable(s string) {
+//	t.table = s
+//	t.notify()
+//}
+//
+//func (t *TablesVM) Variants() []repo.Variant {
+//	return []repo.Variant{
+//		repo.Book,
+//		repo.BookLoaned,
+//		repo.BookRead,
+//	}
+//}
+//
+//func (t *TablesVM) TableNames() []string {
+//	vs := t.Variants()
+//	names := make([]string, len(vs))
+//	for i, v := range vs {
+//		names[i] = VariantToTableName(v)
+//	}
+//	return names
+//}
+//
+//func (t *TablesVM) notify() {
+//	t.l.notify()
+//}
+//
+//func (t *TablesVM) AddListener(l binding.DataListener) {
+//	t.l.AddListener(l)
+//}
 
 
 // Action act on a selected item.
-type Action struct {
-	Label  string
-	Action func()
-}
+//type Action struct {
+//	Label  string
+//	Action func()
+//}
 
 
