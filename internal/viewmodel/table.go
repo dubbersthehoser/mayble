@@ -12,6 +12,7 @@ import (
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/bus"
 )
 
 
@@ -138,7 +139,6 @@ func cellRowLength(cells *cellPool, parent cellIndex) int {
 type table struct {
 	name          string
 	headerOrder   map[string]int        // maintain original header locations.
-	rows          map[int64][]cellIndex // entry values of row
 	cells         *cellPool             // pool storing all the cells.
 	root          cellIndex             // first left most header in table.
 	rowCount      int                   // Keep track of rows in table
@@ -174,7 +174,7 @@ func newTable(name string, headers []string) *table {
 }
 
 // addValue to column with header seting its value to s and its id.
-func (t *table) addValue(id int64, header, s string) (cellIndex, error) {
+func (t *table) addValue(id int64, header, s string) (error) {
 
 	newCell := t.cells.create(cellView)
 
@@ -189,14 +189,14 @@ func (t *table) addValue(id int64, header, s string) (cellIndex, error) {
 	for { 
 		if t.cells.get(curr).header == header {
 			appendCellToParent(t.cells, curr, newCell)
-			return newCell, nil
+			return nil
 		}
 		curr = t.cells.get(curr).next
 		if curr == first {
 			break
 		}
 	}
-	return noneIndex, errors.New("table: header not found")
+	return errors.New("table: header not found")
 }
 
 // appendRow add a row of values to table, marked by its id.
@@ -208,15 +208,10 @@ func (t *table) appendRow(id int64, values []string) error {
 	// use the original header order to add value.
 	for header, i := range t.headerOrder {
 		value := values[i]
-		idx, err := t.addValue(id, header, value)
+		err := t.addValue(id, header, value)
 		if err != nil {
 			return err
 		}
-		_, ok := t.row[id]
-		if !ok {
-			t.row[id] = make([]cellIndex, len(values))
-		}
-		t.row[id][i] = idx
 	}
 	t.rowCount += 1
 	return nil
@@ -401,7 +396,7 @@ func (t *table) setHidden(headers []string) {
 
 
 // walkVisableValues fallow all shown values from ui.
-func (t *table) walkVisableValues(fn func(vRow int, vCol int, cell *dataCell)) {
+func walkVisableValues(t *table, fn func(vRow int, vCol int, cell *dataCell)) {
 	var vRow, vCol int
 	firstHeader := t.cells.get(t.root).first
 	currHeader := firstHeader
@@ -428,16 +423,8 @@ func (t *table) walkVisableValues(fn func(vRow int, vCol int, cell *dataCell)) {
 	}
 }
 
-func (t *table) searchWalk(fn func(vRow, vCol int, cell *dataCell)) {
-	var vRow, vCol int
-	firstRow := t.cells.get(t.root).first
-	currRow := firstRow
-	for {
-		vCol = 0
-		vRow += 1
-		if f
-	}
-}
+
+
 
 
 // entryHeaders get the header labels for book entry.
@@ -490,7 +477,7 @@ type TableVM struct {
 func NewTableVM(s *appService) *TableVM {
 	v := (repo.Book | repo.Loaned | repo.Read)
 	t := &TableVM{
-		table:   newTable("All Books", entryHeaders()),
+		table:   newTable("All", entryHeaders()),
 		repo:    s.bookRetriever,
 		config:  s.cfg,
 		v:       v,
@@ -651,7 +638,7 @@ func (t *TableVM) Select(row, col int) {
 		return
 	}
 	t.selector.selectID(id, false)
-	t.selector.selectCell(row, col, false)
+	t.selector.selectCell(row, col, true)
 }
 
 func (t *TableVM) Unselect(row, col int) {
@@ -659,6 +646,7 @@ func (t *TableVM) Unselect(row, col int) {
 }
 
 
+// load entries from repository sort them into table.
 func (t *TableVM) load() error {
 
 	items, err := t.repo.GetAllBooks(t.v)
@@ -758,11 +746,9 @@ type TableControllersVM struct {
 	selector      *EntrySelect
 	hiddenColumns []string
 	vms           *vmService
-	EditIsOpen binding.Bool
-
-	table *TableVM
-
-	editor *EditBookVM
+	EditIsOpen    binding.Bool
+	editbook      *EditBookVM            
+	table         *TableVM
 }
 
 func NewTableControllersVM(vms *vmService) *TableControllersVM {
@@ -770,13 +756,50 @@ func NewTableControllersVM(vms *vmService) *TableControllersVM {
 		SearchText: binding.NewString(),
 		hiddenColumns: make([]string, 0),
 		selector: newEntrySelect(vms.app.bookRetriever),
+		EditIsOpen: binding.NewBool(),
 		vms: vms,
 	}
+	tc.editbook = NewEditBookVM(vms, tc.EditIsOpen)
 	return tc
 }
 
-func (tc *TableControllersVM) GetSelector() *EntrySelect {
+func (tc *TableControllersVM) Delete() {
+	if tc.selector.HasSelected() {
+		tc.vms.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "Not implemented",
+		})
+	} else {
+		tc.vms.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "Nothing selected",
+		})
+	}
+}
+func (tc *TableControllersVM) Edit() {
+	if !tc.selector.HasSelected() {
+		tc.vms.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "Nothing selected",
+		})
+		return
+	}
+	book, err := tc.selector.getBook()
+	if err != nil {
+		log.Println("edit:", err)
+	}
+	tc.editbook.reset()
+	tc.editbook.Set(book)
+	fmt.Println(book)
+	_ = tc.EditIsOpen.Set(true)
+}
+
+func (tc *TableControllersVM) Selector() *EntrySelect {
 	return tc.selector
+}
+
+func (tc *TableControllersVM) GetEditBook() *EditBookVM {
+	return tc.editbook
 }
 
 

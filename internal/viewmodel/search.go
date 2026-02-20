@@ -132,7 +132,8 @@ func (ts *TableSearch) search(search string) []cellSearchResult {
 	}
 	result := []cellSearchResult{}
 	option, _ := ts.Option.Get()
-	ts.table.walkVisableValues(func(row, col int, c *dataCell){
+	walkVisableValues(ts.table, func(row, col int, c *dataCell){
+
 		if search == "" {
 			return
 		}

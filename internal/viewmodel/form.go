@@ -177,6 +177,8 @@ func (bf *BookForm) Set(book *repo.BookEntry) {
 	_ = bf.Author.Set(book.Author)
 	_ = bf.Genre.Set(book.Genre)
 
+	fmt.Println("SET", book)
+
 	if repo.Loaned & book.Variant != 0 {
 		_ = bf.IsLoaned.Set(true)
 		_ = bf.Date.Set(formatDate(&book.Loaned))
@@ -361,7 +363,6 @@ type EditBookVM struct {
 	Genres  *UniqueGenres
 	bus     *bus.Bus
 	IsOpen  binding.Bool
-
 }
 
 func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {

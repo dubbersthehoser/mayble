@@ -76,21 +76,25 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 
 func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fyne.CanvasObject {
 
-	editBtn := widget.NewButton("Edit", nil)
-	deleteBtn := widget.NewButton("Delete", nil)
+	editBtn := widget.NewButton("Edit", func() {
+		vmc.Edit()
+	})
+	deleteBtn := widget.NewButton("Delete", func() {
+		vmc.Delete()
+	})
 	search := widget.NewEntryWithData(vmt.Search.Text)
 	searchOptions := widget.NewSelect(vmt.SearchOptions(), func(s string) {
 		_ = vmt.Search.Option.Set(s)
 	})
-	searchOptions.SetSelected(vmt.SearchOptions()[0])
+	searchOptions.SetSelectedIndex(0)
 
-	vmt.SetSelector(vmc.GetSelector())
+	vmt.SetSelector(vmc.Selector())
 	table := bookTable(vmt)
 	
-	fields := widget.NewCheckGroup(vmt.HideOptions(), func(list []string) {
+	hide := widget.NewCheckGroup(vmt.HideOptions(), func(list []string) {
 		vmt.SetHidden(list)
 	})
-	fields.Horizontal = true
+	hide.Horizontal = true
 
 	controllers := container.NewVBox(
 		container.NewBorder(
@@ -101,7 +105,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		),
 		container.NewBorder(
 			nil, nil,
-			fields,
+			hide,
 			container.NewHBox(
 				editBtn,
 				deleteBtn,
@@ -115,8 +119,38 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		table,
 	)
 
-	return fullTable
+	edit := BookEditForm(vmc.GetEditBook())
 
+	view := container.NewStack(
+		edit,
+		fullTable,
+	)
+	edit.Hide()
+
+	editBtn.Disable()
+	deleteBtn.Disable()
+	vmc.Selector().AddListener(binding.NewDataListener(func() {
+		if vmc.Selector().HasSelected() {
+			editBtn.Enable()
+			deleteBtn.Enable()
+		} else {
+			editBtn.Disable()
+			deleteBtn.Disable()
+		}
+	}))
+
+	vmc.EditIsOpen.AddListener(binding.NewDataListener(func() {
+		ok, _ := vmc.EditIsOpen.Get()
+		if ok {
+			edit.Show()
+			fullTable.Hide()
+		} else {
+			edit.Hide()
+			fullTable.Show()
+		}
+	}))
+
+	return view
 }
 
 func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {

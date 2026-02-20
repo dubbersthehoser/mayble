@@ -61,7 +61,12 @@ func (a *Application) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 }
 
 func (a *Application) GetBookByID(id int64) (repo.BookEntry, error) {
-	return repo.BookEntry{}, nil
+	return repo.BookEntry{
+		Variant: repo.Book,
+		Title: "Dumby",
+		Author: "No one",
+		Genre: "not implemented",
+	}, nil
 }
 
 func (a *Application) GetUniqueGenres() ([]string, error) {
