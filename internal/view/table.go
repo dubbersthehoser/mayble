@@ -35,45 +35,6 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 }
 
 
-
-//func BookTables(vm *viewmodel.TablesVM) fyne.CanvasObject {
-//
-//	tabTables := container.NewAppTabs()
-//	for _, table := range vm.TableNames() {
-//		tvm := vm.GetTable(table)
-//		tab := container.NewTabItem(table, BookTable(tvm))
-//		tabTables.Append(tab)
-//	}
-//
-//	tabTables.OnSelected = func(tab *container.TabItem) {
-//		vm.SetTable(tab.Text)
-//	}
-//	
-//	edit := BookEditForm(vm.EditBookVM())
-//
-//	view := container.NewStack(
-//		edit,
-//		tabTables,
-//	)
-//
-//	edit.Hide()
-//
-//	vm.EditIsOpen.AddListener(binding.NewDataListener(func() {
-//		isOpen, _ := vm.EditIsOpen.Get()
-//		if isOpen {
-//			edit.Show()
-//			tabTables.Hide()
-//		} else {
-//			edit.Hide()
-//			tabTables.Show()
-//		}
-//	}))
-//
-//
-//	return view
-//}
-
-
 func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fyne.CanvasObject {
 
 	editBtn := widget.NewButton("Edit", func() {

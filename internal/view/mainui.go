@@ -12,6 +12,18 @@ import (
 
 func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
+	
+	if uiVM.HasErrored() {
+		o := container.NewVBox()
+		for _, s := range uiVM.Errors() {
+			label := widget.NewLabel(s)
+			label.Importance = widget.WarningImportance
+			o.Add(label)
+		}
+		return o
+	}
+
+
 	toolbar := widget.NewToolbar(
 		widget.NewToolbarAction(
 			theme.SettingsIcon(),

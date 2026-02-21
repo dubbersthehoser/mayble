@@ -7,6 +7,8 @@ import (
 	"cmp"
 
 	"fyne.io/fyne/v2/data/binding"
+
+	"github.com/dubbersthehoser/mayble/internal/table"
 )
 
 
@@ -105,10 +107,10 @@ type cellSearchResult struct {
 type TableSearch struct {
 	Text   binding.String
 	Option binding.String
-	table  *table
+	table  *table.Table
 }
 
-func NewTableSearch(t *table) *TableSearch {
+func NewTableSearch(t *table.Table) *TableSearch {
 	return &TableSearch{
 		Text:   binding.NewString(),
 		Option: binding.NewString(),
@@ -132,15 +134,15 @@ func (ts *TableSearch) search(search string) []cellSearchResult {
 	}
 	result := []cellSearchResult{}
 	option, _ := ts.Option.Get()
-	walkVisableValues(ts.table, func(row, col int, c *dataCell){
+	table.WalkVisableValues(ts.table, func(row, col int, c *table.DataCell){
 
 		if search == "" {
 			return
 		}
-		if option != ts.Options()[0] && c.header != option {
+		if option != ts.Options()[0] && c.Header() != option {
 			return
 		}
-		score := searchCompare(c.view, search)
+		score := searchCompare(c.Value(), search)
 		if score == -1 {
 			return
 		}
@@ -148,7 +150,7 @@ func (ts *TableSearch) search(search string) []cellSearchResult {
 			score: score,
 			row: row,
 			col: col,
-			id: c.id,
+			id: c.ID(),
 		}
 		result = append(result, r)
 	})

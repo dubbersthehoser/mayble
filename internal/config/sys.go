@@ -2,14 +2,13 @@ package config
 
 import (
 	"os"
-	"errors"
-	"fmt"
 	"path/filepath"
+
+	"github.com/dubbersthehoser/mayble/internal/status"
 )
 
 // HasUserConfigDir returns the user config directory string and true if found.
 // If not returns empty string and false.
-//
 func HasUserConfigDir() (string, bool) {
 	userConfig, err := os.UserConfigDir()
 	if err != nil {
@@ -20,7 +19,6 @@ func HasUserConfigDir() (string, bool) {
 
 // HasUserHomeDir returns user home directory path and true if found. If not 
 // returns empty string and false.
-//
 func HasUserHomeDir() (string, bool) {
 	userHome, err := os.UserHomeDir()
 	if err != nil {
@@ -32,7 +30,6 @@ func HasUserHomeDir() (string, bool) {
 // FindConfigDir with given application name returns the full path of exsisting 
 // folder if exists starting from user config then user home. If not found 
 // returns the approprite path to use if not returns empty string.
-//
 func FindConfigDir(appName string) (string, bool) {
 	userConfig, isConfig := HasUserConfigDir()
 	userHome, isHome := HasUserHomeDir()
@@ -64,16 +61,17 @@ func FindConfigDir(appName string) (string, bool) {
 
 // GetDefaultDir with given app name returns approprite path and creates
 // directory if it dose not exsits.
-//
 func GetDefaultDir(appName string) (string, error) {
+	const op status.Op = "config.GetDefaultDir"
+	
 	path, found := FindConfigDir(appName)
 	if path == "" {
-		return "", errors.New("could not find get config directory")
+		return "", status.E(op, status.LevelError, "could not find config directory")
 	}
 	if !found {
 		err := os.Mkdir(path, 0744)
 		if err != nil {
-			return "", fmt.Errorf("config: %w", err)
+			return "", status.E(op, status.LevelError, status.FailedToCreate, err)
 		}
 	}
 	return path, nil

@@ -8,6 +8,7 @@ import (
 	"github.com/pressly/goose/v3"
 	
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
+	"github.com/dubbersthehoser/mayble/api"
 )
 
 func fmtError(err error) error {
@@ -24,13 +25,24 @@ func GetQueries(db *sql.DB) *database.Queries {
 	return database.New(db)
 }
 
-// MigrateUp using Schema with current connection.
-func MigrateUpTo(db *sql.DB, schemas string, version int64) error {
+// MigrateUp current connection.
+func MigrateUpTo(db *sql.DB, version int64) error {
+	goose.SetBaseFS(api.SQLiteFS)
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return fmtError(err)
 	}
-	if err := goose.UpTo(db, schemas, version); err != nil {
+	if err := goose.UpTo(db, "sqlite/schemas", version); err != nil {
 		return fmtError(err)
 	}
 	return nil
+}
+
+// GetVersion 
+func GetVersion(db *sql.DB) int64 {
+	v, err := goose.GetDBVersion(db)
+	if err != nil {
+		return -1
+	}
+	return v
+
 }

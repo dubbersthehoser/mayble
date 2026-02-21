@@ -1,17 +1,22 @@
 package app
 
 import (
-	"database/sql"
-
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
+	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
 type Application struct {
-	Config  *config.Config
-	DB      *sql.DB
-	Queries database.Queries
+	db  *database.Database
+	cfg *config.Config
+}
+
+func New(cfg *config.Config, db *database.Database) *Application {
+	a := &Application{
+		db: db,
+		cfg: cfg,
+	}
+	return a
 }
 
 func (a *Application) CreateBook(book *repo.BookEntry) error {

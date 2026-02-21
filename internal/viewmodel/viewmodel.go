@@ -8,6 +8,7 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 const (
@@ -28,7 +29,8 @@ type MainUI struct {
 	repo   repo.BookRetriever
 	app    *app.Application
 
-	vms    *vmService
+	vms     *vmService
+	errList []error
 
 	OpenedBody binding.Int
 
@@ -38,13 +40,16 @@ type MainUI struct {
 	Clear      binding.Bool
 }
 
-func NewMainUI(a *app.Application) *MainUI {
-	as := newAppService(nil, a) // TODO add config
+func NewMainUI(cfg *config.Config, a *app.Application, errList []error) *MainUI {
+
+	as := newAppService(cfg, a) // TODO add config
 	vms := newVMService(as)
 	mu := &MainUI{
 		app: a,
 		OpenedBody: binding.NewInt(),
 		vms: vms,
+
+		errList: errList,
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),
@@ -114,6 +119,20 @@ func NewMainUI(a *app.Application) *MainUI {
 	})
 	return mu
 }
+
+
+func (m *MainUI) HasErrored() bool {
+	return len(m.errList) > 0
+}
+
+func (m *MainUI) Errors() []string {
+	es := make([]string, len(m.errList))
+	for i, e := range m.errList {
+		es[i] = e.Error()
+	}
+	return es
+}
+
 
 func (m *MainUI) GetTableVM() *TableVM {
 	return NewTableVM(m.vms.app)

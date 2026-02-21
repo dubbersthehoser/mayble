@@ -1,21 +1,62 @@
 package main
 
 import (
+	"log"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
 	"github.com/dubbersthehoser/mayble/internal/view"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/database"
 	myApp "github.com/dubbersthehoser/mayble/internal/app"
 )
 
 
 func main() {
-	a := app.New()
-	window := a.NewWindow("New Mayble")
+	appName := "mayble"
+	a := app.NewWithID("com.dubbersthehoser.mayble")
+	window := a.NewWindow("Mayble")
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
-	uiVM := viewmodel.NewMainUI(&myApp.Application{})
+
+	errList := make([]error, 0)
+
+	configDir, err := config.GetDefaultDir(appName)
+	if err != nil {
+		log.Println(err)
+	}
+	cfg, err := config.Load(configDir)
+	if err != nil {
+		log.Println(err)
+		errList = append(errList, err)
+	}
+
+	if cfg != nil {
+		defer cfg.Save()
+	}
+
+	var db *database.Database
+
+	if cfg.DBFile == "" {
+		db, err = database.OpenMem()
+		if err != nil {
+			log.Println(err)
+			errList = append(errList, err)
+		}
+	} else {
+		db, err = database.Open(cfg.DBFile)
+		if err != nil {
+			errList = append(errList, err)
+		}
+	}
+	if db != nil {
+		defer db.Conn.Close()
+	}
+
+	application := myApp.New(cfg, db)
+	uiVM := viewmodel.NewMainUI(cfg, application, errList)
 	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()

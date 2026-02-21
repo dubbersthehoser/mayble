@@ -1,0 +1,409 @@
+package table
+
+import (
+	"errors"
+	"slices"
+	"cmp"
+
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
+
+)
+
+// cellIndex handle for a cell.
+type CellIndex uint
+
+// noneIndex a handle to the None cell.
+const NoneIndex CellIndex = 0
+
+type CellKind int 
+
+const (
+	CellNone CellKind = iota // A free, avaliable, or stub cell.
+	cellFree                 // Set as a free list cell. (this is to prevent a bug)
+	cellTable                // Root grand parent of all cells
+	CellHeader               // Cell representing a table's header
+	CellView                 // Cell representing a table's view data
+)
+
+// dataCell is a genric table cell type foreach kind of cell that can be linked
+// to other cells intrusively, via cellPool.
+type DataCell struct {
+	kind CellKind
+
+	hidden bool
+	table  string
+
+	header string
+
+	view string
+	id   int64
+	v    repo.Variant
+
+	parent CellIndex
+	first  CellIndex
+	next   CellIndex
+	prev   CellIndex
+}
+
+func (dc *DataCell) Header() string {
+	return dc.header
+}
+
+func (dc *DataCell) ID() int64 {
+	return dc.id
+}
+
+func (dc *DataCell) Value() string {
+	return dc.view
+} 
+
+func (dc *DataCell) Kind() CellKind {
+	return dc.kind
+}
+
+
+// cellPool manages the collection of cells, their handels and creation.
+type cellPool struct {
+	cells    []DataCell
+	nextFree CellIndex // single linked free list of cells
+}
+
+func newCellPool() *cellPool{
+	cl := &cellPool{
+		cells: make([]DataCell, 1),
+	}
+	cl.cells[0].view = "STUB"
+	cl.cells[0].header = "STUB"
+	return cl
+}
+
+func (cl *cellPool) create(k CellKind) CellIndex {
+	if cl.nextFree == NoneIndex {
+		cell := DataCell{
+			kind: k,
+		}
+		cl.cells = append(cl.cells, cell)
+		index := len(cl.cells) - 1
+		return CellIndex(index)
+	}
+	first := cl.nextFree
+	cl.nextFree = cl.cells[first].next
+	cl.cells[first].next = NoneIndex
+	cl.cells[first].kind = k
+	return first
+}
+
+func (cl *cellPool) destroy(idx CellIndex) {
+	cl.cells[idx] = DataCell{kind: cellFree}
+	next := cl.nextFree
+	cl.cells[idx].next = next 
+	cl.nextFree = idx
+}
+
+func (cl *cellPool) get(i CellIndex) *DataCell {
+	if i >= CellIndex(len(cl.cells)) {
+		i = NoneIndex
+	}
+	return &cl.cells[i]
+}
+
+func appendCellToParent(cells *cellPool, parent, item CellIndex) {
+	first := cells.get(parent).first
+	if cells.get(first).kind == CellNone {
+		cells.get(parent).first = item
+		cells.get(item).next = item
+		cells.get(item).prev = item
+	} else {
+		last := cells.get(first).prev
+		cells.get(first).prev = item
+		cells.get(item).prev = last
+		cells.get(item).next = first
+		cells.get(last).next = item
+	}
+	cells.get(item).parent = parent
+}
+
+
+// Table stores the values of the table in a tree, like structure.
+// The structure's root node is the table node its has one child node being the top-left most header, Linking to the next and forth.
+// Then each header has children of their values linking all the way 'down' the rows in that header column.
+type Table struct {
+	name          string
+	headerOrder   map[string]int        // Maintain original header locations.
+	cells         *cellPool             // Pool storing all the cells.
+	root          CellIndex             // The root table cell.
+	rowCount      int                   // Keep track of rows in table.
+}
+
+func NewTable(name string, headers []string) *Table {
+	t := &Table{
+		cells: newCellPool(),
+		name: name,
+	}
+
+	t.cells.get(NoneIndex).view = "STUB"
+	t.cells.get(NoneIndex).header = "STUB"
+	t.cells.get(NoneIndex).id = 0
+
+	t.headerOrder = make(map[string]int)
+
+	for i, h := range headers {
+		t.headerOrder[h] = i
+	}
+
+	root  := t.cells.create(cellTable)
+	t.root = root
+	for _, h := range headers {
+		cell := t.cells.create(CellHeader)
+		t.cells.get(cell).header = h
+		t.cells.get(cell).table = name
+		t.cells.get(cell).parent = root
+		appendCellToParent(t.cells, root, cell)
+	}
+	return t
+}
+
+func (t *Table) IsHidden(cell *DataCell) bool {
+	switch cell.kind {
+	case CellHeader:
+		return cell.hidden
+	case CellView:
+		return t.cells.get(cell.parent).hidden
+	}
+	return false
+}
+
+// Name get the name of table.
+func (t *Table) Name() string {
+	return t.name
+}
+
+
+// addValue to column with header seting its value to s and its id.
+func (t *Table) addValue(id int64, header, s string) error {
+
+	newCell := t.cells.create(CellView)
+
+	t.cells.get(newCell).view = s
+	t.cells.get(newCell).header = header
+	t.cells.get(newCell).table = t.name
+	t.cells.get(newCell).id = id
+
+	first := t.cells.get(t.root).first
+	curr := first
+	for { 
+		if t.cells.get(curr).header == header {
+			appendCellToParent(t.cells, curr, newCell)
+			return nil
+		}
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return errors.New("table: header not found")
+}
+
+// appendRow add a row of values to table, marked by its id.
+func (t *Table) AppendRow(id int64, values []string) error {
+	if len(t.Headers()) != len(values) {
+		return errors.New("missmatch headers to values")
+	}
+	
+	// use the original header order to add value.
+	for header, i := range t.headerOrder {
+		value := values[i]
+		err := t.addValue(id, header, value)
+		if err != nil {
+			return err
+		}
+	}
+	t.rowCount += 1
+	return nil
+}
+
+// Headers list current header order in their cell based order.
+func (t *Table) Headers() []string {
+	headers := make([]string, 0)
+	first := t.cells.get(t.root).first
+	curr := first
+	for {
+		headers = append(headers, t.cells.get(curr).header)
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return headers
+}
+
+// BaseHeader lists headers in their orignal order.
+func (t *Table) BaseHeaders() []string {
+	l := make([]string, len(t.headerOrder))
+	for h, v  := range t.headerOrder {
+		l[v] = h
+	}
+	return l
+}
+
+
+// VisableHeader list of visable headers.
+func (t *Table) VisableHeaders() []string {
+	headers := make([]string, 0)
+	first := t.cells.get(t.root).first
+	curr := first
+	for {
+		header := t.cells.get(curr)
+		if !header.hidden {
+			headers = append(headers, header.header)
+		}
+		curr = header.next
+		if curr == first {
+			break
+		}
+	}
+	return headers
+}
+
+// clearValue by feeing all value cells from table, excluding headers.
+func (t *Table) ClearValues() error {
+	headerFirst := t.cells.get(t.root).first
+	headerCurr := headerFirst
+
+	if headerCurr == NoneIndex { // nothing to remove
+		return nil
+	}
+
+	for {
+		first := t.cells.get(headerCurr).first
+		curr := first
+		for {
+			remove := curr
+			curr = t.cells.get(curr).next
+			t.cells.destroy(remove)
+			if curr == first {
+				break
+			}
+		}
+		t.cells.get(headerCurr).first = NoneIndex
+		headerCurr = t.cells.get(headerCurr).next
+		if headerCurr == headerFirst {
+			break
+		}
+	}
+	t.rowCount = 0
+	return nil
+}
+
+// getCell with row to column number.
+func (t *Table) GetCell(row, col int) *DataCell {
+	hCell := t.GetHeaderCell(col)
+	first := hCell.first
+	curr := first
+	count := 0
+	for {
+		if count == row {
+			return t.cells.get(curr)
+		}
+		count += 1
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return t.cells.get(NoneIndex)
+}
+
+// GetHeaderCell find the cell for column col.
+func (t *Table) GetHeaderCell(col int) *DataCell {
+	first := t.cells.get(t.root).first
+	curr := first
+	count := 0
+	for {
+		if count == col {
+			return t.cells.get(curr)
+		}
+		count+=1
+		curr = t.cells.get(curr).next
+		if first == curr {
+			break
+		}
+	}
+	return t.cells.get(NoneIndex)
+}
+
+// Size get the size of the table including the header.
+func (t *Table) Size() (row int, col int) {
+	col = len(t.Headers())
+	return t.rowCount, col
+}
+
+// SetHidden given headers to hidden and retaining, or restoring hidden headers.
+func (t *Table) SetHidden(headers []string) {
+	
+	hiddenCells := make([]CellIndex, 0)
+
+	showCells := make([]CellIndex, 0)
+
+	firstHeader := t.cells.get(t.root).first
+	currHeader := firstHeader
+	for {
+		cell := t.cells.get(currHeader)
+		idx := slices.Index(headers, cell.header)
+		cell.hidden = idx != -1 // true when in hidden headers
+		if cell.hidden {
+			hiddenCells = append(hiddenCells, currHeader)
+		} else {
+			showCells = append(showCells, currHeader)
+		}
+		currHeader = cell.next
+		if currHeader == firstHeader {
+			break
+		}
+	}
+
+	// mantain the column ording.
+	slices.SortFunc(showCells, func(a, b CellIndex) int {
+		APlace := t.headerOrder[t.cells.get(a).header]
+		BPlace := t.headerOrder[t.cells.get(b).header]
+		return cmp.Compare(APlace, BPlace)
+	})
+
+	// rearrange columns to keep shown columns to the left and hidden to the right.
+	parent := t.root
+	t.cells.get(parent).first = 0
+	for _, idx := range(showCells) {
+		appendCellToParent(t.cells, parent, idx)
+	}
+	for _, idx := range(hiddenCells) {
+		appendCellToParent(t.cells, parent, idx)
+	}
+}
+
+// WalkVisableValues fallow all shown values from ui.
+func WalkVisableValues(t *Table, fn func(vRow int, vCol int, cell *DataCell)) {
+	var vRow, vCol int
+	firstHeader := t.cells.get(t.root).first
+	currHeader := firstHeader
+	for {
+		first := t.cells.get(currHeader).first
+		if t.IsHidden(t.cells.get(first)) {
+			return
+		}
+		curr := first
+		for {
+			fn(vRow, vCol, t.cells.get(curr))
+			curr = t.cells.get(curr).next
+			vRow += 1
+			if curr == first {
+				break
+			}
+		}
+		vRow = 0
+		vCol += 1
+		currHeader = t.cells.get(currHeader).next
+		if currHeader == firstHeader {
+			break
+		}
+	}
+}
