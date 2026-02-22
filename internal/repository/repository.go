@@ -71,6 +71,14 @@ type BookEntry struct {
 	Loaned   time.Time
 }
 
+// NewBookEntry returns a BookEntry with .Variant set with Book.
+func NewBookEntry() *BookEntry {
+	return &BookEntry{
+		Variant: Book,
+	}
+}
+
+
 type BookQuerier interface {
 	BookQuery(q *Query) ([]BookEntry, error)
 }

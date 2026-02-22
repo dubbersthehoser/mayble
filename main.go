@@ -37,7 +37,7 @@ func main() {
 		defer cfg.Save()
 	}
 
-	var db *database.Database
+	db, err := openDatabase(cfg)
 
 	if cfg.DBFile == "" {
 		db, err = database.OpenMem()
@@ -60,4 +60,13 @@ func main() {
 	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()
+}
+
+
+
+func openDatabase(cfg *config.Config ) (*database.Database, error) {
+	if cfg.DBFile == "" {
+		cfg.DBFile = ":memory:"
+	}
+	return database.Open(cfg.DBFile)
 }

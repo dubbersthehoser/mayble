@@ -265,6 +265,24 @@ func (t *Table) VisableHeaders() []string {
 	return headers
 }
 
+// HiddenHeaders list hidden headers.
+func (t *Table) HiddenHeaders() []string {
+	headers := make([]string, 0)
+	first := t.cells.get(t.root).first
+	curr := first
+	for {
+		header := t.cells.get(curr)
+		if header.hidden {
+			headers = append(headers, header.header)
+		}
+		curr = header.next
+		if curr == first {
+			break
+		}
+	}
+	return headers
+}
+
 // clearValue by feeing all value cells from table, excluding headers.
 func (t *Table) ClearValues() error {
 	headerFirst := t.cells.get(t.root).first

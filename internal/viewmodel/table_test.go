@@ -2,114 +2,74 @@ package viewmodel
 
 
 import (
-	"time"
-	"slices"
 	"testing"
-
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"slices"
 )
 
-// TODO fix and re-write tests
-
-func TestVariantToTableName(t *testing.T) {
+func Test_hiddenOptionsToHeaders(t *testing.T) {
 	tests := []struct{
-		v repo.Variant
-		expect string
-	}{
-		{v: repo.Book, expect: "All Books"},
-		{v: repo.Book | repo.Loaned, expect: "On Loaned"},
-		{v: repo.Book | repo.Read, expect: "Read"},
-	}
-
-	for i, c := range tests {
-		actual := VariantToTableName(c.v)
-		if c.expect != actual {
-			t.Fatalf("case[%d] expect %s, got %s", i, c.expect, actual)
-		}
-	}
-}
-
-
-func TestEntryValues(t *testing.T) {
-	entry := repo.BookEntry{
-		Title: "Expect Title",
-		Author: "Expect Author",
-		Genre: "Expect Genre",
-
-		Borrower: "Expect Borrower",
-		Loaned: time.Date(2020, 11, 01, 0, 0, 0, 0, time.UTC),
-
-		Rating: 3,
-		Read: time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC),
-	}
-	
-	tests := []struct{
-		v      repo.Variant
+		input  []string
 		expect []string
 	}{
 		{
-			v: repo.Book,
-			expect: []string{
-				entry.Title,
-				entry.Author,
-				entry.Genre,
-			},
+			input: []string{"Loaned"},
+			expect: []string{"Loaned", "Borrower"},
 		},
 		{
-			v: repo.Book | repo.Loaned,
-			expect: []string{
-				entry.Title,
-				entry.Author,
-				entry.Genre,
-				entry.Borrower,
-				formatDate(&entry.Loaned),
-			},
+			input: []string{"Read"},
+			expect: []string{"Read", "Rating"},
 		},
 		{
-			v: repo.Book | repo.Read,
-			expect: []string{
-				entry.Title,
-				entry.Author,
-				entry.Genre,
-				formatRating(entry.Rating),
-				formatDate(&entry.Read),
-			},
+			input: []string{"Read", "Loaned"},
+			expect: []string{"Read", "Rating", "Loaned", "Borrower"},
 		},
 		{
-			v: repo.Book | repo.Read | repo.Loaned,
-			expect: []string{},
+			input: []string{"Read", "Loaned", "extra", "extra"},
+			expect: []string{"Read", "Rating", "Loaned", "Borrower", "extra", "extra"},
 		},
 	}
 
 	for i, c := range tests {
-		entry.Variant = c.v
-		actual := EntryValues(&entry)
-		if r := slices.Compare(c.expect, actual); r != 0 {
+		actual := hiddenOptionsToHeaders(c.input)
+		slices.Sort(actual)
+		slices.Sort(c.expect)
+		if n := slices.Compare(c.expect, actual); n != 0 {
 			t.Fatalf("[%d] expect\n\t%#v\ngot\n\t%#v", i, c.expect, actual)
 		}
 	}
 }
 
 
-func TestVariantFields(t *testing.T) {
+func Test_hiddenHeadersToOptions(t *testing.T) {
+	
 	tests := []struct{
-		v      repo.Variant
+		input  []string
 		expect []string
+
 	}{
 		{
-			v: repo.Book,
-			expect: []string{
-				"Title",
-				"Author",
-				"Genre",
-			},
+			input: []string{"Loaned", "Borrower"},
+			expect: []string{"Loaned"},
+		},
+		{
+			input: []string{"Read", "Rating"},
+			expect: []string{"Read"},
+		},
+		{
+			input: []string{"Read", "Rating", "Loaned", "Borrower"},
+			expect: []string{"Loaned", "Read"},
+		},
+		{
+			input: []string{"Read", "Rating", "Loaned", "Borrower", "Title", "Author"},
+			expect: []string{"Title", "Author", "Loaned", "Read"},
 		},
 	}
-
 	for i, c := range tests {
-		actual := VariantFields(c.v)
-		if r := slices.Compare(c.expect, actual); r != 0 {
-			t.Fatalf("[%d] expect\n\t%#vgot\n\t%#v", i, c.expect, actual)
+		actual := hiddenHeadersToOptions(c.input)
+		slices.Sort(actual)
+		slices.Sort(c.expect)
+		if n := slices.Compare(c.expect, actual); n != 0 {
+			t.Fatalf("[%d] expect\n\t%#v\ngot\n\t%#v", i, c.expect, actual)
 		}
 	}
 }

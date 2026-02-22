@@ -13,6 +13,7 @@ import (
 func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
 	
+	// render unexpected errors. Force Stop.
 	if uiVM.HasErrored() {
 		o := container.NewVBox()
 		for _, s := range uiVM.Errors() {
@@ -85,7 +86,7 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		statusLabel,
 	)
 
-	menu := widget.NewLabel("not implemented")
+	menu := NewMenu(w, uiVM.GetMenuVM())
 	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
 
 

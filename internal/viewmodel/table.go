@@ -20,7 +20,6 @@ import (
 type TableVM struct {
 	repo     repo.BookRetriever
 	config   *config.Config
-	v        repo.Variant
 
 	SortBy     binding.String
 	SortOrder  binding.String
@@ -36,12 +35,10 @@ type TableVM struct {
 
 
 func NewTableVM(s *appService) *TableVM {
-	v := (repo.Book | repo.Loaned | repo.Read)
 	t := &TableVM{
 		table:   table.NewTable("Main", entryHeaders()),
 		repo:    s.bookRetriever,
 		config:  s.cfg,
-		v:       v,
 
 		SortBy:     binding.NewString(),
 		SortOrder:  binding.NewString(),
@@ -75,8 +72,14 @@ func NewTableVM(s *appService) *TableVM {
 		log.Println(err)
 	}
 
+	if t.config != nil {
+		t.table.SetHidden(t.config.UI.Table.ColumnsHidden)
+	}
+
+
 	return t
 }
+
 
 func (t *TableVM) SetSelector(es *EntrySelect) *TableVM {
 	t.selector = es
@@ -84,6 +87,8 @@ func (t *TableVM) SetSelector(es *EntrySelect) *TableVM {
 }
 
 
+
+// SearchOptions a list of searchable options.
 func (t *TableVM) SearchOptions() []string {
 	return []string{
 		"All",
@@ -131,11 +136,10 @@ func (t *TableVM) StoreColumnWidth(col int, width float32) {
 	if width < MinColWidth {
 		width = MinColWidth
 	}
-	table := t.config.GetUITable(t.table.Name())
+	table := t.config.GetUITable()
 	cell := t.table.GetHeaderCell(col)
 	label := cell.Header()
-	_ = table.SetColWidth(label, width)
-	_= t.config.UpdateUITable(t.table.Name(), table)
+	table.SetColumnWidth(label, width)
 }
 
 
@@ -147,8 +151,11 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 	cell := t.table.GetHeaderCell(col)
 	label := cell.Header()
 
-	table := t.config.GetUITable(t.table.Name())
-	width := table.GetColWidth(label)
+	var width float32 = 0.0
+	if t.config != nil {
+		table := t.config.GetUITable()
+		width = table.GetColumnWidth(label)
+	}
 	if width < MinColWidth {
 		width = MinColWidth
 	}
@@ -157,24 +164,56 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 
 
 func (t *TableVM) SetHidden(options []string) {
-	hide := []string{}
+	hide := hiddenOptionsToHeaders(options)
+	if t.config != nil {
+		table := t.config.GetUITable()
+		table.ColumnsHidden = hide
+	}
+	t.table.SetHidden(hide)
+	t.l.notify()
+}
+
+func (t *TableVM) Hidden() []string {
+	headers := t.table.HiddenHeaders()
+	return hiddenHeadersToOptions(headers)
+}
+
+func hiddenHeadersToOptions(hide []string) []string {
+	options := make([]string, 0)
+	hasLoaned := slices.Contains(hide, "Borrower") && slices.Contains(hide, "Loaned")
+	hasRead := slices.Contains(hide, "Rating") && slices.Contains(hide, "Read")
+	for _, h := range hide {
+		switch h {
+		case "Borrower", "Loaned", "Rating", "Read":
+			continue
+		default:
+			options = append(options, h)
+		}
+	}
+	if hasLoaned {
+		options = append(options, "Loaned")
+	}
+	if hasRead {
+		options = append(options, "Read")
+	}
+	return options
+}
+
+func hiddenOptionsToHeaders(options []string) []string {
+	hide := make([]string, 0)
 	for _, o := range options {
 		switch o {
 		case "Loaned":
-			hide = append(hide, "Borrower", "Loaned")
+			hide = append(hide, "Loaned", "Borrower")
 		case "Read":
-			hide = append(hide, "Rating", "Read")
+			hide = append(hide, "Read", "Rating")
 		default:
 			hide = append(hide, o)
 		}
 	}
-
-	table := t.config.GetUITable(t.table.Name())
-	table.Settings.ColsHidden = hide
-	t.config.UpdateUITable(t.table.Name(), table)
-	t.table.SetHidden(hide)
-	t.l.notify()
+	return hide
 }
+
 
 func (t *TableVM) HideOptions() []string {
 	return []string{
@@ -205,7 +244,7 @@ func (t *TableVM) Unselect(row, col int) {
 // load entries from repository sort them into table.
 func (t *TableVM) load() error {
 
-	items, err := t.repo.GetAllBooks(t.v)
+	items, err := t.repo.GetAllBooks(repo.BookLoaned | repo.BookRead)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,6 @@ import (
 )
 
 
-
 func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 	
 	cancel := widget.NewButton("Cancel", vm.Close)
@@ -56,6 +55,8 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		vmt.SetHidden(list)
 	})
 	hide.Horizontal = true
+
+	hide.SetSelected(vmt.Hidden())
 
 	controllers := container.NewVBox(
 		container.NewBorder(

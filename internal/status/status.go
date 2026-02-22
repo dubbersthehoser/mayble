@@ -7,6 +7,19 @@ import (
 )
 
 
+type StatusCode int 
+const (
+	LoadConfig     StatusCode = iota
+	OpenedDatabase
+)
+
+type Status struct {
+	Code StatusCode
+	ErrLog []error
+}
+
+
+
 const (
 	LevelDebug slog.Level = slog.LevelDebug
 	LevelInfo  slog.Level = slog.LevelInfo

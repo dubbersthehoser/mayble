@@ -33,6 +33,7 @@ type MainUI struct {
 	errList []error
 
 	OpenedBody binding.Int
+	DBFile     binding.String
 
 	Error      binding.String
 	Success    binding.String
@@ -40,16 +41,18 @@ type MainUI struct {
 	Clear      binding.Bool
 }
 
-func NewMainUI(cfg *config.Config, a *app.Application, errList []error) *MainUI {
+func NewMainUI(cfg *config.Config, a *app.Application, errs []error) *MainUI {
 
-	as := newAppService(cfg, a) // TODO add config
+	as := newAppService(cfg, a)
 	vms := newVMService(as)
 	mu := &MainUI{
 		app: a,
 		OpenedBody: binding.NewInt(),
 		vms: vms,
 
-		errList: errList,
+		errList: errs,
+
+		DBFile: binding.NewString(),
 
 		Error: binding.NewString(),
 		Success: binding.NewString(),
@@ -57,6 +60,13 @@ func NewMainUI(cfg *config.Config, a *app.Application, errList []error) *MainUI 
 		Clear: binding.NewBool(),
 	}
 
+	_ = mu.DBFile.Set(cfg.DBFile)
+	mu.DBFile.AddListener(binding.NewDataListener(func() {
+		path, _ := mu.DBFile.Get()
+		cfg.DBFile = path
+	}))
+
+	// to clear info line
 	countDown := time.Duration(time.Minute / 10)
 	timer := time.NewTimer(0)
 	clearLine := func() {
@@ -131,6 +141,10 @@ func (m *MainUI) Errors() []string {
 		es[i] = e.Error()
 	}
 	return es
+}
+
+func (m *MainUI) GetMenuVM() *MenuVM {
+	return NewMenuVM(m.DBFile)
 }
 
 

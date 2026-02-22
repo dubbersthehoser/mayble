@@ -11,28 +11,25 @@ import (
 
 // Table config for table view.
 type Table struct {
-		Name     string
-		Settings struct {
-			ColsHidden  []string           `json:"hidden_columns"`
-			ColWidths   map[string]float32 `json:"column_width"`
-		} `json:"settings"`
+		ColumnsHidden []string           `json:"hidden_columns"`
+		ColumnWidths  map[string]float32 `json:"column_width"`
+		cfg           *Config
 }
 
-
-func (t *Table) SetColWidth(label string, s float32) error {
-	w := t.Settings.ColWidths
+// SetColumnWidth for column lable for size s.
+func (t *Table) SetColumnWidth(label string, s float32) {
+	w := t.ColumnWidths
 	if w == nil {
 		w = make(map[string]float32)
 	}
 	w[label] = s
-	return nil
 }
 
-// GetColWidth of column i. When is not in or out of range returns -1.0.
-func (t *Table) GetColWidth(label string) float32 {
-	w := t.Settings.ColWidths
+// GetColumnWidth from named label. 
+func (t *Table) GetColumnWidth(label string) float32 {
+	w := t.ColumnWidths
 	if w == nil {
-		return -1.0
+		return 0.0
 	} 
 	v, ok := w[label]
 	if !ok {
@@ -41,50 +38,37 @@ func (t *Table) GetColWidth(label string) float32 {
 	return v
 }
 
+
+
+// UI contains ui settings.
 type UI struct {
-	Tables map[string]Table `json:"tables"`
+	Table Table `json:"table"`
 }
+
+
+
 
 // Config contains all configuration for the application.
 type Config struct {
-	Version    string `json:"version"` // NOTE check if this is empty then it's the 1.0.0 config.
+	Version    string `json:"version"`
 	ConfigDir  string `json:"config_dir"`
 	ConfigFile string `json:"config_file"`
-	DBDriver   string `json:"db_driver"`
+	DBDriver   string `json:"db_driver"`   // NOTE deprecated.
 	DBFile     string `json:"db_file"`
 	UI         UI
 }
 
-// UpdateUITable create or update table settings.
-// Param name will set to t.Name.
-// Returns error when t is nil or when c.save errors.
-func (c *Config) UpdateUITable(name string, t *Table) error {
-	const op status.Op = "config.UpdateUITable"
-	if t == nil {
-		return status.E(op, status.LevelDebug, "table was nil") 
-	}
-	if c.UI.Tables == nil {
-		c.UI.Tables = make(map[string]Table)
-	}
-	t.Name = name
-	c.UI.Tables[name] = *t
-	return nil
-}
 
 // GetUITable grab table by name if not found returns an new table.
-func (c *Config) GetUITable(name string) *Table {
-	if c.UI.Tables == nil {
-		c.UI.Tables = make(map[string]Table)
+func (c *Config) GetUITable() *Table {
+	if c.UI.Table.ColumnsHidden == nil {
+		c.UI.Table.ColumnsHidden = make([]string, 0)
 	}
-	t, ok := c.UI.Tables[name]
-	if !ok {
-		t = Table{
-			Name: name,
-		}
-		t.Settings.ColsHidden = make([]string, 0)
-		t.Settings.ColWidths = make(map[string]float32)
+	if c.UI.Table.ColumnWidths == nil {
+		c.UI.Table.ColumnWidths = make(map[string]float32)
 	}
-	return &t
+	t := &c.UI.Table
+	return t
 }
 
 // save to config file.
@@ -107,9 +91,8 @@ func (c *Config) Open() (*Config, error) {
 	return Load(c.ConfigFile)
 }
 
-// Load config from root directory. 
-// The config file will be named 'config.json' and if file is not found it will
-// return new Config type.
+// Load config from root directory. The file name will 'config.json'
+// and if file is not found it will return new Config type to be saved later.
 func Load(root string) (*Config, error) {
 	const op status.Op = "config.load"
 
@@ -141,10 +124,11 @@ func Load(root string) (*Config, error) {
 	return cfg, err
 }
 
+
 // backupV1 create a backup of the old config if it is.
 func backupV1(path string, cfg *Config) error {
 	const op status.Op = "config.backupV1"
-	if !(cfg.Version == "") {
+	if cfg.Version != "" || cfg.DBFile == "" {
 		return nil
 	}
 
