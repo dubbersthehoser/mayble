@@ -15,17 +15,15 @@ import (
 
 func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 
-	fileVM := vm.NewFileVM()
-	
 	csvImportBtn := widget.NewButton("Import CSV", func() {
-		d := dialog.NewFileOpen(fileVM.ImportCSV, w)
+		d := dialog.NewFileOpen(vm.ImportCSV, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Import CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
 	csvExportBtn := widget.NewButton("Export CSV", func() {
-		d := dialog.NewFileSave(fileVM.ExportCSV, w)
+		d := dialog.NewFileSave(vm.ExportCSV, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Import CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
@@ -33,7 +31,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 	})
 
 	openDBBtn := widget.NewButton("Open Database", func(){
-		d := dialog.NewFileOpen(fileVM.OpenDatabase, w)
+		d := dialog.NewFileOpen(vm.OpenDatabase, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Open Database")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))
@@ -41,7 +39,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		
 	})
 	saveDBBtn := widget.NewButton("Create Database", func(){
-		d := dialog.NewFileSave(fileVM.CreateDatabase, w)
+		d := dialog.NewFileSave(vm.CreateDatabase, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Create Database")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))

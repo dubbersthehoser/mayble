@@ -144,7 +144,7 @@ func (m *MainUI) Errors() []string {
 }
 
 func (m *MainUI) GetMenuVM() *MenuVM {
-	return NewMenuVM(m.DBFile)
+	return NewMenuVM(m.vms, m.DBFile,)
 }
 
 
