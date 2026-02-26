@@ -3,8 +3,8 @@ package viewmodel
 import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/database"
 
 	"fyne.io/fyne/v2/data/binding"
 )
@@ -18,14 +18,14 @@ type appService struct {
 	bookDeletor    repo.BookDeletor
 }
 
-func newAppService(cfg *config.Config, a *app.Application) *appService {
+func newAppService(cfg *config.Config, db *database.Database) *appService {
 	return &appService{
 		cfg: cfg,
-		bookRetriever:  a,
-		genreRetriever: a,
-		bookCreator:    a,
-		bookUpdator:    a,
-		bookDeletor:    a,
+		bookRetriever:  db,
+		genreRetriever: db,
+		bookCreator:    db,
+		bookUpdator:    db,
+		bookDeletor:    db,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 	"fmt"
+	"log"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -335,10 +336,10 @@ func (bf *CreateBookForm) Submit() {
 		err = bf.repo.CreateBook(book)
 		if err != nil {
 			failed = append(failed, *book)
+			log.Println(fmt.Errorf("form.Submit: %w", err))
 		}
 	}
 	bf.sl.Clear()
-	bf.sl.submissions = failed
 	for _, f := range failed {
 		bf.sl.appendSubmission(&f)
 	}
@@ -347,12 +348,17 @@ func (bf *CreateBookForm) Submit() {
 			Name: msgUserError,
 			Data: "Submission failed be added.",
 		})
-	} else {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserSuccess,
-			Data: "Books Added!",
-		})
+		return
 	}
+
+	bf.bus.Notify(bus.Event{
+		Name: msgUserSuccess,
+		Data: "Books Added!",
+	})
+
+	bf.bus.Notify(bus.Event{
+		Name: msgDataChanged,
+	})
 }
 
 

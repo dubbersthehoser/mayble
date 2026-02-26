@@ -34,16 +34,16 @@ type TableVM struct {
 }
 
 
-func NewTableVM(s *appService) *TableVM {
+func NewTableVM(vms *vmService) *TableVM {
 	t := &TableVM{
 		table:   table.NewTable("Main", entryHeaders()),
-		repo:    s.bookRetriever,
-		config:  s.cfg,
+		repo:    vms.app.bookRetriever,
+		config:  vms.app.cfg,
 
 		SortBy:     binding.NewString(),
 		SortOrder:  binding.NewString(),
 
-		selector: newEntrySelect(s.bookRetriever),
+		selector: newEntrySelect(vms.app.bookRetriever),
 
 		l: &listener{},
 	}
@@ -76,6 +76,19 @@ func NewTableVM(s *appService) *TableVM {
 		t.table.SetHidden(t.config.UI.Table.ColumnsHidden)
 	}
 
+	vms.bus.Subscribe(bus.Handler{
+		Name: msgDataChanged,
+		Handler: func(e *bus.Event) {
+			t.table.ClearValues()
+			t.selector.unselect(true)
+			err := t.load()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			t.l.notify()
+		},
+	})
 
 	return t
 }
@@ -360,9 +373,19 @@ func NewTableControllersVM(vms *vmService) *TableControllersVM {
 
 func (tc *TableControllersVM) Delete() {
 	if tc.selector.HasSelected() {
+		book, err := tc.selector.getBook()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = tc.vms.app.bookDeletor.DeleteBook(book)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		fmt.Println(book)
 		tc.vms.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Not implemented",
+			Name: msgDataChanged,
 		})
 	} else {
 		tc.vms.bus.Notify(bus.Event{

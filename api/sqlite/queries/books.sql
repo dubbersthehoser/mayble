@@ -3,7 +3,7 @@ INSERT INTO books(created_at, updated_at, id, title, author, genre)
 VALUES (
 	unixepoch(),
 	unixepoch(),
-	?,
+	NULL,
 	?,
 	?,
 	?

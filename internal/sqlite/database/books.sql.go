@@ -14,7 +14,7 @@ INSERT INTO books(created_at, updated_at, id, title, author, genre)
 VALUES (
 	unixepoch(),
 	unixepoch(),
-	?,
+	NULL,
 	?,
 	?,
 	?
@@ -23,19 +23,13 @@ RETURNING id, created_at, updated_at, title, author, genre
 `
 
 type CreateBookParams struct {
-	ID     int64
 	Title  string
 	Author string
 	Genre  string
 }
 
 func (q *Queries) CreateBook(ctx context.Context, arg CreateBookParams) (Book, error) {
-	row := q.db.QueryRowContext(ctx, createBook,
-		arg.ID,
-		arg.Title,
-		arg.Author,
-		arg.Genre,
-	)
+	row := q.db.QueryRowContext(ctx, createBook, arg.Title, arg.Author, arg.Genre)
 	var i Book
 	err := row.Scan(
 		&i.ID,

@@ -7,7 +7,7 @@ import (
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/bus"
-	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
@@ -27,7 +27,6 @@ const (
 
 type MainUI struct {	
 	repo   repo.BookRetriever
-	app    *app.Application
 
 	vms     *vmService
 	errList []error
@@ -41,12 +40,11 @@ type MainUI struct {
 	Clear      binding.Bool
 }
 
-func NewMainUI(cfg *config.Config, a *app.Application, errs []error) *MainUI {
+func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
 
-	as := newAppService(cfg, a)
+	as := newAppService(cfg, db)
 	vms := newVMService(as)
 	mu := &MainUI{
-		app: a,
 		OpenedBody: binding.NewInt(),
 		vms: vms,
 
@@ -149,7 +147,7 @@ func (m *MainUI) GetMenuVM() *MenuVM {
 
 
 func (m *MainUI) GetTableVM() *TableVM {
-	return NewTableVM(m.vms.app)
+	return NewTableVM(m.vms)
 }
 
 func (m *MainUI) GetTableControllersVM() *TableControllersVM {

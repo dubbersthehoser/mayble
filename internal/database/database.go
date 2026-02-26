@@ -58,7 +58,7 @@ func dbCopy(pathFrom, pathTo string) error {
 
 	const op status.Op = "database.dbCopy"
 
-	to, err := os.Open(pathTo)
+	to, err := os.Create(pathTo)
 	if err != nil {
 		return status.E(op, status.Unexpected, status.LevelError, err)
 	}
@@ -88,7 +88,7 @@ func migrate(path string, conn *sql.DB)  error {
 // checkIsV1 check if db is a mayble 1.0.0 database.
 func checkIsV1(conn *sql.DB) bool {
 	v := sqlite.GetVersion(conn)
-	return v == 3
+	println("check_version:", v)
+	return v == 2
 }
-
 

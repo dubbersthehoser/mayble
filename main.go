@@ -10,7 +10,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
-	myApp "github.com/dubbersthehoser/mayble/internal/app"
 )
 
 
@@ -55,8 +54,7 @@ func main() {
 		defer db.Conn.Close()
 	}
 
-	application := myApp.New(cfg, db)
-	uiVM := viewmodel.NewMainUI(cfg, application, errList)
+	uiVM := viewmodel.NewMainUI(cfg, db, errList)
 	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()

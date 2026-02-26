@@ -46,7 +46,10 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("%s: %s: %s", e.Op, e.Kind, e.Err)
+	if e.Kind != "" {
+		return fmt.Sprintf("%s: %s: %s", e.Op, e.Kind, e.Err)
+	}
+	return fmt.Sprintf("%s: %s", e.Op, e.Err)
 }
 
 func E(args ...any) error {
