@@ -109,6 +109,7 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 			hasRead = false
 		}
 		
+		entries[i].ID = book.ID
 		entries[i].Variant |= repo.Book
 		entries[i].Title = book.Title
 		entries[i].Author = book.Author
@@ -137,8 +138,60 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	return entries, nil
 }
 
+
 func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
-	return repo.BookEntry{}, nil
+	const op status.Op = "database.GetBookByID"
+	
+	book := repo.NewBookEntry()
+	
+	bookRow, err := db.Queries.GetBookByID(context.Background(), id)
+	if err != nil {
+		return repo.BookEntry{}, status.E(op, status.LevelError, err)
+	}
+
+	book.ID = id
+	book.Title = bookRow.Title
+	book.Author = bookRow.Author
+	book.Genre = bookRow.Genre
+
+	hasLoan := true
+	loanRow, err := db.Queries.GetLoanByBookID(context.Background(), id)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return repo.BookEntry{}, status.E(op, status.LevelError, err)
+		}
+		hasLoan = false
+	}
+	
+	hasRead := true
+	readRow, err := db.Queries.GetReadByBookID(context.Background(), id)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return repo.BookEntry{}, status.E(op, status.LevelError, err)
+		}
+		hasRead = false
+	}
+
+	if hasLoan {
+		book.Variant |= repo.Loaned
+		date, err := time.Parse(time.DateOnly, loanRow.Date)
+		if err != nil {
+			return repo.BookEntry{}, status.E(op, status.LevelError, err)
+		}
+		book.Loaned = date
+		book.Borrower = loanRow.Name
+	}
+
+	if hasRead {
+		book.Variant |= repo.Read
+		date, err := time.Parse(time.DateOnly, readRow.DateCompleted)
+		if err != nil {
+			return repo.BookEntry{}, status.E(op, status.LevelError, err)
+		}
+		book.Read = date
+		book.Rating = int(book.Rating)
+	}
+	return *book, nil
 }
 
 func (a *Database) GetUniqueGenres() ([]string, error) {

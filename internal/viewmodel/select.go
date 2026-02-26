@@ -29,6 +29,7 @@ func newEntrySelect(r repo.BookRetriever) *EntrySelect {
 }
 
 func (e *EntrySelect) getBook() (*repo.BookEntry, error) {
+	println(e.selected)
 	b, err := e.retriever.GetBookByID(e.selected)
 	return &b, err
 }
