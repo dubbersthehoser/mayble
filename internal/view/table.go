@@ -19,8 +19,8 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 	isRead := widget.NewCheckWithData("Is Read", vm.IsRead)
 	isLoaned := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 
-	loanedEntry := newLoanEntry(vm.IsLoaned, vm.Borrower, vm.Date)
-	readEntry := newReadEntry(vm.IsRead, vm.Rating, vm.Completed)
+	loanedEntry := newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower)
+	readEntry := newReadEntry(vm.IsRead, vm.Completed, vm.Rating)
 
 	c := container.NewVBox(
 		bookEntry,

@@ -12,6 +12,89 @@ import (
 )
 
 
+type bookBuilder struct {
+	id                   int64
+	title, author, genre string
+	loanedDate, readDate string
+	borrowerName         string
+	rating               int64
+}
+
+func (b *bookBuilder) Build() (*repo.BookEntry, error) {
+	
+	book := repo.NewBookEntry()
+	book.ID = b.id
+	book.Title = b.title
+	book.Author = b.author
+	book.Genre = b.genre
+
+	if b.loanedDate != "" && b.borrowerName != "" {
+		book.Variant |= repo.Loaned
+		date, err := time.Parse(time.DateOnly, b.loanedDate)
+		if err != nil {
+			return nil, err
+		}
+		book.Loaned = date
+		book.Borrower = b.borrowerName
+	}
+
+	if b.readDate != "" {
+		book.Variant |= repo.Read
+		date, err := time.Parse(time.DateOnly, b.readDate)
+		if err != nil {
+			return nil, err
+		}
+
+		book.Read = date
+		book.Rating = int(b.rating)
+	}
+
+	return book, nil
+
+}
+
+func (b *bookBuilder) SetID(id int64) *bookBuilder {
+	b.id = id
+	return b
+}
+
+func (b *bookBuilder) SetTitle(t string) *bookBuilder {
+	b.title = t
+	return b
+}
+
+func (b *bookBuilder) SetAuthor(a string) *bookBuilder {
+	b.author = a
+	return b
+}
+
+func (b *bookBuilder) SetGenre(g string) *bookBuilder {
+	b.genre = g
+	return b
+}
+
+func (b *bookBuilder) SetLoanedDate(d string) *bookBuilder {
+	b.loanedDate = d
+	return b
+}
+
+func (b *bookBuilder) SetReadDate(d string) *bookBuilder {
+	b.readDate = d
+	return b
+}
+
+func (b *bookBuilder) SetBorrower(n string) *bookBuilder {
+	b.borrowerName = n
+	return b
+}
+
+func (b *bookBuilder) SetRating(r int64) *bookBuilder {
+	b.rating = r
+	return b
+}
+
+
+
 func (db *Database) CreateBook(b *repo.BookEntry) error {
 	const op status.Op = "database.CreateBook"
 
@@ -39,7 +122,6 @@ func (db *Database) CreateBook(b *repo.BookEntry) error {
 		}
 	}
 
-	
 	if b.Variant & repo.Read != 0 {
 		date := b.Loaned.Format(time.DateOnly)
 		params := database.CreateReadParams{
@@ -57,6 +139,7 @@ func (db *Database) CreateBook(b *repo.BookEntry) error {
 
 func (db *Database) DeleteBook(b *repo.BookEntry) error {
 	const op status.Op = "database.DeleteBook"
+
 	id := b.ID
 	err := db.Queries.DeleteBook(context.Background(), id)
 	if err != nil {
@@ -80,8 +163,111 @@ func (db *Database) DeleteBook(b *repo.BookEntry) error {
 }
 
 func (db *Database) UpdateBook(b *repo.BookEntry) error {
+	const op status.Op = "database.UpdateBook"
+
+	var (
+		hasLoaned bool = true
+		hasRead   bool = true
+
+	)
+
+	_, err := db.Queries.GetLoanByBookID(context.Background(), b.ID)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return status.E(op, status.LevelError, err)
+		}
+		hasLoaned = false
+	}
+	_, err = db.Queries.GetReadByBookID(context.Background(), b.ID)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return status.E(op, status.LevelError, err)
+		}
+		hasRead = false
+	}
+
+	if b.Variant & repo.Loaned != 0 {
+
+		loanUpdateParams := database.UpdateLoanParams{
+			BookID: b.ID,
+			Name: b.Borrower,
+			Date: b.Loaned.Format(time.DateOnly),
+		}
+
+		loanCreateParams := database.CreateLoanParams{
+			BookID: b.ID,
+			Name: b.Borrower,
+			Date: b.Loaned.Format(time.DateOnly),
+		}
+
+		if hasLoaned {
+			_, err := db.Queries.UpdateLoan(context.Background(), loanUpdateParams)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		} else {
+			_, err := db.Queries.CreateLoan(context.Background(), loanCreateParams)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		}
+	} else {
+		if hasLoaned {
+			err := db.Queries.DeleteLoan(context.Background(), b.ID)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		}
+	}
+
+	if b.Variant & repo.Read != 0 {
+
+		readUpdateParams := database.UpdateReadParams{
+			BookID: b.ID,
+			Rating: int64(b.Rating),
+			DateCompleted: b.Read.Format(time.DateOnly),
+		}
+
+		readCreateParams := database.CreateReadParams{
+			BookID: b.ID,
+			Rating: int64(b.Rating),
+			DateCompleted: b.Read.Format(time.DateOnly),
+		}
+
+		if hasRead {
+			_, err := db.Queries.UpdateRead(context.Background(), readUpdateParams)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		} else {
+			_, err := db.Queries.CreateRead(context.Background(), readCreateParams)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		}
+	} else {
+		if hasRead {
+			err := db.Queries.DeleteRead(context.Background(), b.ID)
+			if err != nil {
+				return status.E(op, status.LevelError, err)
+			}
+		}
+	}
+
+	updateBookParams := database.UpdateBookParams{
+		ID: b.ID,
+		Title: b.Title,
+		Author: b.Author,
+		Genre: b.Genre,
+	}
+
+	_, err = db.Queries.UpdateBook(context.Background(), updateBookParams)
+	if err != nil {
+		return status.E(op, status.LevelError, err)
+	}
 	return nil
 }
+
 
 func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	const op status.Op = "database.GetAllBooks"
@@ -108,32 +294,27 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 			}
 			hasRead = false
 		}
-		
-		entries[i].ID = book.ID
-		entries[i].Variant |= repo.Book
-		entries[i].Title = book.Title
-		entries[i].Author = book.Author
-		entries[i].Genre = book.Genre
+
+		builder := &bookBuilder{}
+		builder.SetID(book.ID).
+			SetTitle(book.Title).
+			SetAuthor(book.Author).
+			SetGenre(book.Genre)
 
 		if hasLoaned {
-			entries[i].Variant |= repo.Loaned
-			date, err := time.Parse(time.DateOnly, loan.Date)
-			if err != nil {
-				return nil, status.E(op, status.LevelError, err)
-			}
-			entries[i].Loaned = date
-			entries[i].Borrower = loan.Name
+			builder.SetLoanedDate(loan.Date).
+				SetBorrower(loan.Name)
 		}
 
 		if hasRead {
-			entries[i].Variant |= repo.Read
-			date, err := time.Parse(time.DateOnly, read.DateCompleted)
-			if err != nil {
-				return nil, status.E(op, status.LevelError, err)
-			}
-			entries[i].Read = date
-			entries[i].Rating = int(read.Rating)
+			builder.SetReadDate(read.DateCompleted).
+				SetRating(read.Rating)
 		}
+		book, err := builder.Build()
+		if err != nil {
+			return nil, status.E(op, status.LevelWarn, err)
+		}
+		entries[i] = *book
 	}
 	return entries, nil
 }
@@ -142,17 +323,11 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 	const op status.Op = "database.GetBookByID"
 	
-	book := repo.NewBookEntry()
-	
 	bookRow, err := db.Queries.GetBookByID(context.Background(), id)
 	if err != nil {
 		return repo.BookEntry{}, status.E(op, status.LevelError, err)
 	}
 
-	book.ID = id
-	book.Title = bookRow.Title
-	book.Author = bookRow.Author
-	book.Genre = bookRow.Genre
 
 	hasLoan := true
 	loanRow, err := db.Queries.GetLoanByBookID(context.Background(), id)
@@ -172,36 +347,36 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 		hasRead = false
 	}
 
+	builder := &bookBuilder{}
+
+	builder.SetID(id).
+		SetTitle(bookRow.Title).
+		SetAuthor(bookRow.Author).
+		SetGenre(bookRow.Genre)
+
 	if hasLoan {
-		book.Variant |= repo.Loaned
-		date, err := time.Parse(time.DateOnly, loanRow.Date)
-		if err != nil {
-			return repo.BookEntry{}, status.E(op, status.LevelError, err)
-		}
-		book.Loaned = date
-		book.Borrower = loanRow.Name
+		builder.SetLoanedDate(loanRow.Date).
+			SetBorrower(loanRow.Name)
 	}
 
 	if hasRead {
-		book.Variant |= repo.Read
-		date, err := time.Parse(time.DateOnly, readRow.DateCompleted)
-		if err != nil {
-			return repo.BookEntry{}, status.E(op, status.LevelError, err)
-		}
-		book.Read = date
-		book.Rating = int(book.Rating)
+		builder.SetReadDate(readRow.DateCompleted).
+			SetRating(readRow.Rating)
 	}
+
+	book, err := builder.Build()
+	if err != nil {
+		return repo.BookEntry{}, status.E(op, status.LevelError, err)
+	}
+
 	return *book, nil
 }
 
-func (a *Database) GetUniqueGenres() ([]string, error) {
-	return []string{
-		"Cat",
-		"Dog",
-		"Bird",
-	}, nil
+func (db *Database) GetUniqueGenres() ([]string, error) {
+	const op status.Op = "database.GetUniqueGenres"
+	genres, err := db.Queries.GetUniqueGenres(context.Background())
+	if err != nil {
+		return nil, status.E(op, status.LevelError, err)
+	}
+	return genres, nil
 }
-
-
-
-

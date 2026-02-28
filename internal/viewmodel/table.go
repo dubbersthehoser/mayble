@@ -404,11 +404,11 @@ func (tc *TableControllersVM) Edit() {
 	}
 	book, err := tc.selector.getBook()
 	if err != nil {
-		log.Println("edit:", err)
+		log.Println(err)
 	}
+
 	tc.editbook.reset()
 	tc.editbook.Set(book)
-	fmt.Println(book)
 	_ = tc.EditIsOpen.Set(true)
 }
 

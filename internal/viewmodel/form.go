@@ -18,7 +18,6 @@ type BookForm struct {
 	Author    binding.String
 	Genre     binding.String
 
-
 	IsLoaned binding.Bool
 	Borrower binding.String
 	Date     binding.String
@@ -43,6 +42,59 @@ func NewBookForm() *BookForm {
 		Date: binding.NewString(),
 	}
 }
+
+func (bf *BookForm) Set(book *repo.BookEntry) {
+	_ = bf.Title.Set(book.Title)
+	_ = bf.Author.Set(book.Author)
+	_ = bf.Genre.Set(book.Genre)
+
+	if repo.Loaned & book.Variant != 0 {
+		_ = bf.IsLoaned.Set(true)
+		_ = bf.Date.Set(formatDate(&book.Loaned))
+		_ = bf.Borrower.Set(book.Borrower)
+	}
+
+	if repo.Read & book.Variant != 0 {
+		_ = bf.IsRead.Set(true)
+		_ = bf.Rating.Set(formatRating(book.Rating))
+		_ = bf.Completed.Set(formatDate(&book.Read))
+	}
+}
+
+func (bf *BookForm) ToBookEntry() *repo.BookEntry {
+	book := &repo.BookEntry{}
+
+	isOnLoan, _ := bf.IsLoaned.Get()
+	isRead, _ := bf.IsRead.Get()
+
+	if isOnLoan {
+		book.Variant |= repo.Loaned
+		date, _ := bf.Date.Get()
+		timeDate, _ := parseDate(date)
+		book.Loaned = *timeDate
+		book.Borrower, _ = bf.Borrower.Get()
+	}
+
+	if isRead {
+		book.Variant |= repo.Read
+		sdate, _ := bf.Completed.Get()
+		srating, _ := bf.Rating.Get()
+
+		date, _ := parseDate(sdate)
+		rating := slices.Index(Ratings(), srating)
+
+		book.Read = *date
+		book.Rating = rating
+	}
+
+	book.Variant |= repo.Book
+
+	book.Title, _ = bf.Title.Get()
+	book.Author, _ = bf.Author.Get()
+	book.Genre, _ = bf.Genre.Get()
+	return book
+}
+
 
 
 type SubmissionList struct {
@@ -79,38 +131,40 @@ func (s *SubmissionList) appendSubmission(book *repo.BookEntry) {
 }
 
 func (s *SubmissionList) addSubmission(bf *BookForm) error {
-	book := repo.BookEntry{}
+	//book := repo.BookEntry{}
 
-	isOnLoan, _ := bf.IsLoaned.Get()
-	isRead, _ := bf.IsRead.Get()
+	//isOnLoan, _ := bf.IsLoaned.Get()
+	//isRead, _ := bf.IsRead.Get()
 
-	if isOnLoan {
-		book.Variant |= repo.Loaned
-		date, _ := bf.Date.Get()
-		timeDate, _ := parseDate(date)
-		book.Loaned = *timeDate
-		book.Borrower, _ = bf.Borrower.Get()
-	}
+	//if isOnLoan {
+	//	book.Variant |= repo.Loaned
+	//	date, _ := bf.Date.Get()
+	//	timeDate, _ := parseDate(date)
+	//	book.Loaned = *timeDate
+	//	book.Borrower, _ = bf.Borrower.Get()
+	//}
 
-	if isRead {
-		book.Variant |= repo.Read
-		sdate, _ := bf.Completed.Get()
-		srating, _ := bf.Rating.Get()
+	//if isRead {
+	//	book.Variant |= repo.Read
+	//	sdate, _ := bf.Completed.Get()
+	//	srating, _ := bf.Rating.Get()
 
-		date, _ := parseDate(sdate)
-		rating := slices.Index(Ratings(), srating)
+	//	date, _ := parseDate(sdate)
+	//	rating := slices.Index(Ratings(), srating)
 
-		book.Read = *date
-		book.Rating = rating
-	}
+	//	book.Read = *date
+	//	book.Rating = rating
+	//}
 
-	book.Variant |= repo.Book
+	//book.Variant |= repo.Book
 
-	book.Title, _ = bf.Title.Get()
-	book.Author, _ = bf.Author.Get()
-	book.Genre, _ = bf.Genre.Get()
+	//book.Title, _ = bf.Title.Get()
+	//book.Author, _ = bf.Author.Get()
+	//book.Genre, _ = bf.Genre.Get()
 
-	s.submissions = append(s.submissions, book)
+	book := bf.ToBookEntry()
+
+	s.submissions = append(s.submissions, *book)
 	s.l.notify()
 	s.bus.Notify(bus.Event{
 		Name: msgUserInfo,
@@ -173,25 +227,6 @@ func (s *SubmissionList) Edit(idx int) {
 }
 
 
-func (bf *BookForm) Set(book *repo.BookEntry) {
-	_ = bf.Title.Set(book.Title)
-	_ = bf.Author.Set(book.Author)
-	_ = bf.Genre.Set(book.Genre)
-
-	fmt.Println("SET", book)
-
-	if repo.Loaned & book.Variant != 0 {
-		_ = bf.IsLoaned.Set(true)
-		_ = bf.Date.Set(formatDate(&book.Loaned))
-		_ = bf.Borrower.Set(book.Borrower)
-	}
-
-	if repo.Read & book.Variant != 0 {
-		_ = bf.IsRead.Set(true)
-		_ = bf.Rating.Set(formatRating(book.Rating))
-		_ = bf.Completed.Set(formatDate(&book.Read))
-	}
-}
 
 
 
@@ -257,6 +292,8 @@ func validate(bf *BookForm) error {
 		completed, _ := bf.Completed.Get()
 		rating, _ := bf.Rating.Get()
 
+		println(completed)
+
 		if completed == "" {
 			return errors.New("Missing Completion Date")
 		}
@@ -264,7 +301,6 @@ func validate(bf *BookForm) error {
 		if err != nil {
 			return errors.New("Invalid Completion Date (DD/MM/YYYY)")
 		}
-		// convert rating to int
 		ratings := Ratings()
 		rank := slices.Index(ratings[1:], rating)
 		if rank == -1 {
@@ -369,6 +405,8 @@ type EditBookVM struct {
 	Genres  *UniqueGenres
 	bus     *bus.Bus
 	IsOpen  binding.Bool
+	vms     *vmService
+	bookID  int64 // selected book id
 }
 
 func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
@@ -377,6 +415,7 @@ func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
 		BookForm: *NewBookForm(),
 		Genres:   vms.genres,
 		IsOpen:   isOpen,
+		vms:      vms,
 	}
 	return ed
 }
@@ -390,13 +429,25 @@ func (ed *EditBookVM) Submit() {
 		})
 		return 
 	}
+
+	book := ed.BookForm.ToBookEntry()
+	book.ID = ed.bookID
+
+	ed.vms.app.bookUpdator.UpdateBook(book)
+	
 	ed.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "not implemented",
+		Name: msgDataChanged,
 	})
+	ed.Close()
+}
+
+func (ed *EditBookVM) Set(b *repo.BookEntry) {
+	ed.bookID = b.ID
+	ed.BookForm.Set(b)
 }
 
 func (ed *EditBookVM) Close() {
+	ed.bookID = -1
 	ed.BookForm.reset()
 	ed.IsOpen.Set(false)
 }

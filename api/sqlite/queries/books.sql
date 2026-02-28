@@ -30,3 +30,6 @@ SELECT id, title, author, genre FROM books;
 -- name: GetBookByID :one
 SELECT id, title, author, genre FROM books
 WHERE id = ?;
+
+-- name: GetUniqueGenres :many
+SELECT DISTINCT genre FROM books ORDER BY genre;
