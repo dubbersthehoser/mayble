@@ -14,6 +14,7 @@ import (
 )
 
 type BookForm struct {
+	id        int64
 	Title     binding.String
 	Author    binding.String
 	Genre     binding.String
@@ -29,6 +30,7 @@ type BookForm struct {
 
 func NewBookForm() *BookForm {
 	return &BookForm{
+		id: -1,
 		Title: binding.NewString(),
 		Author: binding.NewString(),
 		Genre: binding.NewString(),
@@ -44,6 +46,7 @@ func NewBookForm() *BookForm {
 }
 
 func (bf *BookForm) Set(book *repo.BookEntry) {
+	bf.id = book.ID
 	_ = bf.Title.Set(book.Title)
 	_ = bf.Author.Set(book.Author)
 	_ = bf.Genre.Set(book.Genre)
@@ -62,7 +65,7 @@ func (bf *BookForm) Set(book *repo.BookEntry) {
 }
 
 func (bf *BookForm) ToBookEntry() *repo.BookEntry {
-	book := &repo.BookEntry{}
+	book := &repo.BookEntry{ID: bf.id}
 
 	isOnLoan, _ := bf.IsLoaned.Get()
 	isRead, _ := bf.IsRead.Get()
@@ -312,6 +315,7 @@ func validate(bf *BookForm) error {
 }
 
 func (bf *BookForm) reset() {
+	bf.id = -1
 	_ = bf.Title.Set("")
 	_ = bf.Author.Set("")
 	_ = bf.Genre.Set("")
@@ -398,15 +402,12 @@ func (bf *CreateBookForm) Submit() {
 }
 
 
-
-
 type EditBookVM struct {
 	BookForm
 	Genres  *UniqueGenres
 	bus     *bus.Bus
 	IsOpen  binding.Bool
 	vms     *vmService
-	bookID  int64 // selected book id
 }
 
 func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
@@ -431,7 +432,6 @@ func (ed *EditBookVM) Submit() {
 	}
 
 	book := ed.BookForm.ToBookEntry()
-	book.ID = ed.bookID
 
 	ed.vms.app.bookUpdator.UpdateBook(book)
 	
@@ -442,12 +442,10 @@ func (ed *EditBookVM) Submit() {
 }
 
 func (ed *EditBookVM) Set(b *repo.BookEntry) {
-	ed.bookID = b.ID
 	ed.BookForm.Set(b)
 }
 
 func (ed *EditBookVM) Close() {
-	ed.bookID = -1
 	ed.BookForm.reset()
 	ed.IsOpen.Set(false)
 }
