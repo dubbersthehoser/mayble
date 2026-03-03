@@ -9,7 +9,6 @@ import (
 	"errors"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/fields"
 )
 
 
@@ -17,23 +16,26 @@ var (
 	ErrInvalidFormat error = errors.New("invalid format")
 )
 
+func fieldLength() int {
+	return len(repo.BookEntryFields())
+}
 
 func entryToFields(book *repo.BookEntry) []string {
-	f := make([]string, fields.Length)
+	f := make([]string, fieldLength())
 
-	f[fields.Title] = book.Title
-	f[fields.Author] = book.Author
-	f[fields.Genre] = book.Genre
+	f[repo.IdxTitle] = book.Title
+	f[repo.IdxAuthor] = book.Author
+	f[repo.IdxGenre] = book.Genre
 
 	if book.Variant & repo.Read != 0 {
-		f[fields.Read] = book.Read.Format(time.DateOnly)
+		f[repo.IdxRead] = book.Read.Format(time.DateOnly)
 		rating := strconv.Itoa(book.Rating)
-		f[fields.Rating] = rating
+		f[repo.IdxRating] = rating
 	}
 	
 	if book.Variant & repo.Loaned != 0 {
-		f[fields.Loaned] = book.Loaned.Format(time.DateOnly)
-		f[fields.Borrower] = book.Borrower
+		f[repo.IdxLoaned] = book.Loaned.Format(time.DateOnly)
+		f[repo.IdxBorrower] = book.Borrower
 	}
 	return f
 
@@ -41,18 +43,18 @@ func entryToFields(book *repo.BookEntry) []string {
 
 func fieldsToEntry(f []string) (*repo.BookEntry, error) {
 	
-	if len(f) != fields.Length {
-		return nil, fmt.Errorf("invalid length of slice: %d != %d", fields.Length, len(f))
+	if len(f) != fieldLength() {
+		return nil, fmt.Errorf("invalid length of slice: %d != %d", fieldLength(), len(f))
 	}
 
-	book := repo.NewBookEntry()
+	book := &repo.BookEntry{}
 
-	book.Title = f[fields.Title]
-	book.Author = f[fields.Author]
-	book.Genre = f[fields.Genre]
+	book.Title = f[repo.IdxTitle]
+	book.Author = f[repo.IdxAuthor]
+	book.Genre = f[repo.IdxGenre]
 
-	loaned := f[fields.Loaned]
-	borrower := f[fields.Borrower]
+	loaned := f[repo.IdxLoaned]
+	borrower := f[repo.IdxBorrower]
 
 	if loaned != "" && borrower != "" {
 		book.Variant |= repo.Loaned
@@ -64,8 +66,8 @@ func fieldsToEntry(f []string) (*repo.BookEntry, error) {
 		book.Loaned = date
 	}
 
-	read := f[fields.Read]
-	rating := f[fields.Rating]
+	read := f[repo.IdxRead]
+	rating := f[repo.IdxRating]
 
 	if read != "" && rating != "" {
 		book.Variant |= repo.Read

@@ -22,11 +22,12 @@ type bookBuilder struct {
 
 func (b *bookBuilder) Build() (*repo.BookEntry, error) {
 	
-	book := repo.NewBookEntry()
-	book.ID = b.id
-	book.Title = b.title
-	book.Author = b.author
-	book.Genre = b.genre
+	book := &repo.BookEntry{
+		ID: b.id,
+		Title: b.title,
+		Author: b.author,
+		Genre: b.genre,
+	}
 
 	if b.loanedDate != "" && b.borrowerName != "" {
 		book.Variant |= repo.Loaned

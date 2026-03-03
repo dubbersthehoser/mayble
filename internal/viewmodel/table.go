@@ -3,6 +3,7 @@ package viewmodel
 
 import (
 	"slices"
+	"strings"
 	"cmp"
 	"fmt"
 	"log"
@@ -229,19 +230,16 @@ func hiddenOptionsToHeaders(options []string) []string {
 
 
 func (t *TableVM) HideOptions() []string {
-	return []string{
-		"Title",
-		"Author",
-		"Genre",
-		"Read",
-		"Loaned",
-	}
+	l := repo.BookEntryFields()
+	slices.DeleteFunc(l, func(s string) bool {
+		return s == "Rating" || s == "Borrower"
+	})
+	return l
 }
 
 func (t *TableVM) Headers() []string {
 	return t.table.Headers()
 }
-
 
 func (t *TableVM) Select(row, col int) {
 	cell := t.table.GetCell(row, col)
@@ -257,7 +255,7 @@ func (t *TableVM) Unselect(row, col int) {
 // load entries from repository sort them into table.
 func (t *TableVM) load() error {
 
-	items, err := t.repo.GetAllBooks(repo.BookLoaned | repo.BookRead)
+	items, err := t.repo.GetAllBooks(repo.Loaned | repo.Read)
 	if err != nil {
 		return err
 	}
@@ -271,24 +269,26 @@ func (t *TableVM) load() error {
 	by, _ := t.SortBy.Get()
 	order, _ := t.SortOrder.Get()
 
+	fmt.Println("by:", by, "order:", order)
+
 	index := slices.Index(entryHeaders(), by)
 
 	slices.SortFunc(items, func(a, b repo.BookEntry) int {
 		r := -1
 		switch index {
-		case 0:
-			r = cmp.Compare(a.Title, b.Title)
-		case 1:
-			r = cmp.Compare(a.Author, b.Author)
-		case 2:
-			r = cmp.Compare(a.Genre, b.Genre)
-		case 3:
-			r = cmp.Compare(a.Borrower, b.Borrower)
-		case 4:
+		case repo.IdxTitle:
+			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
+		case repo.IdxAuthor:
+			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
+		case repo.IdxGenre:
+			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
+		case repo.IdxBorrower:
+			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
+		case repo.IdxLoaned:
 			r = a.Loaned.Compare(b.Loaned)
-		case 5:
+		case repo.IdxRating:
 			r = cmp.Compare(a.Rating, b.Rating)
-		case 6:
+		case repo.IdxRead:
 			r = a.Read.Compare(b.Read)
 		default:
 			log.Println("load: sort field not found", index, by)
@@ -423,6 +423,7 @@ func (tc *TableControllersVM) GetEditBook() *EditBookVM {
 
 // entryHeaders lists the headers labels for book entry.
 func entryHeaders() []string {
+	return repo.BookEntryFields()
 	return []string{
 		"Title",
 		"Author",

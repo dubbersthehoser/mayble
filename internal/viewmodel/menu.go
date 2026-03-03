@@ -91,7 +91,7 @@ func (c *MenuVM) ExportCSV(wURI fyne.URIWriteCloser, err error) {
 		}
 	}
 
-	books, err := c.vms.app.bookRetriever.GetAllBooks(repo.BookLoaned|repo.BookRead)
+	books, err := c.vms.app.bookRetriever.GetAllBooks(repo.Loaned|repo.Read)
 	if err != nil {
 		displayErr(err)
 		return

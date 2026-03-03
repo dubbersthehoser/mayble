@@ -4,53 +4,24 @@ import (
 	"time"
 )
 
-type Action string
-const (
-	Delete Action = "delete"
-	Update Action = "update"
-	Create Action = "create"
-	Select Action = "select"
-)
-
-type Query struct {
-	
-	Variant Variant
-
-	Action   Action
-
-	BookID    int64
-	SortBy    string
-	OrderBy   string
-
-	Entry    *BookEntry
-}
-
 type Variant int
 
 const (
-	Book   Variant = 1 << iota
-	Loaned
+	Book     Variant = 0
+	Loaned   Variant = 1 << iota
 	Read
-)
-
-const (
-	BookLoaned Variant = Book | Loaned
-	BookRead Variant = Book | Read
-	BookReadAndLoaned = Book | Read | Loaned
 )
 
 func (v Variant) String() string {
 	switch v {
-	case (Book|Loaned|Read):
+	case (Loaned|Read):
 		return "book|loaned|Read"
-	case (Book|Loaned):
+	case (Loaned):
 		return "book|loaned"
-	case (Book|Read):
+	case (Read):
 		return "book|read"
-	case (Book):
-		return "book"
 	case 0:
-		return ""
+		return "book"
 	default:
 		panic("variant not found")
 	}
@@ -71,16 +42,28 @@ type BookEntry struct {
 	Loaned   time.Time
 }
 
-// NewBookEntry returns a BookEntry with .Variant set with Book.
-func NewBookEntry() *BookEntry {
-	return &BookEntry{
-		Variant: Book,
+const (
+	IdxTitle  int = iota
+	IdxAuthor
+	IdxGenre
+	
+	IdxRead
+	IdxRating
+
+	IdxLoaned
+	IdxBorrower
+)
+
+func BookEntryFields() []string {
+	return []string{
+		"Title",
+		"Author",
+		"Genre",
+		"Read",
+		"Rating",
+		"Loaned",
+		"Borrower",
 	}
-}
-
-
-type BookQuerier interface {
-	BookQuery(q *Query) ([]BookEntry, error)
 }
 
 type BookRetriever interface {
@@ -103,11 +86,3 @@ type BookUpdator interface {
 type BookDeletor interface {
 	DeleteBook(b *BookEntry) error
 }
-
-
-
-
-
-
-
-

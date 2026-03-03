@@ -90,8 +90,6 @@ func (bf *BookForm) ToBookEntry() *repo.BookEntry {
 		book.Rating = rating
 	}
 
-	book.Variant |= repo.Book
-
 	book.Title, _ = bf.Title.Get()
 	book.Author, _ = bf.Author.Get()
 	book.Genre, _ = bf.Genre.Get()
@@ -187,11 +185,11 @@ func (s *SubmissionList) Get(idx int) string {
 	book := s.submissions[idx]
 	prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
 	switch book.Variant {
-	case repo.BookReadAndLoaned:
+	case repo.Read | repo.Loaned:
 		return fmt.Sprintf("%s (loaned) (read)", prefix)
-	case repo.BookLoaned:
+	case repo.Loaned:
 		return fmt.Sprintf("%s (loaned)", prefix)
-	case repo.BookRead:
+	case repo.Read:
 		return fmt.Sprintf("%s (read)", prefix)
 	case repo.Book:
 		return prefix

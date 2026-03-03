@@ -1,6 +1,8 @@
 package view
 
 import (
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
@@ -39,9 +41,38 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	editBtn := widget.NewButton("Edit", func() {
 		vmc.Edit()
 	})
-	deleteBtn := widget.NewButton("Delete", func() {
+
+	deleteFinal := widget.NewButton("Are You Sheer?", nil)
+	deleteInitial := widget.NewButton("Delete", nil)
+
+	deleteInitial.OnTapped = func() {
+		deleteFinal.Show()
+		deleteInitial.Hide()
+
+		go func() {
+			timer := time.NewTimer(time.Second * 2)
+			<-timer.C
+			fyne.Do(func() {
+				deleteFinal.Hide()
+				deleteInitial.Show()
+			})
+		}()
+
+	}
+	deleteFinal.OnTapped = func() {
 		vmc.Delete()
-	})
+		deleteFinal.Hide()
+		deleteInitial.Show()
+	}
+
+	deleteFinal.Hide()
+
+	deleteBtn := container.NewStack(
+		deleteInitial,
+		deleteFinal,
+	)
+
+
 	search := widget.NewEntryWithData(vmt.Search.Text)
 	searchOptions := widget.NewSelect(vmt.SearchOptions(), func(s string) {
 		_ = vmt.Search.Option.Set(s)
@@ -89,15 +120,15 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	)
 	edit.Hide()
 
-	editBtn.Disable()
-	deleteBtn.Disable()
+	editBtn.Hide()
+	deleteBtn.Hide()
 	vmc.Selector().AddListener(binding.NewDataListener(func() {
 		if vmc.Selector().HasSelected() {
-			editBtn.Enable()
-			deleteBtn.Enable()
+			editBtn.Show()
+			deleteBtn.Show()
 		} else {
-			editBtn.Disable()
-			deleteBtn.Disable()
+			editBtn.Hide()
+			deleteBtn.Hide()
 		}
 	}))
 
@@ -157,12 +188,7 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return NewColumnButton("", vm)
-	}
-
-	for i := range vm.Headers() {
-		width := vm.GetColumnWidth(i)
-		table.SetColumnWidth(i, width)
+		return NewHeaderButton("", vm)
 	}
 
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
@@ -173,15 +199,21 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		_, colLen := vm.Size()
 		if cellID.Col < colLen {
 			if vm.IsHeaderHidden(cellID.Col) {
-				object.(*ColumnButton).Hide()
+				object.(*HeaderButton).Hide()
 			} else {
 				header := vm.Headers()[cellID.Col]
-				object.(*ColumnButton).InitLabel(header)
-				object.(*ColumnButton).Show()
+				object.(*HeaderButton).InitLabel(header)
+				object.(*HeaderButton).Show()
 			}
 		} else { // (A) create hidden header.
-			object.(*ColumnButton).Hide()
+			object.(*HeaderButton).Hide()
 		}
+	}
+
+	// Set the width of the columns.
+	for i := range vm.Headers() {
+		width := vm.GetColumnWidth(i)
+		table.SetColumnWidth(i, width)
 	}
 
 	// Selection
@@ -211,15 +243,15 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 }
 
 
-type ColumnButton struct {
+type HeaderButton struct {
 	widget.Button
 	minSize    fyne.Size
 	label      string
 	vm *viewmodel.TableVM
 }
 
-func NewColumnButton(label string, vm *viewmodel.TableVM) *ColumnButton {
-	hb := &ColumnButton{
+func NewHeaderButton(label string, vm *viewmodel.TableVM) *HeaderButton {
+	hb := &HeaderButton{
 		label: label,
 		vm: vm,
 	}
@@ -244,7 +276,7 @@ func NewColumnButton(label string, vm *viewmodel.TableVM) *ColumnButton {
 	return hb
 }
 
-func (hb *ColumnButton) InitLabel(s string) {
+func (hb *HeaderButton) InitLabel(s string) {
 	hb.label = s
 	by, _ := hb.vm.SortBy.Get()
 	ording, _ := hb.vm.SortOrder.Get()
@@ -260,18 +292,18 @@ func (hb *ColumnButton) InitLabel(s string) {
 }
 
 
-func (hb *ColumnButton) NormalLabel() string {
+func (hb *HeaderButton) NormalLabel() string {
 	return "- " + hb.label
 }
 
-func (hb *ColumnButton) ASCLabel() string {
+func (hb *HeaderButton) ASCLabel() string {
 	return "↑ " + hb.label
 }
 
-func (hb *ColumnButton) DESCLabel() string {
+func (hb *HeaderButton) DESCLabel() string {
 	return "↓ " + hb.label
 }
 
-func (hb *ColumnButton) MinSize() fyne.Size {
+func (hb *HeaderButton) MinSize() fyne.Size {
 	return hb.minSize
 }
