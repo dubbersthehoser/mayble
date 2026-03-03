@@ -13,7 +13,7 @@ const version int64 = 5
 
 type Database struct {
 	Conn      *sql.DB
-	Queries *database.Queries
+	Queries   *database.Queries
 }
 
 // OpenMem create a memory base database.

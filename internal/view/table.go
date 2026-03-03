@@ -82,7 +82,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	vmt.SetSelector(vmc.Selector())
 	table := bookTable(vmt)
 	
-	hide := widget.NewCheckGroup(vmt.HideOptions(), func(list []string) {
+	hide := widget.NewCheckGroup(vmt.HiddenOptions(), func(list []string) {
 		vmt.SetHidden(list)
 	})
 	hide.Horizontal = true

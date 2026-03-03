@@ -192,27 +192,16 @@ func (t *TableVM) Hidden() []string {
 	return hiddenHeadersToOptions(headers)
 }
 
-func hiddenHeadersToOptions(hide []string) []string {
-	options := make([]string, 0)
-	hasLoaned := slices.Contains(hide, "Borrower") && slices.Contains(hide, "Loaned")
-	hasRead := slices.Contains(hide, "Rating") && slices.Contains(hide, "Read")
-	for _, h := range hide {
-		switch h {
-		case "Borrower", "Loaned", "Rating", "Read":
-			continue
-		default:
-			options = append(options, h)
-		}
-	}
-	if hasLoaned {
-		options = append(options, "Loaned")
-	}
-	if hasRead {
-		options = append(options, "Read")
-	}
+// hiddenHeadersToOptions returns hidden options from headers.
+func hiddenHeadersToOptions(headers []string) []string {
+	options := slices.Clone(headers)
+	options = slices.DeleteFunc(options, func(s string) bool {
+		return s == "Rating" || s == "Borrower"
+	})
 	return options
 }
 
+// hiddenOptionsToHeaders returns a slice of headers from a slice of hidden header options.
 func hiddenOptionsToHeaders(options []string) []string {
 	hide := make([]string, 0)
 	for _, o := range options {
@@ -228,13 +217,10 @@ func hiddenOptionsToHeaders(options []string) []string {
 	return hide
 }
 
-
-func (t *TableVM) HideOptions() []string {
-	l := repo.BookEntryFields()
-	slices.DeleteFunc(l, func(s string) bool {
-		return s == "Rating" || s == "Borrower"
-	})
-	return l
+// HiddenOptions returns the list of options for hiding columns.
+func (t *TableVM) HiddenOptions() []string {
+	headers := repo.BookEntryFields()
+	return hiddenHeadersToOptions(headers)
 }
 
 func (t *TableVM) Headers() []string {

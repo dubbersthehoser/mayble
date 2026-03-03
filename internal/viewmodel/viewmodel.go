@@ -5,7 +5,6 @@ import (
 
 	"fyne.io/fyne/v2/data/binding"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/config"
@@ -26,7 +25,6 @@ const (
 )
 
 type MainUI struct {	
-	repo   repo.BookRetriever
 
 	vms     *vmService
 	errList []error
@@ -40,9 +38,9 @@ type MainUI struct {
 	Clear      binding.Bool
 }
 
-func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
+func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI {
 
-	as := newAppService(cfg, db)
+	as := newAppService(cfg, dbs)
 	vms := newVMService(as)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),

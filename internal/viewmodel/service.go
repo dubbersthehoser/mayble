@@ -11,6 +11,8 @@ import (
 
 type appService struct {
 	cfg  *config.Config
+	dbs  *database.Service
+	
 	bookRetriever  repo.BookRetriever
 	genreRetriever repo.GenreRetriever
 	bookCreator    repo.BookCreator
@@ -18,15 +20,21 @@ type appService struct {
 	bookDeletor    repo.BookDeletor
 }
 
-func newAppService(cfg *config.Config, db *database.Database) *appService {
-	return &appService{
+func (as *appService) setDB(db *database.Database) {
+		as.bookRetriever = db
+		as.genreRetriever = db
+		as.bookCreator = db
+		as.bookUpdator = db
+		as.bookDeletor = db
+}
+
+func newAppService(cfg *config.Config, dbs *database.Service) *appService {
+	as := &appService{
 		cfg: cfg,
-		bookRetriever:  db,
-		genreRetriever: db,
-		bookCreator:    db,
-		bookUpdator:    db,
-		bookDeletor:    db,
+		dbs: dbs,
 	}
+	as.setDB(dbs.DB())
+	return as
 }
 
 

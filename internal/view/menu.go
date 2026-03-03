@@ -1,6 +1,8 @@
 package view
 
 import (
+	"fmt"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/data/binding"
@@ -49,7 +51,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 	dbFileLbl := widget.NewLabel("")
 	setDBLabel := func() {
 		label, _ := vm.DBFile.Get()
-		dbFileLbl.SetText("Database: " + label)
+		dbFileLbl.SetText(fmt.Sprintf("Database: \"%s\"", label))
 	}
 
 	setDBLabel()
