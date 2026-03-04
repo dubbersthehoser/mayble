@@ -2,9 +2,27 @@
 
 set -e
 
-go test ./... -coverprofile=cover.out
+if [ $# -eq 0 ]; then
+	echo "no arguments or package were given" 1>&2
+	exit 1
+fi
 
+cmd="$1"
+shift
 
-go tool cover -func=cover.out
+case "$cmd" in
+	total)
+		go test ./internal/... -coverprofile=cover.out
+		go tool cover -func=cover.out
+	;;
+
+	all)
+		go test ./internal/... -cover
+	;;
+	*)
+		go test $@
+	;;
+esac
+
 
 

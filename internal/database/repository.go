@@ -14,13 +14,36 @@ import (
 
 type bookBuilder struct {
 	id                   int64
-	title, author, genre string
-	loanedDate, readDate string
+	title,
+	author,
+	genre,
+	loanedDate,
+	readDate,
 	borrowerName         string
 	rating               int64
 }
 
+func newBookBuilder() *bookBuilder{
+	return &bookBuilder{
+		id: -127,
+	}
+}
+
 func (b *bookBuilder) Build() (*repo.BookEntry, error) {
+
+	if b.id == -127 {
+		return nil, errors.New("book_builder.build: id was not set")
+	}
+
+	if b.title == "" {
+		return nil, errors.New("book_builder.build: title was not set")
+	}
+	if b.author == "" {
+		return nil, errors.New("book_builder.build: author was not set")
+	}
+	if b.genre == "" {
+		return nil, errors.New("book_builder.build: genre was not set")
+	}
 	
 	book := &repo.BookEntry{
 		ID: b.id,
@@ -296,7 +319,7 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 			hasRead = false
 		}
 
-		builder := &bookBuilder{}
+		builder := newBookBuilder()
 		builder.SetID(book.ID).
 			SetTitle(book.Title).
 			SetAuthor(book.Author).
@@ -348,7 +371,7 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 		hasRead = false
 	}
 
-	builder := &bookBuilder{}
+	builder := newBookBuilder()
 
 	builder.SetID(id).
 		SetTitle(bookRow.Title).
