@@ -1,19 +1,16 @@
-package viewmodel
+package table
 
 import (
 	"strings"
 	"unicode"
 	"slices"
 	"cmp"
-
-	"fyne.io/fyne/v2/data/binding"
-
-	"github.com/dubbersthehoser/mayble/internal/table"
 )
 
 
 
 // EditDist an Levenshtein distance function.
+//
 // Returns the total number edits to make s and t match.
 func EditDist(s, t string) int {
 	
@@ -52,6 +49,7 @@ func EditDist(s, t string) int {
 }
 
 // searchCompare get the compare score for a search.
+//
 // Score goes from 0-n where 0 is the lowest and n is the highest.
 // No match returns -1.
 func searchCompare(text, search string) int {
@@ -98,67 +96,43 @@ func searchCompare(text, search string) int {
 	}
 }
 
-type cellSearchResult struct {
-	id       int64
-	row, col int
-	score    int
+// SearchResult a result of a search.
+type SearchResult struct {
+	ID       int64
+	Row, Col int
+	Score    int
 }
 
-type TableSearch struct {
-	Text   binding.String
-	Option binding.String
-	table  *table.Table
-}
-
-func NewTableSearch(t *table.Table) *TableSearch {
-	return &TableSearch{
-		Text:   binding.NewString(),
-		Option: binding.NewString(),
-		table:  t,
-	}
-}
-
-func (ts *TableSearch) Options() []string {
-	return []string{
-		"All",
-		"Title",
-		"Author",
-		"Genre",
-		"Borrower",
-	}
-}
-
-func (ts *TableSearch) search(search string) []cellSearchResult {
+// Search table for values.
+//
+// Set header to an empty string will do a global search, otherwise searches a particular column.
+func Search(t *Table, search, header string) []SearchResult {
 	if search == "" {
-		return []cellSearchResult{}
+		return []SearchResult{}
 	}
-	result := []cellSearchResult{}
-	option, _ := ts.Option.Get()
-	table.WalkVisableValues(ts.table, func(row, col int, c *table.DataCell){
+	result := []SearchResult{}
+	WalkVisableValues(t, func(row, col int, c *DataCell){
 
 		if search == "" {
 			return
 		}
-		if option != ts.Options()[0] && c.Header() != option {
+		if header != "" && c.Header() != header {
 			return
 		}
 		score := searchCompare(c.Value(), search)
 		if score == -1 {
 			return
 		}
-		r := cellSearchResult{
-			score: score,
-			row: row,
-			col: col,
-			id: c.ID(),
+		r := SearchResult{
+			Score: score,
+			Row: row,
+			Col: col,
+			ID: c.ID(),
 		}
 		result = append(result, r)
 	})
-	slices.SortFunc(result, func(a, b cellSearchResult) int {
-		return cmp.Compare(a.score, b.score) * -1
+	slices.SortFunc(result, func(a, b SearchResult) int {
+		return cmp.Compare(a.Score, b.Score) * -1
 	})
 	return result
 }
-
-
-

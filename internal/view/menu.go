@@ -17,22 +17,22 @@ import (
 
 func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 
-	csvImportBtn := widget.NewButton("Import CSV", func() {
+	csvImportBtn := widget.NewButton("Import", func() {
 		d := dialog.NewFileOpen(vm.ImportCSV, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Import CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
-	csvExportBtn := widget.NewButton("Export CSV", func() {
+	csvExportBtn := widget.NewButton("Export", func() {
 		d := dialog.NewFileSave(vm.ExportCSV, w)
 		d.Resize(w.Canvas().Size())
-		d.SetTitleText("Import CSV")
+		d.SetTitleText("Export CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
 
-	openDBBtn := widget.NewButton("Open Database", func(){
+	openDBBtn := widget.NewButton("Open", func(){
 		d := dialog.NewFileOpen(vm.OpenDatabase, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Open Database")
@@ -40,7 +40,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		d.Show()
 		
 	})
-	saveDBBtn := widget.NewButton("Create Database", func(){
+	saveDBBtn := widget.NewButton("Create", func(){
 		d := dialog.NewFileSave(vm.CreateDatabase, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Create Database")
@@ -51,7 +51,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 	dbFileLbl := widget.NewLabel("")
 	setDBLabel := func() {
 		label, _ := vm.DBFile.Get()
-		dbFileLbl.SetText(fmt.Sprintf("Database: \"%s\"", label))
+		dbFileLbl.SetText(fmt.Sprintf("\"%s\"", label))
 	}
 
 	setDBLabel()
@@ -59,13 +59,27 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		setDBLabel()
 	}))
 
+	newHeaderLabel := func(text string) *widget.Label {
+		lbl := widget.NewLabel(text)
+		lbl.TextStyle = fyne.TextStyle{
+			Bold: true,
+			Underline: true,
+		}
+		return lbl
+	}
 
 	menu := container.NewVBox(
+		newHeaderLabel("Database"),
 		dbFileLbl,
-		csvImportBtn,
-		csvExportBtn,
-		openDBBtn,
-		saveDBBtn,
+		container.NewGridWithColumns(3,
+			openDBBtn,
+			saveDBBtn,
+		),
+		newHeaderLabel("CSV"),
+		container.NewGridWithColumns(3,
+			csvImportBtn,
+			csvExportBtn,
+		),
 	)
 	return menu
 }

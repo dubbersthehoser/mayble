@@ -26,6 +26,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+
 	cfg, err := config.Load(configDir)
 	if err != nil {
 		log.Println(err)

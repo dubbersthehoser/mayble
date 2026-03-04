@@ -1,6 +1,8 @@
 package viewmodel
 
 import (
+	"log"
+
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
@@ -82,11 +84,8 @@ func NewUniqueGenres(b *bus.Bus, l binding.StringList, g repo.GenreRetriever) *U
 func (u *UniqueGenres) Get() []string {
 	s, err := u.list.Get()
 	if err != nil {
+		log.Println("unique.genres.get: ", err.Error())
 		return []string{
-			"__STUB__",
-			"__STUB__",
-			"__STUB__",
-			"__STUB__",
 		}
 	}
 	return s
@@ -95,6 +94,7 @@ func (u *UniqueGenres) Get() []string {
 func (u *UniqueGenres) Update() {
 	genres, err := u.genres.GetUniqueGenres()
 	if err != nil {
+		log.Println("unique.genres.update: ", err.Error())
 		return 
 	}
 	for i := range u.list.Length() {

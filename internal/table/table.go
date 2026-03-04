@@ -4,9 +4,6 @@ import (
 	"errors"
 	"slices"
 	"cmp"
-
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
-
 )
 
 // cellIndex handle for a cell.
@@ -25,7 +22,7 @@ const (
 	CellView                 // Cell representing a table's view data
 )
 
-// dataCell is a genric table cell type foreach kind of cell that can be linked
+// DataCell is a genric table cell foreach kind of cell that can be linked
 // to other cells intrusively, via cellPool.
 type DataCell struct {
 	kind CellKind
@@ -35,9 +32,8 @@ type DataCell struct {
 
 	header string
 
-	view string
+	value string
 	id   int64
-	v    repo.Variant
 
 	parent CellIndex
 	first  CellIndex
@@ -54,7 +50,7 @@ func (dc *DataCell) ID() int64 {
 }
 
 func (dc *DataCell) Value() string {
-	return dc.view
+	return dc.value
 } 
 
 func (dc *DataCell) Kind() CellKind {
@@ -65,18 +61,20 @@ func (dc *DataCell) Kind() CellKind {
 // cellPool manages the collection of cells, their handels and creation.
 type cellPool struct {
 	cells    []DataCell
-	nextFree CellIndex // single linked free list of cells
+	nextFree CellIndex // free list of cells
 }
 
+// newCellPool create a new cell pool with stub cell.
 func newCellPool() *cellPool{
 	cl := &cellPool{
 		cells: make([]DataCell, 1),
 	}
-	cl.cells[0].view = "STUB"
+	cl.cells[0].value = "STUB"
 	cl.cells[0].header = "STUB"
 	return cl
 }
 
+// create return an index of a new cell with k kind.
 func (cl *cellPool) create(k CellKind) CellIndex {
 	if cl.nextFree == NoneIndex {
 		cell := DataCell{
@@ -89,17 +87,22 @@ func (cl *cellPool) create(k CellKind) CellIndex {
 	first := cl.nextFree
 	cl.nextFree = cl.cells[first].next
 	cl.cells[first].next = NoneIndex
+	cl.cells[first].prev = NoneIndex
 	cl.cells[first].kind = k
 	return first
 }
 
+// destroy wipe cell data and add it to the free list.
 func (cl *cellPool) destroy(idx CellIndex) {
-	cl.cells[idx] = DataCell{kind: cellFree}
+	cl.cells[idx] = DataCell{
+		kind: cellFree,
+	}
 	next := cl.nextFree
 	cl.cells[idx].next = next 
 	cl.nextFree = idx
 }
 
+// get returns data cell at cell index.
 func (cl *cellPool) get(i CellIndex) *DataCell {
 	if i >= CellIndex(len(cl.cells)) {
 		i = NoneIndex
@@ -107,6 +110,7 @@ func (cl *cellPool) get(i CellIndex) *DataCell {
 	return &cl.cells[i]
 }
 
+// appendCellToParent add item cell to parent's children.
 func appendCellToParent(cells *cellPool, parent, item CellIndex) {
 	first := cells.get(parent).first
 	if cells.get(first).kind == CellNone {
@@ -124,14 +128,20 @@ func appendCellToParent(cells *cellPool, parent, item CellIndex) {
 }
 
 
-// Table stores the values of the table in a tree, like structure.
-// The structure's root node is the table node its has one child node being the top-left most header, Linking to the next and forth.
-// Then each header has children of their values linking all the way 'down' the rows in that header column.
+// A Table stores cell values of a table in a tree like structure.
+//
+// This structure helps keep track of hidden columns in the table by having the
+// ablity to rearrange columns.
+// The structure's root node is a table node its has one child node being the
+// top-left header. The header links to it's the next header and its next's
+// next and so forth until linking back around to the first header. Then each
+// header has children of their values for that column with the same ring 
+// linking as the headers.
 type Table struct {
 	name          string
-	headerOrder   map[string]int        // Maintain original header locations.
+	headerOrder   map[string]int        // Keep original header locations.
 	cells         *cellPool             // Pool storing all the cells.
-	root          CellIndex             // The root table cell.
+	root          CellIndex             // The root table table cell.
 	rowCount      int                   // Keep track of rows in table.
 }
 
@@ -141,9 +151,9 @@ func NewTable(name string, headers []string) *Table {
 		name: name,
 	}
 
-	t.cells.get(NoneIndex).view = "STUB"
+	t.cells.get(NoneIndex).value = "STUB"
 	t.cells.get(NoneIndex).header = "STUB"
-	t.cells.get(NoneIndex).id = 0
+	t.cells.get(NoneIndex).id = -127
 
 	t.headerOrder = make(map[string]int)
 
@@ -163,6 +173,7 @@ func NewTable(name string, headers []string) *Table {
 	return t
 }
 
+// IsHidden returns whether cell is hidden.
 func (t *Table) IsHidden(cell *DataCell) bool {
 	switch cell.kind {
 	case CellHeader:
@@ -178,49 +189,6 @@ func (t *Table) Name() string {
 	return t.name
 }
 
-
-// addValue to column with header seting its value to s and its id.
-func (t *Table) addValue(id int64, header, s string) error {
-
-	newCell := t.cells.create(CellView)
-
-	t.cells.get(newCell).view = s
-	t.cells.get(newCell).header = header
-	t.cells.get(newCell).table = t.name
-	t.cells.get(newCell).id = id
-
-	first := t.cells.get(t.root).first
-	curr := first
-	for { 
-		if t.cells.get(curr).header == header {
-			appendCellToParent(t.cells, curr, newCell)
-			return nil
-		}
-		curr = t.cells.get(curr).next
-		if curr == first {
-			break
-		}
-	}
-	return errors.New("table: header not found")
-}
-
-// appendRow add a row of values to table, marked by its id.
-func (t *Table) AppendRow(id int64, values []string) error {
-	if len(t.Headers()) != len(values) {
-		return errors.New("missmatch headers to values")
-	}
-	
-	// use the original header order to add value.
-	for header, i := range t.headerOrder {
-		value := values[i]
-		err := t.addValue(id, header, value)
-		if err != nil {
-			return err
-		}
-	}
-	t.rowCount += 1
-	return nil
-}
 
 // Headers list current header order in their cell based order.
 func (t *Table) Headers() []string {
@@ -283,29 +251,87 @@ func (t *Table) HiddenHeaders() []string {
 	return headers
 }
 
-// clearValue by feeing all value cells from table, excluding headers.
-func (t *Table) ClearValues() error {
-	headerFirst := t.cells.get(t.root).first
-	headerCurr := headerFirst
+// addValue to column with header seting its value to s and its id.
+func (t *Table) addValue(id int64, header, s string) error {
 
-	if headerCurr == NoneIndex { // nothing to remove
+	newCell := t.cells.create(CellView)
+
+	t.cells.get(newCell).value = s
+	t.cells.get(newCell).header = header
+	t.cells.get(newCell).table = t.name
+	t.cells.get(newCell).id = id
+
+	first := t.cells.get(t.root).first
+	curr := first
+	for { 
+		if t.cells.get(curr).header == header {
+			appendCellToParent(t.cells, curr, newCell)
+			return nil
+		}
+		curr = t.cells.get(curr).next
+		if curr == first {
+			break
+		}
+	}
+	return errors.New("table: header not found")
+}
+
+
+// AppendRow add a row of values to table, marked by its id.
+func (t *Table) AppendRow(id int64, values []string) error {
+	if len(t.Headers()) != len(values) {
+		return errors.New("missmatch headers to values")
+	}
+
+	// use the original header order to add value.
+	for i, header := range t.Headers() {
+		value := values[i]
+		err := t.addValue(id, header, value)
+		if err != nil {
+			return err
+		}
+	}
+	t.rowCount += 1
+	return nil
+}
+
+
+// clearColumnValues clear data cells form header.
+func (t *Table) clearColumnValues(header CellIndex) {
+	first := t.cells.get(header).first
+	curr := first
+	for {
+		if t.cells.get(curr).kind != CellView {
+			panic("invalid cell kind")
+		}
+		remove := curr
+		curr = t.cells.get(curr).next
+		t.cells.destroy(remove)
+		if curr == first {
+			break
+		}
+	}
+	t.cells.get(header).first = NoneIndex
+}
+
+var clearCount int = 0
+
+// clearValue clear all values form table, while retaining headers.
+func (t *Table) ClearValues() error {
+	clearCount += 1
+	first := t.cells.get(t.root).first
+	curr := first
+	if first == NoneIndex { // nothing to remove
 		return nil
 	}
 
 	for {
-		first := t.cells.get(headerCurr).first
-		curr := first
-		for {
-			remove := curr
-			curr = t.cells.get(curr).next
-			t.cells.destroy(remove)
-			if curr == first {
-				break
-			}
+		if t.cells.get(curr).kind != CellHeader {
+			panic("invalid cell kind")
 		}
-		t.cells.get(headerCurr).first = NoneIndex
-		headerCurr = t.cells.get(headerCurr).next
-		if headerCurr == headerFirst {
+		t.clearColumnValues(curr)
+		curr = t.cells.get(curr).next
+		if curr == first {
 			break
 		}
 	}
@@ -313,7 +339,7 @@ func (t *Table) ClearValues() error {
 	return nil
 }
 
-// getCell with row to column number.
+// GetCell with row to column number.
 func (t *Table) GetCell(row, col int) *DataCell {
 	hCell := t.GetHeaderCell(col)
 	first := hCell.first

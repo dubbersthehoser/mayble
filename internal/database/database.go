@@ -2,6 +2,7 @@ package database
 
 import (
 	"os"
+	"fmt"
 	"database/sql"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
@@ -51,6 +52,10 @@ func Open(path string) (*Database, error) {
 			return nil, err
 		}
 	}
+
+	fmt.Printf("DB: %p\n", db.Conn)
+
+
 	return db, nil
 }
 
@@ -85,10 +90,9 @@ func migrate(path string, conn *sql.DB)  error {
 	return sqlite.MigrateUpTo(conn,  version)
 }
 
-// checkIsV1 check if db is a mayble 1.0.0 database.
+// checkIsV1 check if db is a mayble 1.0.0 database or lower.
 func checkIsV1(conn *sql.DB) bool {
 	v := sqlite.GetVersion(conn)
-	println("check_version:", v)
-	return v == 2
+	return v < version
 }
 

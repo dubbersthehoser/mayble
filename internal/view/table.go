@@ -72,10 +72,9 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		deleteFinal,
 	)
 
-
 	search := widget.NewEntryWithData(vmt.Search.Text)
 	searchOptions := widget.NewSelect(vmt.SearchOptions(), func(s string) {
-		_ = vmt.Search.Option.Set(s)
+		_ = vmt.Search.Header.Set(s)
 	})
 	searchOptions.SetSelectedIndex(0)
 

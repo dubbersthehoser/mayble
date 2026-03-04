@@ -107,8 +107,6 @@ func (c *MenuVM) ExportCSV(wURI fyne.URIWriteCloser, err error) {
 	})
 }
 
-
-
 func (c *MenuVM) OpenDatabase(r fyne.URIReadCloser, err error) {
 	if r == nil {
 		return

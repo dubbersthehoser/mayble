@@ -31,70 +31,110 @@ func TextCellPool(t *testing.T) {
 }
 
 
-func TestTable(t *testing.T) {
-	
-	name := "TableA"
-	header := []string{
+const RowCount = 3
+
+func headers() []string {
+	return []string{
 		"Title",
 		"Author",
 		"Genre",
 		"Read",
 		"Rating",
-		"Borrower",
 		"Loaned",
+		"Borrower",
 	}
+}
 
-	const RowCount = 12
+type entryGen struct {
+	count int
+	template []string
+}
+func newEntryGen() *entryGen {
+	return &entryGen{
+		template: []string{
+			"example_title",
+			"example_author",
+			"example_genre",
+			"example_read",
+			"example_rating",
+			"example_loaned",
+			"example_borrower",
+		},
+	}
+} 
+
+func (e *entryGen) Gen() []string {
+	c := slices.Clone(e.template)
+	for i := range c {
+		c[i] = fmt.Sprintf("%s_%d", c[i], e.count)
+	}
+	e.count += 1
+	return c
+}
+
+func (e *entryGen) Range(n int) [][]string {
+	g := make([][]string, 0)
+	for range n {
+		g = append(g, e.Gen())
+	}
+	return g
+}
+
+
+func TestTable(t *testing.T) {
+	
+	var data [][]string
+	gen := newEntryGen()
+
+	for range RowCount {
+		data = append(data, gen.Gen())
+	}
 
 	table := NewTable(
-		name,
-		header,
+		"Test Table",
+		headers(),
 	)
 
-	//
-	// Check headers()
-	//
-	if c := slices.Compare(header, table.BaseHeaders()); c != 0 {
-		t.Fatalf("expect\n\t%#v\ngot\n\t%#v\n", header, table.BaseHeaders())
-	}
+	t.Run(
+		"AppendRow",
+		func(t *testing.T) {
+			test_TableAppendRow(table, data, t)
+			// Check Value
+			cell := table.GetCell(2, 1)
+			v := cell.Value()
+			ev := data[2][1]
+			if v != ev {
+				t.Fatalf("expect %s, got %s", ev, v)
+			}
 
-	
-	//	
-	// Check append rows
-	//
-	type Test  struct{
-		header []string
-		values []string
-	}
-	tests := []Test{}
-	valuesTempl := []string{
-		"example title",
-		"example author",
-		"example genre",
-		"example read",
-		"example rating",
-		"example borrower",
-		"example loaned",
-	}
-	for range RowCount {
-		entry := Test{
-			header: header,
-			values: make([]string, len(header)),
-		}
-		for i, templ := range valuesTempl {
-			entry.values[i] = fmt.Sprintf("%s %d", templ, i)
-		}
-		tests = append(tests, entry)
-	}
+			// Check ID
+			id := cell.ID()
+			eid := int64(2)
+			if id != eid {
+				t.Fatalf("expect %d, got %d", eid, id)
+			}
+		},
+	)
 
-	for i, c := range tests {
-		err := table.AppendRow(int64(i), c.values)
-		unexpectedError(t, err)
-	}
-	//
-	// Check size
-	//
-	erow, ecol := RowCount, len(header)
+
+	t.Run(
+		"SetHidden",
+		func(t *testing.T) {
+			testSetHidden(table, t)
+		},
+	)
+
+	t.Run(
+		"WalkVisableValues",
+		func(t *testing.T) {
+			testWalkVisableValues(table, data, t)
+		},
+	)
+
+
+	// Check Clear
+	table.ClearValues()
+	erow, ecol := 0, len(headers())
 	row, col := table.Size()
 	if row != erow {
 		t.Fatalf("expect %d, got %d", erow, row)
@@ -103,28 +143,73 @@ func TestTable(t *testing.T) {
 		t.Fatalf("expect %d, got %d", ecol, col)
 	}
 
-	//
-	// Check Value
-	//
-	cell := table.GetCell(2, 1)
-	v := cell.Value()
-	ev := tests[2].values[1]
-	if v != ev {
-		t.Fatalf("expect %s, got %s", ev, v)
+
+	t.Run(
+		"AppendRowAfterClear",
+		func(t *testing.T) {
+			test_TableAppendRow(table, data, t)
+			// Check Value
+			cell := table.GetCell(2, 1)
+			v := cell.Value()
+			ev := data[2][1]
+			if v != ev {
+				t.Fatalf("expect %s, got %s", ev, v)
+			}
+
+			// Check ID
+			id := cell.ID()
+			eid := int64(2)
+			if id != eid {
+				t.Fatalf("expect %d, got %d", eid, id)
+			}
+		},
+	)
+
+}	
+
+
+func test_TableAppendRow(table *Table, data [][]string, t *testing.T) {
+
+	// Check headers
+	if c := slices.Compare(headers(), table.BaseHeaders()); c != 0 {
+		t.Fatalf("expect\n\t%#v\ngot\n\t%#v\n", headers(), table.BaseHeaders())
+	}
+	
+	// Check append rows
+	type Test  struct{
+		header []string
+		values []string
 	}
 
-	//	
-	// Check ID
-	//
-	id := cell.ID()
-	eid := int64(2)
-	if id != eid {
-		t.Fatalf("expect %d, got %d", eid, id)
+	tests := []Test{}
+	for i := range data {
+		test := Test{
+			header: headers(),
+			values: data[i],
+		}
+		tests = append(tests, test)
 	}
 
-	//
+	for i, c := range tests {
+		err := table.AppendRow(int64(i), c.values)
+		unexpectedError(t, err)
+	}
+
+	// Check size
+	erow, ecol := RowCount, len(headers())
+	row, col := table.Size()
+	if row != erow {
+		t.Fatalf("expect %d, got %d", erow, row)
+	}
+	if col != ecol {
+		t.Fatalf("expect %d, got %d", ecol, col)
+	}
+}
+
+
+
+func testSetHidden(table *Table, t *testing.T) {
 	// Check hide header
-	//
 
 	hideTests := []struct{
 		input  []string
@@ -139,8 +224,8 @@ func TestTable(t *testing.T) {
 				"Genre",
 				"Read",
 				"Rating",
-				"Borrower",
 				"Loaned",
+				"Borrower",
 			},
 		},
 		{
@@ -152,8 +237,8 @@ func TestTable(t *testing.T) {
 				"Genre",
 				"Read",
 				"Rating",
-				"Borrower",
 				"Loaned",
+				"Borrower",
 				"Author",
 			},
 		},
@@ -166,32 +251,83 @@ func TestTable(t *testing.T) {
 			expect: []string{
 				"Genre",
 				"Rating",
-				"Borrower",
 				"Loaned",
+				"Borrower",
 				"Title",
 				"Read",
 				"Author",
 			},
 		},
 	}
+
 	for i, c := range hideTests {
 		table.SetHidden(c.input)
 		if r := slices.Compare(c.expect, table.Headers()); r != 0 {
 			t.Fatalf("[%d] expect\n\t%#v\ngot\n\t%#v", i, c.expect, table.Headers())
 		}
 	}
-
-	//
-	// Check Clear
-	//
-	table.ClearValues()
-	erow, ecol = 0, len(header)
-	row, col = table.Size()
-	if row != erow {
-		t.Fatalf("expect %d, got %d", erow, row)
-	}
-	if col != ecol {
-		t.Fatalf("expect %d, got %d", ecol, col)
-	}
+	table.SetHidden([]string{})
+}
+func testWalkVisableValues(table *Table, data [][]string, t *testing.T) {
 	
+	var expect [][]string
+	for _, s := range data {
+		item := slices.Clone(s)
+		expect = append(expect, item)
+	}
+
+	actual := make([][]string, 0)
+
+	WalkVisableValues(table, func(row, col int, cell *DataCell){
+		if len(actual) == row {
+			actual = append(actual, make([]string, 0))
+		}
+		actual[row] = append(actual[row], cell.Value())
+	})
+
+	if len(actual) != len(expect) {
+		t.Fatalf("exepct length %d, got %d", len(expect), len(actual))
+	}
+
+	for row := range actual {
+		if len(actual[row]) != len(expect[row]) {
+			t.Fatalf("row=%d: exepct length %d, got %d", row, len(expect[row]), len(actual[row]))
+		}
+		for col := range actual {
+			if actual[row][col] != expect[row][col] {
+				t.Fatalf("col=%d, row=%d: expect %s, got %s", col, row, actual[row][col], expect[row][col])
+			}
+		}
+	}
+
+	table.SetHidden([]string{"Title"})
+	defer table.SetHidden([]string{})
+
+	for row := range expect  {
+		expect[row] = expect[row][1:]
+	}
+
+	actual = make([][]string, 0)
+
+	WalkVisableValues(table, func(row, col int, cell *DataCell){
+		if len(actual) == row {
+			actual = append(actual, make([]string, 0))
+		}
+		actual[row] = append(actual[row], cell.Value())
+	})
+
+	if len(actual) != len(expect) {
+		t.Fatalf("exepct length %d, got %d", len(expect), len(actual))
+	}
+
+	for row := range actual {
+		if len(actual[row]) != len(expect[row]) {
+			t.Fatalf("row=%d: exepct length %d, got %d", row, len(expect[row]), len(actual[row]))
+		}
+		for col := range actual {
+			if actual[row][col] != expect[row][col] {
+				t.Fatalf("col=%d, row=%d: expect %s, got %s", col, row, actual[row][col], expect[row][col])
+			}
+		}
+	}
 }

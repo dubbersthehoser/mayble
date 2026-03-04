@@ -27,7 +27,10 @@ type TableVM struct {
 
 	selector   *EntrySelect
 
-	Search   *TableSearch
+	Search struct {
+		Text binding.String
+		Header binding.String
+	}
 	
 	table    *table.Table
 	
@@ -44,12 +47,19 @@ func NewTableVM(vms *vmService) *TableVM {
 		SortBy:     binding.NewString(),
 		SortOrder:  binding.NewString(),
 
+		Search: struct{
+			Text binding.String
+			Header binding.String
+		}{
+			Text: binding.NewString(),
+			Header: binding.NewString(),
+		},
+
+
 		selector: newEntrySelect(vms.app.bookRetriever),
 
 		l: &listener{},
 	}
-
-	t.Search = NewTableSearch(t.table)
 
 	t.Search.Text.AddListener(binding.NewDataListener(func() {
 		t.selector.unselect(true)
@@ -57,13 +67,17 @@ func NewTableVM(vms *vmService) *TableVM {
 		if search == "" {
 			return
 		}
-		result := t.Search.search(search)
+		header, _ := t.Search.Header.Get()
+		if header == "All" {
+			header = ""
+		}
+		result := table.Search(t.table, search, header)
 		if len(result) == 0 {
 			return
 		}
 		r := result[0]
-		t.selector.selectID(r.id, false)
-		t.selector.selectCell(r.row, r.col, true)
+		t.selector.selectID(r.ID, false)
+		t.selector.selectCell(r.Row, r.Col, true)
 	}))
 
 	_ = t.SortOrder.Set("ASC")
@@ -80,9 +94,8 @@ func NewTableVM(vms *vmService) *TableVM {
 	vms.bus.Subscribe(bus.Handler{
 		Name: msgDataChanged,
 		Handler: func(e *bus.Event) {
-			t.table.ClearValues()
 			t.selector.unselect(true)
-			err := t.load()
+			err := t.reload()
 			if err != nil {
 				log.Println(err)
 				return
@@ -122,13 +135,8 @@ func (t *TableVM) Selector() *EntrySelect {
 
 // Sort table using sort bindings.
 func (t *TableVM) Sort() {
-	err := t.table.ClearValues()
-	if err != nil {
-		log.Println(err)
-		return
-	}
 	t.selector.unselect(true)
-	err = t.load()
+	err := t.reload()
 	if err != nil {
 		log.Println(err)
 		return
@@ -238,9 +246,15 @@ func (t *TableVM) Unselect(row, col int) {
 }
 
 
-// load entries from repository sort them into table.
-func (t *TableVM) load() error {
+// reload clear table, then call load.
+func (t *TableVM) reload() error {
+	t.table.ClearValues()
+	return t.load()
+}
 
+// load load entries form repostory sort then, and put them into table.
+func (t *TableVM) load() error {
+	
 	items, err := t.repo.GetAllBooks(repo.Loaned | repo.Read)
 	if err != nil {
 		return err
@@ -250,12 +264,8 @@ func (t *TableVM) load() error {
 		return nil
 	}
 
-	// This should be part of application,
-	// but whatever...
 	by, _ := t.SortBy.Get()
 	order, _ := t.SortOrder.Get()
-
-	fmt.Println("by:", by, "order:", order)
 
 	index := slices.Index(entryHeaders(), by)
 
@@ -410,17 +420,6 @@ func (tc *TableControllersVM) GetEditBook() *EditBookVM {
 // entryHeaders lists the headers labels for book entry.
 func entryHeaders() []string {
 	return repo.BookEntryFields()
-	return []string{
-		"Title",
-		"Author",
-		"Genre",
-
-		"Rating",
-		"Read",
-
-		"Borrower",
-		"Loaned",
-	}
 }
 
 // entryValues get the values from e in its in order of entryHeaders.

@@ -14,7 +14,7 @@ func NewService(db *Database) *Service {
 	}
 }
 
-// SetDB closes previous database and sets db.
+// SetDB closes previous db.Conn and sets db.Queries and db.Conn.
 func (s *Service) SetDB(db *Database) error {
 	if db == nil {
 		return errors.New("setdb: nil database")
@@ -22,7 +22,8 @@ func (s *Service) SetDB(db *Database) error {
 	if err := s.db.Conn.Close(); err != nil {
 		return err
 	}
-	s.db = db
+	s.db.Conn = db.Conn
+	s.db.Queries = db.Queries
 	return nil
 }
 
