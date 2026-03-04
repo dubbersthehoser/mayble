@@ -46,8 +46,6 @@ type UI struct {
 }
 
 
-
-
 // Config contains all configuration for the application.
 type Config struct {
 	Version    string `json:"version"`
@@ -88,7 +86,7 @@ func (c *Config) Save() error {
 }
 
 func (c *Config) Open() (*Config, error) {
-	return Load(c.ConfigFile)
+	return Load(c.ConfigDir)
 }
 
 // Load config from root directory. The file name will 'config.json'
@@ -101,11 +99,12 @@ func Load(root string) (*Config, error) {
 
 	fileIO, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
+		println("hello?")
 		cfg := &Config{
 			ConfigDir: root,
 			ConfigFile: path,
 		}
-		return cfg, status.E(op, status.FileNotFound, status.LevelInfo, err)
+		return cfg, nil
 	}
 	if err != nil {
 		return nil, status.E(op, status.Unexpected, status.LevelError, err)

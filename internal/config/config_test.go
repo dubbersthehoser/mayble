@@ -3,8 +3,8 @@ package config
 import (
 	"os"
 	"testing"
-	"path/filepath"
 	"slices"
+	"path/filepath"
 )
 
 func unexpectError(t *testing.T, err error) {
@@ -16,43 +16,33 @@ func unexpectError(t *testing.T, err error) {
 
 func TestConfig(t *testing.T) {
 	
-	file, err := os.CreateTemp("", "")
+	dir, err := os.MkdirTemp("", "")
 	unexpectError(t, err)
-
 	t.Cleanup(func(){
-		os.Remove(file.Name())
+		err := os.RemoveAll(dir)
+		if err != nil {
+			t.Log(err)
+		}
 	})
 
-
-	err = file.Close()
+	cfg, err := Load(dir)
 	unexpectError(t, err)
 
-	err = os.Remove(file.Name())
-	unexpectError(t, err)
+	if cfg.ConfigDir != dir {
+		t.Fatalf("expect '%s', got '%s'", dir, cfg.ConfigDir)
+	}
+	if cfg.ConfigFile != filepath.Join(dir, "config.json") {
+		t.Fatalf("expect '%s', got '%s'", dir, cfg.ConfigDir)
+	}
 
-	dir := filepath.Dir(file.Name())
-	fileName := filepath.Base(file.Name())
+	cfg.DBFile = "test.db"
 
-	cfg, err := Load(dir, fileName)
-	unexpectError(t, err)
-
-	err = cfg.SetDBFile("test.db")
-	unexpectError(t, err)
-
-	err = cfg.SetDBDriver("memory")
-	unexpectError(t, err)
-
-	table := cfg.GetTable("Main")
-
+	table := cfg.GetUITable()
 	if table == nil {
-		t.Fatalf("unexpected nil value return")
+		t.Fatalf("unexpected nil value returned")
 	}
 
-	if table.Name != "Main" {
-		t.Fatalf("table name was not set")
-	}
-
-	if table.Settings.ColsHidden == nil {
+	if table.ColumnsHidden == nil {
 		t.Fatalf("table settings column hidden is nil")
 	}
 
@@ -60,16 +50,17 @@ func TestConfig(t *testing.T) {
 		"Title",
 		"Author",
 	}
-	table.Settings.ColsHidden = hidden
-	err = cfg.UpdateTable("Main", table)
+	table.ColumnsHidden = hidden
+
+	err = cfg.Save()
 	unexpectError(t, err)
 
 	cfg, err = cfg.Open()
 	unexpectError(t, err)
 
-	table = cfg.GetTable("Main")
+	table = cfg.GetUITable()
 
-	if r := slices.Compare(table.Settings.ColsHidden, hidden); r != 0 {
-		t.Fatalf("expect \n\t%#v\ngot\n\t%#v\n", table.Settings.ColsHidden, hidden)
+	if r := slices.Compare(table.ColumnsHidden, hidden); r != 0 {
+		t.Fatalf("expect \n\t%#v\ngot\n\t%#v\n", hidden, table.ColumnsHidden)
 	}
 }
