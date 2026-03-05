@@ -19,8 +19,9 @@ case "$cmd" in
 	all)
 		go test ./internal/... -cover
 	;;
+
 	*)
-		go test $@
+		go test "$cmd" $@
 	;;
 esac
 

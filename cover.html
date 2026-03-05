@@ -1,0 +1,1667 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>viewmodel: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/dubbersthehoser/mayble/internal/viewmodel/form.go (0.0%)</option>
+				
+				<option value="file1">github.com/dubbersthehoser/mayble/internal/viewmodel/mainui.go (0.0%)</option>
+				
+				<option value="file2">github.com/dubbersthehoser/mayble/internal/viewmodel/menu.go (40.2%)</option>
+				
+				<option value="file3">github.com/dubbersthehoser/mayble/internal/viewmodel/select.go (0.0%)</option>
+				
+				<option value="file4">github.com/dubbersthehoser/mayble/internal/viewmodel/service.go (25.6%)</option>
+				
+				<option value="file5">github.com/dubbersthehoser/mayble/internal/viewmodel/table.go (7.1%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package viewmodel
+
+import (
+        "errors"
+        "slices"
+        "fmt"
+        "log"
+
+        "fyne.io/fyne/v2/data/binding"
+
+        "github.com/dubbersthehoser/mayble/internal/bus"
+        repo "github.com/dubbersthehoser/mayble/internal/repository"
+
+)
+
+type BookForm struct {
+        id        int64
+        Title     binding.String
+        Author    binding.String
+        Genre     binding.String
+
+        IsLoaned binding.Bool
+        Borrower binding.String
+        Date     binding.String
+
+        IsRead    binding.Bool
+        Rating    binding.String
+        Completed binding.String
+}
+
+func NewBookForm() *BookForm <span class="cov0" title="0">{
+        return &amp;BookForm{
+                id: -1,
+                Title: binding.NewString(),
+                Author: binding.NewString(),
+                Genre: binding.NewString(),
+
+                IsRead:    binding.NewBool(),
+                Rating:    binding.NewString(),
+                Completed: binding.NewString(),
+
+                IsLoaned: binding.NewBool(),
+                Borrower: binding.NewString(),
+                Date: binding.NewString(),
+        }
+}</span>
+
+func (bf *BookForm) Set(book *repo.BookEntry) <span class="cov0" title="0">{
+        bf.id = book.ID
+        _ = bf.Title.Set(book.Title)
+        _ = bf.Author.Set(book.Author)
+        _ = bf.Genre.Set(book.Genre)
+
+        if repo.Loaned &amp; book.Variant != 0 </span><span class="cov0" title="0">{
+                _ = bf.IsLoaned.Set(true)
+                _ = bf.Date.Set(formatDate(&amp;book.Loaned))
+                _ = bf.Borrower.Set(book.Borrower)
+        }</span>
+
+        <span class="cov0" title="0">if repo.Read &amp; book.Variant != 0 </span><span class="cov0" title="0">{
+                _ = bf.IsRead.Set(true)
+                _ = bf.Rating.Set(formatRating(book.Rating))
+                _ = bf.Completed.Set(formatDate(&amp;book.Read))
+        }</span>
+}
+
+func (bf *BookForm) ToBookEntry() *repo.BookEntry <span class="cov0" title="0">{
+        book := &amp;repo.BookEntry{ID: bf.id}
+
+        isOnLoan, _ := bf.IsLoaned.Get()
+        isRead, _ := bf.IsRead.Get()
+
+        if isOnLoan </span><span class="cov0" title="0">{
+                book.Variant |= repo.Loaned
+                date, _ := bf.Date.Get()
+                timeDate, _ := parseDate(date)
+                book.Loaned = *timeDate
+                book.Borrower, _ = bf.Borrower.Get()
+        }</span>
+
+        <span class="cov0" title="0">if isRead </span><span class="cov0" title="0">{
+                book.Variant |= repo.Read
+                sdate, _ := bf.Completed.Get()
+                srating, _ := bf.Rating.Get()
+
+                date, _ := parseDate(sdate)
+                rating := slices.Index(Ratings(), srating)
+
+                book.Read = *date
+                book.Rating = rating
+        }</span>
+
+        <span class="cov0" title="0">book.Title, _ = bf.Title.Get()
+        book.Author, _ = bf.Author.Get()
+        book.Genre, _ = bf.Genre.Get()
+        return book</span>
+}
+
+
+
+type SubmissionList struct {
+        form       *CreateBookForm
+        bus        *bus.Bus
+        l          *listener
+        submissions []repo.BookEntry
+}
+func NewSubmissionList(bus *bus.Bus) *SubmissionList<span class="cov0" title="0">{
+        return &amp;SubmissionList{
+                l: &amp;listener{},
+                bus: bus,
+                submissions: make([]repo.BookEntry, 0),
+        }
+}</span>
+
+func (s *SubmissionList) Clear() <span class="cov0" title="0">{
+        s.submissions = s.submissions[:0]
+}</span>
+
+func (s *SubmissionList) popSubmission() (*repo.BookEntry, error) <span class="cov0" title="0">{
+        if len(s.submissions) == 0 </span><span class="cov0" title="0">{
+                return nil, errors.New("empty list")
+        }</span>
+        <span class="cov0" title="0">top := s.submissions[len(s.submissions)-1]
+        s.submissions = s.submissions[:len(s.submissions)-1]
+        s.l.notify()
+        return &amp;top, nil</span>
+}
+
+func (s *SubmissionList) appendSubmission(book *repo.BookEntry) <span class="cov0" title="0">{
+        s.submissions = append(s.submissions, *book)
+        s.l.notify()
+}</span>
+
+func (s *SubmissionList) addSubmission(bf *BookForm) error <span class="cov0" title="0">{
+        //book := repo.BookEntry{}
+
+        //isOnLoan, _ := bf.IsLoaned.Get()
+        //isRead, _ := bf.IsRead.Get()
+
+        //if isOnLoan {
+        //        book.Variant |= repo.Loaned
+        //        date, _ := bf.Date.Get()
+        //        timeDate, _ := parseDate(date)
+        //        book.Loaned = *timeDate
+        //        book.Borrower, _ = bf.Borrower.Get()
+        //}
+
+        //if isRead {
+        //        book.Variant |= repo.Read
+        //        sdate, _ := bf.Completed.Get()
+        //        srating, _ := bf.Rating.Get()
+
+        //        date, _ := parseDate(sdate)
+        //        rating := slices.Index(Ratings(), srating)
+
+        //        book.Read = *date
+        //        book.Rating = rating
+        //}
+
+        //book.Variant |= repo.Book
+
+        //book.Title, _ = bf.Title.Get()
+        //book.Author, _ = bf.Author.Get()
+        //book.Genre, _ = bf.Genre.Get()
+
+        book := bf.ToBookEntry()
+
+        s.submissions = append(s.submissions, *book)
+        s.l.notify()
+        s.bus.Notify(bus.Event{
+                Name: msgUserInfo,
+                Data: "Added to submission",
+        })
+        return nil
+}</span>
+
+func (s *SubmissionList) Length() int <span class="cov0" title="0">{
+        return len(s.submissions)
+}</span>
+
+func (s *SubmissionList) Get(idx int) string <span class="cov0" title="0">{
+        if idx &gt;= s.Length() || idx &lt; 0 </span><span class="cov0" title="0">{
+                return "STUB: out of range"
+        }</span>
+        <span class="cov0" title="0">book := s.submissions[idx]
+        prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
+        switch book.Variant </span>{
+        case repo.Read | repo.Loaned:<span class="cov0" title="0">
+                return fmt.Sprintf("%s (loaned) (read)", prefix)</span>
+        case repo.Loaned:<span class="cov0" title="0">
+                return fmt.Sprintf("%s (loaned)", prefix)</span>
+        case repo.Read:<span class="cov0" title="0">
+                return fmt.Sprintf("%s (read)", prefix)</span>
+        case repo.Book:<span class="cov0" title="0">
+                return prefix</span>
+        default:<span class="cov0" title="0">
+                return "STUB: variant not found"</span>
+        }
+}
+
+func (s *SubmissionList) Remove(idx int) <span class="cov0" title="0">{
+        if idx &gt;= s.Length() || idx &lt; 0 </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">s.submissions = append(s.submissions[:idx], s.submissions[idx+1:]...)
+
+        s.bus.Notify(bus.Event{
+                Name: msgUserInfo,
+                Data: "Submission removed",
+        })
+
+        s.l.notify()</span>
+}
+
+func (s *SubmissionList) Edit(idx int) <span class="cov0" title="0">{
+        if s.form == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">if idx &gt;= s.Length() || idx &lt; 0 </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">book := s.submissions[idx]
+        s.form.Set(&amp;book)
+        s.Remove(idx)</span>
+}
+
+
+
+
+
+func (s *SubmissionList) AddListener(l binding.DataListener) <span class="cov0" title="0">{
+        s.l.AddListener(l)
+}</span>
+
+type CreateBookForm struct {
+        bus       *bus.Bus
+        sl        *SubmissionList
+        repo      repo.BookCreator
+        Genres    *UniqueGenres
+        BookForm
+}
+
+func NewCreateBookForm(vms *vmService) *CreateBookForm <span class="cov0" title="0">{
+        bf := &amp;CreateBookForm{
+                sl: NewSubmissionList(vms.bus),
+                bus: vms.bus,
+                Genres: vms.genres,
+                repo: vms.app.bookCreator,
+                BookForm: *NewBookForm(),
+        }
+        bf.sl.form = bf
+        return bf
+}</span>
+
+func validate(bf *BookForm) error <span class="cov0" title="0">{
+        title, _ := bf.Title.Get()
+        author, _ := bf.Author.Get()
+        genre, _ := bf.Genre.Get()
+
+        if title == "" </span><span class="cov0" title="0">{
+                return errors.New("Missing Title")
+        }</span>
+        <span class="cov0" title="0">if author == "" </span><span class="cov0" title="0">{        
+                return errors.New("Missing Auther")
+        }</span> 
+        <span class="cov0" title="0">if genre == "" </span><span class="cov0" title="0">{
+                return errors.New("Missing Genre")
+        }</span>
+
+        <span class="cov0" title="0">isLoaned, _ := bf.IsLoaned.Get()
+        isRead, _ := bf.IsRead.Get()
+
+        if isLoaned </span><span class="cov0" title="0">{
+                date, _ := bf.Date.Get()
+                borrower, _ := bf.Borrower.Get()
+
+                if borrower == "" </span><span class="cov0" title="0">{
+                        return errors.New("Missing Borrower")
+                }</span>
+                <span class="cov0" title="0">if date == "" </span><span class="cov0" title="0">{
+                        return errors.New("Missing Borrower Date")
+                }</span>
+                <span class="cov0" title="0">_, err := parseDate(date)
+                if err != nil </span><span class="cov0" title="0">{
+                        return errors.New("Invalid Borrower Date (DD/MM/YYYY)")
+                }</span>
+        }
+
+        <span class="cov0" title="0">if isRead </span><span class="cov0" title="0">{
+                completed, _ := bf.Completed.Get()
+                rating, _ := bf.Rating.Get()
+
+                println(completed)
+
+                if completed == "" </span><span class="cov0" title="0">{
+                        return errors.New("Missing Completion Date")
+                }</span>
+                <span class="cov0" title="0">_, err := parseDate(completed)
+                if err != nil </span><span class="cov0" title="0">{
+                        return errors.New("Invalid Completion Date (DD/MM/YYYY)")
+                }</span>
+                <span class="cov0" title="0">ratings := Ratings()
+                rank := slices.Index(ratings[1:], rating)
+                if rank == -1 </span><span class="cov0" title="0">{
+                        return errors.New("Invalid Rating")
+
+                }</span>
+        }
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (bf *BookForm) reset() <span class="cov0" title="0">{
+        bf.id = -1
+        _ = bf.Title.Set("")
+        _ = bf.Author.Set("")
+        _ = bf.Genre.Set("")
+        _ = bf.Borrower.Set("")
+        _ = bf.Date.Set("")
+        _ = bf.Completed.Set("")
+        _ = bf.Rating.Set(Ratings()[0])
+        _ = bf.IsLoaned.Set(false)
+        _ = bf.IsRead.Set(false)
+}</span>
+
+func (bf *CreateBookForm) AddSubmission() <span class="cov0" title="0">{
+        err := validate(&amp;bf.BookForm)
+        if err != nil </span><span class="cov0" title="0">{
+                bf.bus.Notify(bus.Event{
+                        Name: msgUserError,
+                        Data: err.Error(),
+                })
+                return 
+        }</span>
+
+        <span class="cov0" title="0">bf.bus.Notify(bus.Event{
+                Name: msgUserInfo,
+                Data: "Added submission",
+        })
+
+        bf.sl.addSubmission(&amp;bf.BookForm)
+        bf.reset()</span>
+}
+
+func (bf *CreateBookForm) SubmissionList() *SubmissionList <span class="cov0" title="0">{
+        return bf.sl
+}</span>
+
+func (bf *CreateBookForm) Submit() <span class="cov0" title="0">{
+        if bf.sl.Length() == 0  </span><span class="cov0" title="0">{
+                bf.bus.Notify(bus.Event{
+                        Name: msgUserInfo,
+                        Data: "No submissions to submit",
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">if bf.repo == nil </span><span class="cov0" title="0">{
+                bf.bus.Notify(bus.Event{
+                        Name: msgUserInfo,
+                        Data: "Not implemented.",
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">failed := make([]repo.BookEntry, 0)
+        for </span><span class="cov0" title="0">{
+                book, err := bf.sl.popSubmission()
+                if err != nil </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">_, err = bf.repo.CreateBook(book)
+                if err != nil </span><span class="cov0" title="0">{
+                        failed = append(failed, *book)
+                        log.Println(fmt.Errorf("form.Submit: %w", err))
+                }</span>
+        }
+        <span class="cov0" title="0">bf.sl.Clear()
+        for _, f := range failed </span><span class="cov0" title="0">{
+                bf.sl.appendSubmission(&amp;f)
+        }</span>
+        <span class="cov0" title="0">if len(failed) &gt; 0 </span><span class="cov0" title="0">{
+                bf.bus.Notify(bus.Event{
+                        Name: msgUserError,
+                        Data: "Submission failed be added.",
+                })
+                return
+        }</span>
+
+        <span class="cov0" title="0">bf.bus.Notify(bus.Event{
+                Name: msgUserSuccess,
+                Data: "Books Added!",
+        })
+
+        bf.bus.Notify(bus.Event{
+                Name: msgDataChanged,
+        })</span>
+}
+
+
+type EditBookVM struct {
+        BookForm
+        Genres  *UniqueGenres
+        bus     *bus.Bus
+        IsOpen  binding.Bool
+        vms     *vmService
+}
+
+func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM <span class="cov0" title="0">{
+        ed := &amp;EditBookVM{
+                bus:      vms.bus,
+                BookForm: *NewBookForm(),
+                Genres:   vms.genres,
+                IsOpen:   isOpen,
+                vms:      vms,
+        }
+        return ed
+}</span>
+
+func (ed *EditBookVM) Submit() <span class="cov0" title="0">{
+        err := validate(&amp;ed.BookForm)
+        if err != nil </span><span class="cov0" title="0">{
+                ed.bus.Notify(bus.Event{
+                        Name: msgUserError,
+                        Data: err.Error(),
+                })
+                return 
+        }</span>
+
+        <span class="cov0" title="0">book := ed.BookForm.ToBookEntry()
+
+        ed.vms.app.bookUpdator.UpdateBook(book)
+        
+        ed.bus.Notify(bus.Event{
+                Name: msgDataChanged,
+        })
+        ed.Close()</span>
+}
+
+func (ed *EditBookVM) Set(b *repo.BookEntry) <span class="cov0" title="0">{
+        ed.BookForm.Set(b)
+}</span>
+
+func (ed *EditBookVM) Close() <span class="cov0" title="0">{
+        ed.BookForm.reset()
+        ed.IsOpen.Set(false)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package viewmodel
+
+import (
+        "time"
+
+        "fyne.io/fyne/v2/data/binding"
+
+        "github.com/dubbersthehoser/mayble/internal/bus"
+        "github.com/dubbersthehoser/mayble/internal/database"
+        "github.com/dubbersthehoser/mayble/internal/config"
+)
+
+const (
+        msgUserError   string = "message.user.error"
+        msgUserSuccess string = "message.user.success"
+        msgUserInfo    string = "message.user.info"
+        msgDataChanged string = "message.data.changed"
+)
+
+
+const (
+        BodyData int = iota
+        BodyForm
+        BodyMenu
+)
+
+type MainUI struct {        
+
+        vms     *vmService
+        errList []error
+
+        OpenedBody binding.Int
+        DBFile     binding.String
+
+        Error      binding.String
+        Success    binding.String
+        Info       binding.String
+        Clear      binding.Bool
+}
+
+func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI <span class="cov0" title="0">{
+
+        as := newAppService(cfg, dbs)
+        vms := newVMService(as)
+        mu := &amp;MainUI{
+                OpenedBody: binding.NewInt(),
+                vms: vms,
+
+                errList: errs,
+
+                DBFile: binding.NewString(),
+
+                Error: binding.NewString(),
+                Success: binding.NewString(),
+                Info: binding.NewString(),
+                Clear: binding.NewBool(),
+        }
+
+        _ = mu.DBFile.Set(cfg.DBFile)
+        mu.DBFile.AddListener(binding.NewDataListener(func() </span><span class="cov0" title="0">{
+                path, _ := mu.DBFile.Get()
+                cfg.DBFile = path
+        }</span>))
+
+        // to clear info line
+        <span class="cov0" title="0">countDown := time.Duration(time.Minute / 10)
+        timer := time.NewTimer(0)
+        clearLine := func() </span><span class="cov0" title="0">{
+                go func() </span><span class="cov0" title="0">{
+                        _ = mu.Clear.Set(false)
+                        timer.Stop()
+                        timer.Reset(countDown)
+                        &lt;- timer.C
+                        _ = mu.Clear.Set(true)
+                }</span>()
+        }
+
+        <span class="cov0" title="0">mu.vms.bus.Subscribe(bus.Handler{
+                Name: msgUserInfo,
+                Handler: func(e *bus.Event) </span><span class="cov0" title="0">{
+                        if e.Data == nil </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">v, ok := e.Data.(string)
+                        if !ok </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">_ = mu.Error.Set("")
+                        _= mu.Success.Set("")
+                        _ = mu.Info.Set(v)
+                        clearLine()</span>
+                },
+        })
+        <span class="cov0" title="0">mu.vms.bus.Subscribe(bus.Handler{
+                Name: msgUserError,
+                Handler: func(e *bus.Event) </span><span class="cov0" title="0">{
+                        if e.Data == nil </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">v, ok := e.Data.(string)
+                        if !ok </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">_= mu.Success.Set("")
+                        _ = mu.Info.Set("")
+                        _ = mu.Error.Set(v)
+                        clearLine()</span>
+                },
+        })
+        <span class="cov0" title="0">mu.vms.bus.Subscribe(bus.Handler{
+                Name: msgUserSuccess,
+                Handler: func(e *bus.Event) </span><span class="cov0" title="0">{
+                        if e.Data == nil </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">v, ok := e.Data.(string)
+                        if !ok </span><span class="cov0" title="0">{
+                                return
+                        }</span>
+                        <span class="cov0" title="0">_ = mu.Info.Set("")
+                        _ = mu.Error.Set("")
+                        _ = mu.Success.Set(v)
+                        clearLine()</span>
+                },
+        })
+        <span class="cov0" title="0">return mu</span>
+}
+
+
+func (m *MainUI) HasErrored() bool <span class="cov0" title="0">{
+        return len(m.errList) &gt; 0
+}</span>
+
+func (m *MainUI) Errors() []string <span class="cov0" title="0">{
+        es := make([]string, len(m.errList))
+        for i, e := range m.errList </span><span class="cov0" title="0">{
+                es[i] = e.Error()
+        }</span>
+        <span class="cov0" title="0">return es</span>
+}
+
+func (m *MainUI) GetMenuVM() *MenuVM <span class="cov0" title="0">{
+        return NewMenuVM(m.vms, m.DBFile,)
+}</span>
+
+
+func (m *MainUI) GetTableVM() *TableVM <span class="cov0" title="0">{
+        return NewTableVM(m.vms)
+}</span>
+
+func (m *MainUI) GetTableControllersVM() *TableControllersVM <span class="cov0" title="0">{
+        return NewTableControllersVM(m.vms)
+}</span>
+
+func (m *MainUI) GetCreateBookFormVM() *CreateBookForm <span class="cov0" title="0">{
+        return NewCreateBookForm(m.vms)
+}</span>
+
+type BookVM struct {
+        id int64
+        Title binding.String
+        Author binding.String
+        Genre binding.String
+}
+func NewBookVM(id int64, title, author, genre string) *BookVM <span class="cov0" title="0">{
+        vm := &amp;BookVM{
+                id: id,
+                Title: binding.NewString(),
+                Author: binding.NewString(),
+                Genre: binding.NewString(),
+        }
+        _ = vm.Title.Set(title)
+        _ = vm.Author.Set(author)
+        _ = vm.Genre.Set(genre)
+        return vm
+}</span>
+
+
+const dateFormat = "02/01/2006"
+
+func formatDate(t *time.Time) string <span class="cov0" title="0">{
+        if t.IsZero() </span><span class="cov0" title="0">{
+                return ""
+        }</span>
+        <span class="cov0" title="0">return t.Format(dateFormat)</span>
+}
+
+func parseDate(t string) (*time.Time, error) <span class="cov0" title="0">{
+        ret, err := time.Parse(dateFormat, t)
+        return &amp;ret, err
+}</span>
+
+
+const capRating = 6
+func formatRating(r int) string <span class="cov0" title="0">{
+        switch r </span>{
+        case 0:<span class="cov0" title="0">
+                return ""</span>
+        case 1:<span class="cov0" title="0">
+                return "⭐"</span>
+        case 2:<span class="cov0" title="0">
+                return "⭐⭐"</span>
+        case 3:<span class="cov0" title="0">
+                return "⭐⭐⭐"</span>
+        case 4:<span class="cov0" title="0">
+                return "⭐⭐⭐⭐"</span>
+        case 5:<span class="cov0" title="0">
+                return "⭐⭐⭐⭐⭐"</span>
+        default:<span class="cov0" title="0">
+                return "ERROR"</span>
+        }
+}
+func Ratings() []string<span class="cov0" title="0">{
+        r := make([]string, capRating)
+        for i := range capRating </span><span class="cov0" title="0">{
+                r[i] = formatRating(i)
+        }</span>
+        <span class="cov0" title="0">return r</span>
+}
+
+func RatingsStrings() []string <span class="cov0" title="0">{
+        s := 6
+        r := make([]string, s)
+        for i := range s </span><span class="cov0" title="0">{
+                r[i] = formatRating(i+1)
+        }</span>
+        <span class="cov0" title="0">return r</span>
+}
+
+type listener struct {
+        listeners []binding.DataListener
+}
+
+func (t *listener) notify() <span class="cov0" title="0">{
+        for _, listener := range t.listeners </span><span class="cov0" title="0">{
+                listener.DataChanged()
+        }</span>
+}
+
+func (t *listener) AddListener(l binding.DataListener) <span class="cov0" title="0">{
+        if t.listeners == nil </span><span class="cov0" title="0">{
+                t.listeners = make([]binding.DataListener, 0)
+        }</span>
+        <span class="cov0" title="0">t.listeners = append(t.listeners, l)</span>
+}
+
+func (t *listener) RemoveListener(l binding.DataListener) <span class="cov0" title="0">{
+        if t.listeners == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">index := -1
+        for i, listener := range t.listeners </span><span class="cov0" title="0">{
+                if listener == l </span><span class="cov0" title="0">{
+                        index = i
+                }</span>
+        }
+        <span class="cov0" title="0">if index == -1 </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package viewmodel
+
+import (
+        "strings"
+        "io"
+        "os"
+        "fmt"
+
+        "fyne.io/fyne/v2"
+        "fyne.io/fyne/v2/data/binding"
+
+        "github.com/dubbersthehoser/mayble/internal/csv"
+        "github.com/dubbersthehoser/mayble/internal/bus"
+        "github.com/dubbersthehoser/mayble/internal/database"
+        repo "github.com/dubbersthehoser/mayble/internal/repository"
+
+)
+
+type MenuVM struct {
+        DBFile binding.String
+        vms *vmService
+        
+}
+
+func NewMenuVM(vms *vmService, dbFile binding.String) *MenuVM <span class="cov0" title="0">{
+        m := &amp;MenuVM{
+                DBFile: dbFile,
+                vms: vms,
+        }
+        return m
+}</span> 
+
+func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) <span class="cov0" title="0">{
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(c.vms.bus, err)
+                return
+        }</span>
+        <span class="cov0" title="0">if r == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">defer r.Close()
+        importCSV(r, c.vms.bus, c.vms.app.bookCreator)</span>
+
+}
+
+func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) <span class="cov0" title="0">{
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(c.vms.bus, err)
+                return
+        }</span>
+        <span class="cov0" title="0">if w == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">exportCSV(w, w.URI().Path(), c.vms.bus, c.vms.app.bookRetriever)</span>
+}
+
+
+
+func (c *MenuVM) OpenDatabase(r fyne.URIReadCloser, err error) <span class="cov0" title="0">{
+        if r == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                displayError(c.vms.bus, err)
+                return
+        }</span>
+        <span class="cov0" title="0">r.Close()
+        openDatabase(r.URI().Path(), c.vms.app, c.vms.bus)
+        _ = c.DBFile.Set(r.URI().Path())</span>
+}
+
+func (c *MenuVM) CreateDatabase(w fyne.URIWriteCloser, err error) <span class="cov0" title="0">{
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(c.vms.bus, err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if w == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">w.Close()
+
+        filepath := w.URI().Path()
+
+
+        _ = c.DBFile.Set(filepath)</span>
+}
+
+func displayError(b *bus.Bus, err error) <span class="cov0" title="0">{
+        b.Notify(bus.Event{
+                Name: msgUserError,
+                Data: err,
+        })
+}</span>
+
+
+
+func importCSV(r io.Reader, b *bus.Bus, bc repo.BookCreator) <span class="cov8" title="1">{
+        books, err := csv.Import(r)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+        }</span>
+
+        <span class="cov8" title="1">for _, book := range books </span><span class="cov8" title="1">{
+                _, err = bc.CreateBook(&amp;book)
+                if err != nil </span><span class="cov0" title="0">{
+                        displayError(b, err)
+                        return
+                }</span>
+        }
+        <span class="cov8" title="1">b.Notify(bus.Event{
+                Name: msgDataChanged,
+                Data: nil,
+        })
+        b.Notify(bus.Event{
+                Name: msgUserSuccess,
+                Data: "Imported!",
+        })</span>
+}
+
+func exportCSV(w io.WriteCloser, filepath string, b *bus.Bus, br repo.BookRetriever) <span class="cov8" title="1">{
+        var err error
+        if !strings.HasSuffix(filepath, ".csv") </span><span class="cov8" title="1">{
+                filepath += ".csv"
+                w.Close()
+                w, err = os.Create(filepath)
+                if err != nil </span><span class="cov0" title="0">{
+                        displayError(b, err)
+                        return
+                }</span>
+        }
+        <span class="cov8" title="1">defer w.Close()
+
+        books, err := br.GetAllBooks(repo.Book)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = csv.Export(w, books)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">b.Notify(bus.Event{
+                Name: msgUserSuccess,
+                Data: "Exported!",
+        })</span>
+}
+
+func openDatabase(path string, as *appService, b *bus.Bus) <span class="cov8" title="1">{
+        db, err := database.Open(path)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = as.setDB(db)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+        <span class="cov8" title="1">b.Notify(bus.Event{
+                Name: msgDataChanged,
+        })
+        b.Notify(bus.Event{
+                Name: msgUserInfo,
+                Data: fmt.Sprintf("opened: '%s'", path),
+        })</span>
+}
+
+func createDatabase(path string, as *appService, b *bus.Bus) <span class="cov8" title="1">{
+        if !strings.HasSuffix(path, ".db") &amp;&amp;
+           !strings.HasSuffix(path, ".sqlite") &amp;&amp;
+           !strings.HasSuffix(path, ".sqlite3") </span><span class="cov8" title="1">{
+                path += ".db"
+        }</span>
+
+        <span class="cov8" title="1">db, err := database.Open(path)
+
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = as.setDB(db)
+        if err != nil </span><span class="cov0" title="0">{
+                displayError(b, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">b.Notify(bus.Event{
+                Name: msgUserInfo,
+                Data: fmt.Sprintf("created: '%s'", path),
+        })
+
+        b.Notify(bus.Event{
+                Name: msgDataChanged,
+        })</span>
+        
+}
+
+
+
+
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package viewmodel
+
+import (
+        "fyne.io/fyne/v2/data/binding"
+
+        repo "github.com/dubbersthehoser/mayble/internal/repository"
+)
+
+
+type EntrySelect struct {
+        retriever  repo.BookRetriever
+        isSelected bool
+        selected   int64
+
+        cellPos struct {
+                col int
+                row int
+        }
+
+        l          *listener
+}
+
+func newEntrySelect(r repo.BookRetriever) *EntrySelect <span class="cov0" title="0">{
+        e := &amp;EntrySelect{
+                retriever: r,
+                l:         &amp;listener{},
+        }
+        return e
+}</span>
+
+func (e *EntrySelect) getBook() (*repo.BookEntry, error) <span class="cov0" title="0">{
+        b, err := e.retriever.GetBookByID(e.selected)
+        return &amp;b, err
+}</span>
+
+func (e *EntrySelect) selectID(id int64, notify bool) <span class="cov0" title="0">{
+        e.selected = id
+        e.isSelected = true
+        if notify </span><span class="cov0" title="0">{
+                e.l.notify()
+        }</span>
+}
+func (e *EntrySelect) selectCell(row, col int, notify bool) <span class="cov0" title="0">{
+        e.cellPos.row = row
+        e.cellPos.col = col
+        e.isSelected = true
+        if notify </span><span class="cov0" title="0">{
+                e.l.notify()
+        }</span>
+}
+
+func (e *EntrySelect) SelectedCell() (row, col int) <span class="cov0" title="0">{
+        return e.cellPos.row, e.cellPos.col
+}</span>
+
+func (e *EntrySelect) unselect(notify bool) <span class="cov0" title="0">{
+        e.isSelected = false
+        if notify </span><span class="cov0" title="0">{
+                e.l.notify()
+        }</span>
+}
+
+func (e *EntrySelect) HasSelected() bool <span class="cov0" title="0">{
+        return e.isSelected
+}</span>
+
+func (e *EntrySelect) AddListener(l binding.DataListener) <span class="cov0" title="0">{
+        e.l.AddListener(l)
+}</span>
+
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package viewmodel
+
+import (
+        "log"
+
+        repo "github.com/dubbersthehoser/mayble/internal/repository"
+        "github.com/dubbersthehoser/mayble/internal/config"
+        "github.com/dubbersthehoser/mayble/internal/bus"
+        "github.com/dubbersthehoser/mayble/internal/database"
+
+        "fyne.io/fyne/v2/data/binding"
+)
+
+type appService struct {
+        cfg  *config.Config
+        dbs  *database.Service
+        
+        bookRetriever  repo.BookRetriever
+        genreRetriever repo.GenreRetriever
+        bookCreator    repo.BookCreator
+        bookUpdator    repo.BookUpdator
+        bookDeletor    repo.BookDeletor
+}
+
+func (as *appService) setDB(db *database.Database) error <span class="cov8" title="1">{
+        if as.dbs == nil </span><span class="cov8" title="1">{
+                as.dbs = database.NewService(db)
+        }</span> else<span class="cov8" title="1"> {
+                err := as.dbs.SetDB(db)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov8" title="1">as.bookRetriever = db
+        as.genreRetriever = db
+        as.bookCreator = db
+        as.bookUpdator = db
+        as.bookDeletor = db
+        return nil</span>
+}
+
+func newAppService(cfg *config.Config, dbs *database.Service) *appService <span class="cov0" title="0">{
+        as := &amp;appService{
+                cfg: cfg,
+                dbs: dbs,
+        }
+        as.setDB(dbs.DB())
+        return as
+}</span>
+
+
+type vmService struct {
+        bus    *bus.Bus
+        genres *UniqueGenres
+        app    *appService
+}
+
+func newVMService(as *appService) *vmService <span class="cov0" title="0">{
+        bus := &amp;bus.Bus{}
+        genres := NewUniqueGenres(bus, binding.NewStringList(), as.genreRetriever)
+        vs := &amp;vmService{
+                bus: bus,
+                genres: genres,
+                app: as,
+        }
+        return vs
+}</span>
+
+
+
+type UniqueGenres struct {
+        list   binding.StringList
+        genres repo.GenreRetriever
+        l      *listener
+}
+
+func NewUniqueGenres(b *bus.Bus, l binding.StringList, g repo.GenreRetriever) *UniqueGenres <span class="cov0" title="0">{
+        ug := &amp;UniqueGenres{
+                list:   l,
+                genres: g,
+                l:      &amp;listener{},
+        }
+        b.Subscribe(bus.Handler{
+                Name: msgDataChanged,
+                Handler: func(e *bus.Event) </span><span class="cov0" title="0">{
+                        ug.Update()
+                }</span>,
+        })
+        <span class="cov0" title="0">ug.Update()
+        return ug</span>
+}
+
+func (u *UniqueGenres) Get() []string <span class="cov0" title="0">{
+        s, err := u.list.Get()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("unique.genres.get: ", err.Error())
+                return []string{
+                }
+        }</span>
+        <span class="cov0" title="0">return s</span>
+}
+
+func (u *UniqueGenres) Update() <span class="cov0" title="0">{
+        genres, err := u.genres.GetUniqueGenres()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("unique.genres.update: ", err.Error())
+                return 
+        }</span>
+        <span class="cov0" title="0">for i := range u.list.Length() </span><span class="cov0" title="0">{
+                v, _ := u.list.GetValue(i)
+                _ = u.list.Remove(v)
+        }</span>
+        <span class="cov0" title="0">for i := range genres </span><span class="cov0" title="0">{
+                _ = u.list.Append(genres[i])
+        }</span>
+        <span class="cov0" title="0">u.l.notify()</span>
+}
+
+func (u *UniqueGenres) AddListener(l binding.DataListener) <span class="cov0" title="0">{
+        u.l.AddListener(l)
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package viewmodel
+
+
+import (
+        "slices"
+        "strings"
+        "cmp"
+        "fmt"
+        "log"
+
+        "fyne.io/fyne/v2/data/binding"
+
+        repo "github.com/dubbersthehoser/mayble/internal/repository"
+        "github.com/dubbersthehoser/mayble/internal/config"
+        "github.com/dubbersthehoser/mayble/internal/bus"
+        "github.com/dubbersthehoser/mayble/internal/table"
+)
+
+
+
+type TableVM struct {
+        repo     repo.BookRetriever
+        config   *config.Config
+
+        SortBy     binding.String
+        SortOrder  binding.String
+
+        selector   *EntrySelect
+
+        Search struct {
+                Text binding.String
+                Header binding.String
+        }
+        
+        table    *table.Table
+        
+        l        *listener
+}
+
+
+func NewTableVM(vms *vmService) *TableVM <span class="cov0" title="0">{
+        t := &amp;TableVM{
+                table:   table.NewTable("Main", entryHeaders()),
+                repo:    vms.app.bookRetriever,
+                config:  vms.app.cfg,
+
+                SortBy:     binding.NewString(),
+                SortOrder:  binding.NewString(),
+
+                Search: struct{
+                        Text binding.String
+                        Header binding.String
+                }{
+                        Text: binding.NewString(),
+                        Header: binding.NewString(),
+                },
+
+
+                selector: newEntrySelect(vms.app.bookRetriever),
+
+                l: &amp;listener{},
+        }
+
+        t.Search.Text.AddListener(binding.NewDataListener(func() </span><span class="cov0" title="0">{
+                t.selector.unselect(true)
+                search, _ := t.Search.Text.Get()
+                if search == "" </span><span class="cov0" title="0">{
+                        return
+                }</span>
+                <span class="cov0" title="0">header, _ := t.Search.Header.Get()
+                if header == "All" </span><span class="cov0" title="0">{
+                        header = ""
+                }</span>
+                <span class="cov0" title="0">result := table.Search(t.table, search, header)
+                if len(result) == 0 </span><span class="cov0" title="0">{
+                        return
+                }</span>
+                <span class="cov0" title="0">r := result[0]
+                t.selector.selectID(r.ID, false)
+                t.selector.selectCell(r.Row, r.Col, true)</span>
+        }))
+
+        <span class="cov0" title="0">_ = t.SortOrder.Set("ASC")
+        _ = t.SortBy.Set(t.table.Headers()[0])
+        err := t.load()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        <span class="cov0" title="0">if t.config != nil </span><span class="cov0" title="0">{
+                t.table.SetHidden(t.config.UI.Table.ColumnsHidden)
+        }</span>
+
+        <span class="cov0" title="0">vms.bus.Subscribe(bus.Handler{
+                Name: msgDataChanged,
+                Handler: func(e *bus.Event) </span><span class="cov0" title="0">{
+                        t.selector.unselect(true)
+                        err := t.reload()
+                        if err != nil </span><span class="cov0" title="0">{
+                                log.Println(err)
+                                return
+                        }</span>
+                        <span class="cov0" title="0">t.l.notify()</span>
+                },
+        })
+
+        <span class="cov0" title="0">return t</span>
+}
+
+
+func (t *TableVM) SetSelector(es *EntrySelect) *TableVM <span class="cov0" title="0">{
+        t.selector = es
+        return t
+}</span>
+
+
+
+// SearchOptions a list of searchable options.
+func (t *TableVM) SearchOptions() []string <span class="cov0" title="0">{
+        return []string{
+                "All",
+                "Title",
+                "Author",
+                "Genre",
+                "Borrower",
+        }
+}</span>
+
+
+// Selector returns the table's selector.
+func (t *TableVM) Selector() *EntrySelect <span class="cov0" title="0">{
+        return t.selector
+}</span>
+
+
+// Sort table using sort bindings.
+func (t *TableVM) Sort() <span class="cov0" title="0">{
+        t.selector.unselect(true)
+        err := t.reload()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+                return
+        }</span>
+        <span class="cov0" title="0">t.l.notify()</span>
+}
+
+
+
+// The smallest width that a column can be.
+const MinColWidth float32 = 100.0
+
+// StoreColumnWidth to the config file if it exists, else nop.
+// When width is smaller then MinColWidth, MinColWidth will be used.
+func (t *TableVM) StoreColumnWidth(col int, width float32) <span class="cov0" title="0">{
+        if t.config == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">if width &lt; MinColWidth </span><span class="cov0" title="0">{
+                width = MinColWidth
+        }</span>
+        <span class="cov0" title="0">table := t.config.GetUITable()
+        cell := t.table.GetHeaderCell(col)
+        label := cell.Header()
+        table.SetColumnWidth(label, width)</span>
+}
+
+
+// GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
+func (t *TableVM) GetColumnWidth(col int) float32 <span class="cov0" title="0">{
+        if t.config == nil </span><span class="cov0" title="0">{
+                return MinColWidth
+        }</span>
+        <span class="cov0" title="0">cell := t.table.GetHeaderCell(col)
+        label := cell.Header()
+
+        var width float32 = 0.0
+        if t.config != nil </span><span class="cov0" title="0">{
+                table := t.config.GetUITable()
+                width = table.GetColumnWidth(label)
+        }</span>
+        <span class="cov0" title="0">if width &lt; MinColWidth </span><span class="cov0" title="0">{
+                width = MinColWidth
+        }</span>
+        <span class="cov0" title="0">return width</span>
+}
+
+
+func (t *TableVM) SetHidden(options []string) <span class="cov0" title="0">{
+        hide := hiddenOptionsToHeaders(options)
+        if t.config != nil </span><span class="cov0" title="0">{
+                table := t.config.GetUITable()
+                table.ColumnsHidden = hide
+        }</span>
+        <span class="cov0" title="0">t.table.SetHidden(hide)
+        t.l.notify()</span>
+}
+
+func (t *TableVM) Hidden() []string <span class="cov0" title="0">{
+        headers := t.table.HiddenHeaders()
+        return hiddenHeadersToOptions(headers)
+}</span>
+
+// hiddenHeadersToOptions returns hidden options from headers.
+func hiddenHeadersToOptions(headers []string) []string <span class="cov8" title="1">{
+        options := slices.Clone(headers)
+        options = slices.DeleteFunc(options, func(s string) bool </span><span class="cov8" title="1">{
+                return s == "Rating" || s == "Borrower"
+        }</span>)
+        <span class="cov8" title="1">return options</span>
+}
+
+// hiddenOptionsToHeaders returns a slice of headers from a slice of hidden header options.
+func hiddenOptionsToHeaders(options []string) []string <span class="cov8" title="1">{
+        hide := make([]string, 0)
+        for _, o := range options </span><span class="cov8" title="1">{
+                switch o </span>{
+                case "Loaned":<span class="cov8" title="1">
+                        hide = append(hide, "Loaned", "Borrower")</span>
+                case "Read":<span class="cov8" title="1">
+                        hide = append(hide, "Read", "Rating")</span>
+                default:<span class="cov8" title="1">
+                        hide = append(hide, o)</span>
+                }
+        }
+        <span class="cov8" title="1">return hide</span>
+}
+
+// HiddenOptions returns the list of options for hiding columns.
+func (t *TableVM) HiddenOptions() []string <span class="cov0" title="0">{
+        headers := repo.BookEntryFields()
+        return hiddenHeadersToOptions(headers)
+}</span>
+
+func (t *TableVM) Headers() []string <span class="cov0" title="0">{
+        return t.table.Headers()
+}</span>
+
+func (t *TableVM) Select(row, col int) <span class="cov0" title="0">{
+        cell := t.table.GetCell(row, col)
+        t.selector.selectID(cell.ID(), false)
+        t.selector.selectCell(row, col, true)
+}</span>
+
+func (t *TableVM) Unselect(row, col int) <span class="cov0" title="0">{
+        t.selector.unselect(false)
+}</span>
+
+
+// reload clear table, then call load.
+func (t *TableVM) reload() error <span class="cov0" title="0">{
+        t.table.ClearValues()
+        return t.load()
+}</span>
+
+// load load entries form repostory sort then, and put them into table.
+func (t *TableVM) load() error <span class="cov0" title="0">{
+        
+        items, err := t.repo.GetAllBooks(repo.Loaned | repo.Read)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if len(items) == 0 </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        <span class="cov0" title="0">by, _ := t.SortBy.Get()
+        order, _ := t.SortOrder.Get()
+
+        index := slices.Index(entryHeaders(), by)
+
+        slices.SortFunc(items, func(a, b repo.BookEntry) int </span><span class="cov0" title="0">{
+                r := -1
+                switch index </span>{
+                case repo.IdxTitle:<span class="cov0" title="0">
+                        r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))</span>
+                case repo.IdxAuthor:<span class="cov0" title="0">
+                        r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))</span>
+                case repo.IdxGenre:<span class="cov0" title="0">
+                        r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))</span>
+                case repo.IdxBorrower:<span class="cov0" title="0">
+                        r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))</span>
+                case repo.IdxLoaned:<span class="cov0" title="0">
+                        r = a.Loaned.Compare(b.Loaned)</span>
+                case repo.IdxRating:<span class="cov0" title="0">
+                        r = cmp.Compare(a.Rating, b.Rating)</span>
+                case repo.IdxRead:<span class="cov0" title="0">
+                        r = a.Read.Compare(b.Read)</span>
+                default:<span class="cov0" title="0">
+                        log.Println("load: sort field not found", index, by)</span>
+                }
+                <span class="cov0" title="0">if order == "DESC" </span><span class="cov0" title="0">{
+                        return r * -1
+                }</span> else<span class="cov0" title="0"> {
+                        return r
+                }</span>
+        })
+
+        <span class="cov0" title="0">for _, item := range items </span><span class="cov0" title="0">{
+                err := t.table.AppendRow(
+                        item.ID,
+                        entryValues(&amp;item),
+                )
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (t *TableVM) Size() (int, int) <span class="cov0" title="0">{
+        return t.table.Size()
+}</span>
+
+func (t *TableVM) Get(row, col int) string <span class="cov0" title="0">{
+        cell := t.table.GetCell(row, col)
+        value := cell.Value()
+        if value == "" </span><span class="cov0" title="0">{
+                value = "N/A"
+        }</span>
+        <span class="cov0" title="0">return value</span>
+}
+
+func (t *TableVM) GetID(row, col int) (int64, error) <span class="cov0" title="0">{
+        cell := t.table.GetCell(row, col)
+        return cell.ID(), nil
+}</span>
+
+// IsItemHidden check whether cell item is hidden.
+func (t *TableVM) IsItemHidden(row, col int) bool <span class="cov0" title="0">{
+        cell := t.table.GetCell(row, col)
+        return t.table.IsHidden(cell)
+}</span>
+
+// IsHeaderHidden check whether header at col is hidden.
+func (t *TableVM) IsHeaderHidden(col int) bool <span class="cov0" title="0">{
+        cell := t.table.GetHeaderCell(col)
+        return t.table.IsHidden(cell)
+
+}</span>
+
+func (t *TableVM) AddListener(l binding.DataListener) <span class="cov0" title="0">{
+        t.l.AddListener(l)
+}</span>
+
+
+
+type TableControllersVM struct {
+        SearchText    binding.String
+        selector      *EntrySelect
+        hiddenColumns []string
+        vms           *vmService
+        EditIsOpen    binding.Bool
+        editbook      *EditBookVM            
+        table         *TableVM
+}
+
+func NewTableControllersVM(vms *vmService) *TableControllersVM <span class="cov0" title="0">{
+        tc := &amp;TableControllersVM{
+                SearchText: binding.NewString(),
+                hiddenColumns: make([]string, 0),
+                selector: newEntrySelect(vms.app.bookRetriever),
+                EditIsOpen: binding.NewBool(),
+                vms: vms,
+        }
+        tc.editbook = NewEditBookVM(vms, tc.EditIsOpen)
+        return tc
+}</span>
+
+func (tc *TableControllersVM) Delete() <span class="cov0" title="0">{
+        if tc.selector.HasSelected() </span><span class="cov0" title="0">{
+                book, err := tc.selector.getBook()
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                        return
+                }</span>
+                <span class="cov0" title="0">err = tc.vms.app.bookDeletor.DeleteBook(book)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                        return
+                }</span>
+                <span class="cov0" title="0">fmt.Println(book)
+                tc.vms.bus.Notify(bus.Event{
+                        Name: msgDataChanged,
+                })</span>
+        } else<span class="cov0" title="0"> {
+                tc.vms.bus.Notify(bus.Event{
+                        Name: msgUserInfo,
+                        Data: "Nothing selected",
+                })
+        }</span>
+}
+func (tc *TableControllersVM) Edit() <span class="cov0" title="0">{
+        if !tc.selector.HasSelected() </span><span class="cov0" title="0">{
+                tc.vms.bus.Notify(bus.Event{
+                        Name: msgUserInfo,
+                        Data: "Nothing selected",
+                })
+                return
+        }</span>
+        <span class="cov0" title="0">book, err := tc.selector.getBook()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println(err)
+        }</span>
+
+        <span class="cov0" title="0">tc.editbook.reset()
+        tc.editbook.Set(book)
+        _ = tc.EditIsOpen.Set(true)</span>
+}
+
+func (tc *TableControllersVM) Selector() *EntrySelect <span class="cov0" title="0">{
+        return tc.selector
+}</span>
+
+func (tc *TableControllersVM) GetEditBook() *EditBookVM <span class="cov0" title="0">{
+        return tc.editbook
+}</span>
+
+
+// entryHeaders lists the headers labels for book entry.
+func entryHeaders() []string <span class="cov0" title="0">{
+        return repo.BookEntryFields()
+}</span>
+
+// entryValues get the values from e in its in order of entryHeaders.
+func entryValues(e *repo.BookEntry) []string <span class="cov0" title="0">{
+        return []string{
+                e.Title,
+                e.Author,
+                e.Genre,
+                formatRating(e.Rating),
+                formatDate(&amp;e.Read),
+                e.Borrower,
+                formatDate(&amp;e.Loaned),
+        }
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -45,7 +45,21 @@ func NewBookForm() *BookForm {
 	}
 }
 
+func (bf *BookForm) reset() {
+	bf.id = -1
+	_ = bf.Title.Set("")
+	_ = bf.Author.Set("")
+	_ = bf.Genre.Set("")
+	_ = bf.Borrower.Set("")
+	_ = bf.Date.Set("")
+	_ = bf.Completed.Set("")
+	_ = bf.Rating.Set(Ratings()[0])
+	_ = bf.IsLoaned.Set(false)
+	_ = bf.IsRead.Set(false)
+}
+
 func (bf *BookForm) Set(book *repo.BookEntry) {
+	bf.reset()
 	bf.id = book.ID
 	_ = bf.Title.Set(book.Title)
 	_ = bf.Author.Set(book.Author)
@@ -132,36 +146,6 @@ func (s *SubmissionList) appendSubmission(book *repo.BookEntry) {
 }
 
 func (s *SubmissionList) addSubmission(bf *BookForm) error {
-	//book := repo.BookEntry{}
-
-	//isOnLoan, _ := bf.IsLoaned.Get()
-	//isRead, _ := bf.IsRead.Get()
-
-	//if isOnLoan {
-	//	book.Variant |= repo.Loaned
-	//	date, _ := bf.Date.Get()
-	//	timeDate, _ := parseDate(date)
-	//	book.Loaned = *timeDate
-	//	book.Borrower, _ = bf.Borrower.Get()
-	//}
-
-	//if isRead {
-	//	book.Variant |= repo.Read
-	//	sdate, _ := bf.Completed.Get()
-	//	srating, _ := bf.Rating.Get()
-
-	//	date, _ := parseDate(sdate)
-	//	rating := slices.Index(Ratings(), srating)
-
-	//	book.Read = *date
-	//	book.Rating = rating
-	//}
-
-	//book.Variant |= repo.Book
-
-	//book.Title, _ = bf.Title.Get()
-	//book.Author, _ = bf.Author.Get()
-	//book.Genre, _ = bf.Genre.Get()
 
 	book := bf.ToBookEntry()
 
@@ -227,10 +211,6 @@ func (s *SubmissionList) Edit(idx int) {
 	s.Remove(idx)
 }
 
-
-
-
-
 func (s *SubmissionList) AddListener(l binding.DataListener) {
 	s.l.AddListener(l)
 }
@@ -255,7 +235,7 @@ func NewCreateBookForm(vms *vmService) *CreateBookForm {
 	return bf
 }
 
-func validate(bf *BookForm) error {
+func (bf *BookForm) validate() error {
 	title, _ := bf.Title.Get()
 	author, _ := bf.Author.Get()
 	genre, _ := bf.Genre.Get()
@@ -293,8 +273,6 @@ func validate(bf *BookForm) error {
 		completed, _ := bf.Completed.Get()
 		rating, _ := bf.Rating.Get()
 
-		println(completed)
-
 		if completed == "" {
 			return errors.New("Missing Completion Date")
 		}
@@ -312,21 +290,8 @@ func validate(bf *BookForm) error {
 	return nil
 }
 
-func (bf *BookForm) reset() {
-	bf.id = -1
-	_ = bf.Title.Set("")
-	_ = bf.Author.Set("")
-	_ = bf.Genre.Set("")
-	_ = bf.Borrower.Set("")
-	_ = bf.Date.Set("")
-	_ = bf.Completed.Set("")
-	_ = bf.Rating.Set(Ratings()[0])
-	_ = bf.IsLoaned.Set(false)
-	_ = bf.IsRead.Set(false)
-}
-
 func (bf *CreateBookForm) AddSubmission() {
-	err := validate(&bf.BookForm)
+	err := bf.BookForm.validate()
 	if err != nil {
 		bf.bus.Notify(bus.Event{
 			Name: msgUserError,
@@ -371,7 +336,7 @@ func (bf *CreateBookForm) Submit() {
 		if err != nil {
 			break
 		}
-		err = bf.repo.CreateBook(book)
+		_, err = bf.repo.CreateBook(book)
 		if err != nil {
 			failed = append(failed, *book)
 			log.Println(fmt.Errorf("form.Submit: %w", err))
@@ -420,7 +385,7 @@ func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
 }
 
 func (ed *EditBookVM) Submit() {
-	err := validate(&ed.BookForm)
+	err := ed.BookForm.validate()
 	if err != nil {
 		ed.bus.Notify(bus.Event{
 			Name: msgUserError,

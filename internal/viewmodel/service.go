@@ -22,12 +22,21 @@ type appService struct {
 	bookDeletor    repo.BookDeletor
 }
 
-func (as *appService) setDB(db *database.Database) {
-		as.bookRetriever = db
-		as.genreRetriever = db
-		as.bookCreator = db
-		as.bookUpdator = db
-		as.bookDeletor = db
+func (as *appService) setDB(db *database.Database) error {
+	if as.dbs == nil {
+		as.dbs = database.NewService(db)
+	} else {
+		err := as.dbs.SetDB(db)
+		if err != nil {
+			return err
+		}
+	}
+	as.bookRetriever = db
+	as.genreRetriever = db
+	as.bookCreator = db
+	as.bookUpdator = db
+	as.bookDeletor = db
+	return nil
 }
 
 func newAppService(cfg *config.Config, dbs *database.Service) *appService {

@@ -11,7 +11,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 )
 
-
+// A BookBuilder for converting database book to a repository book.
 type bookBuilder struct {
 	id                   int64
 	title,
@@ -23,6 +23,7 @@ type bookBuilder struct {
 	rating               int64
 }
 
+// newBookBuilder returns a builder with a id error value to ensure id was set.
 func newBookBuilder() *bookBuilder{
 	return &bookBuilder{
 		id: -127,
@@ -119,8 +120,9 @@ func (b *bookBuilder) SetRating(r int64) *bookBuilder {
 
 
 
-func (db *Database) CreateBook(b *repo.BookEntry) error {
-	const op status.Op = "database.CreateBook"
+// CreateBook insert b into database.
+func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
+	const op status.Op = "database.create_book"
 
 	params := database.CreateBookParams{
 		Title: b.Title,
@@ -129,7 +131,7 @@ func (db *Database) CreateBook(b *repo.BookEntry) error {
 	}
 	row, err := db.Queries.CreateBook(context.Background(), params)
 	if err != nil {
-		return status.E(op, status.LevelWarn, err)
+		return -1, status.E(op, status.LevelWarn, err)
 	}
 	bookID := row.ID
 
@@ -142,12 +144,12 @@ func (db *Database) CreateBook(b *repo.BookEntry) error {
 		}
 		_, err := db.Queries.CreateLoan(context.Background(), params)
 		if err != nil {
-			return status.E(op, status.LevelWarn, err)
+			return -1, status.E(op, status.LevelWarn, err)
 		}
 	}
 
 	if b.Variant & repo.Read != 0 {
-		date := b.Loaned.Format(time.DateOnly)
+		date := b.Read.Format(time.DateOnly)
 		params := database.CreateReadParams{
 			BookID: bookID,
 			Rating: int64(b.Rating),
@@ -155,14 +157,15 @@ func (db *Database) CreateBook(b *repo.BookEntry) error {
 		}
 		_, err := db.Queries.CreateRead(context.Background(), params)
 		if err != nil {
-			return status.E(op, status.LevelWarn, err)
+			return -1, status.E(op, status.LevelWarn, err)
 		}
 	}
-	return nil
+	return bookID, nil
 }
 
+// DeleteBook remove book from database errors a database related error.
 func (db *Database) DeleteBook(b *repo.BookEntry) error {
-	const op status.Op = "database.DeleteBook"
+	const op status.Op = "database.delete_book"
 
 	id := b.ID
 	err := db.Queries.DeleteBook(context.Background(), id)
@@ -186,8 +189,9 @@ func (db *Database) DeleteBook(b *repo.BookEntry) error {
 	return nil
 }
 
+// UpdateBook update book from database.
 func (db *Database) UpdateBook(b *repo.BookEntry) error {
-	const op status.Op = "database.UpdateBook"
+	const op status.Op = "database.update_book"
 
 	var (
 		hasLoaned bool = true
@@ -292,16 +296,16 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 	return nil
 }
 
-
+// GetAllBooks returns all books from database when v is zero, otherwise filters for variant. 
 func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
-	const op status.Op = "database.GetAllBooks"
+	const op status.Op = "database.get_all_books"
 
 	books, err := db.Queries.GetAllBooks(context.Background())
-	entries := make([]repo.BookEntry, len(books))
 	if err != nil {
 		return nil, status.E(op, status.LevelWarn, err)
 	}
-	for i, book := range books {
+	var entries []repo.BookEntry
+	for _, book := range books {
 		hasLoaned := true
 		hasRead := true
 		loan, err := db.Queries.GetLoanByBookID(context.Background(), book.ID)
@@ -338,14 +342,17 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 		if err != nil {
 			return nil, status.E(op, status.LevelWarn, err)
 		}
-		entries[i] = *book
+		if v == 0 || book.Variant & v != 0 {
+			entries = append(entries, *book)
+		}
 	}
 	return entries, nil
 }
 
 
+// GetBookByID returns book entry by id.
 func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
-	const op status.Op = "database.GetBookByID"
+	const op status.Op = "database.get_book_by_id"
 	
 	bookRow, err := db.Queries.GetBookByID(context.Background(), id)
 	if err != nil {
@@ -396,8 +403,9 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 	return *book, nil
 }
 
+// GetUniqueGenres return unique set of genres from database.
 func (db *Database) GetUniqueGenres() ([]string, error) {
-	const op status.Op = "database.GetUniqueGenres"
+	const op status.Op = "database.get_unique_genres"
 	genres, err := db.Queries.GetUniqueGenres(context.Background())
 	if err != nil {
 		return nil, status.E(op, status.LevelError, err)

@@ -76,7 +76,7 @@ type GenreRetriever interface {
 }
 
 type BookCreator interface {
-	CreateBook(b *BookEntry) error
+	CreateBook(b *BookEntry) (int64, error)
 }
 
 type BookUpdator interface {

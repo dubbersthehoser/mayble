@@ -117,14 +117,3 @@ func Export(w io.Writer, entries []repo.BookEntry) error {
 	}
 	return writer.WriteAll(fields)
 } 
-
-
-
-
-
-
-
-
-
-
-

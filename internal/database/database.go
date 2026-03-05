@@ -2,7 +2,6 @@ package database
 
 import (
 	"os"
-	"fmt"
 	"database/sql"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
@@ -20,7 +19,7 @@ type Database struct {
 // OpenMem create a memory base database.
 func OpenMem() (*Database, error) {
 
-	const op status.Op = "database.OpenMem"
+	const op status.Op = "database.open_mem"
 
 	db := &Database{}
 	conn, err := sqlite.OpenDB("")
@@ -29,13 +28,18 @@ func OpenMem() (*Database, error) {
 	}
 	db.Conn = conn
 	db.Queries = sqlite.GetQueries(db.Conn)
+
+	err = sqlite.MigrateUpTo(conn,  version)
+	if err != nil {
+		return nil, status.E(op, status.Unexpected, status.LevelError, err)
+	}
 	return db, nil
 }
 
 // Open open database from path.
 func Open(path string) (*Database, error) {
 	
-	const op status.Op = "database.Open"
+	const op status.Op = "database.open"
 
 	db := &Database{}
 	
@@ -52,9 +56,6 @@ func Open(path string) (*Database, error) {
 			return nil, err
 		}
 	}
-
-	fmt.Printf("DB: %p\n", db.Conn)
-
 
 	return db, nil
 }
