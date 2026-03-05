@@ -58,183 +58,6 @@ func (bf *BookForm) reset() {
 	_ = bf.IsRead.Set(false)
 }
 
-func (bf *BookForm) Set(book *repo.BookEntry) {
-	bf.reset()
-	bf.id = book.ID
-	_ = bf.Title.Set(book.Title)
-	_ = bf.Author.Set(book.Author)
-	_ = bf.Genre.Set(book.Genre)
-
-	if repo.Loaned & book.Variant != 0 {
-		_ = bf.IsLoaned.Set(true)
-		_ = bf.Date.Set(formatDate(&book.Loaned))
-		_ = bf.Borrower.Set(book.Borrower)
-	}
-
-	if repo.Read & book.Variant != 0 {
-		_ = bf.IsRead.Set(true)
-		_ = bf.Rating.Set(formatRating(book.Rating))
-		_ = bf.Completed.Set(formatDate(&book.Read))
-	}
-}
-
-func (bf *BookForm) ToBookEntry() *repo.BookEntry {
-	book := &repo.BookEntry{ID: bf.id}
-
-	isOnLoan, _ := bf.IsLoaned.Get()
-	isRead, _ := bf.IsRead.Get()
-
-	if isOnLoan {
-		book.Variant |= repo.Loaned
-		date, _ := bf.Date.Get()
-		timeDate, _ := parseDate(date)
-		book.Loaned = *timeDate
-		book.Borrower, _ = bf.Borrower.Get()
-	}
-
-	if isRead {
-		book.Variant |= repo.Read
-		sdate, _ := bf.Completed.Get()
-		srating, _ := bf.Rating.Get()
-
-		date, _ := parseDate(sdate)
-		rating := slices.Index(Ratings(), srating)
-
-		book.Read = *date
-		book.Rating = rating
-	}
-
-	book.Title, _ = bf.Title.Get()
-	book.Author, _ = bf.Author.Get()
-	book.Genre, _ = bf.Genre.Get()
-	return book
-}
-
-
-
-type SubmissionList struct {
-	form       *CreateBookForm
-	bus        *bus.Bus
-	l          *listener
-	submissions []repo.BookEntry
-}
-func NewSubmissionList(bus *bus.Bus) *SubmissionList{
-	return &SubmissionList{
-		l: &listener{},
-		bus: bus,
-		submissions: make([]repo.BookEntry, 0),
-	}
-}
-
-func (s *SubmissionList) Clear() {
-	s.submissions = s.submissions[:0]
-}
-
-func (s *SubmissionList) popSubmission() (*repo.BookEntry, error) {
-	if len(s.submissions) == 0 {
-		return nil, errors.New("empty list")
-	}
-	top := s.submissions[len(s.submissions)-1]
-	s.submissions = s.submissions[:len(s.submissions)-1]
-	s.l.notify()
-	return &top, nil
-}
-
-func (s *SubmissionList) appendSubmission(book *repo.BookEntry) {
-	s.submissions = append(s.submissions, *book)
-	s.l.notify()
-}
-
-func (s *SubmissionList) addSubmission(bf *BookForm) error {
-
-	book := bf.ToBookEntry()
-
-	s.submissions = append(s.submissions, *book)
-	s.l.notify()
-	s.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Added to submission",
-	})
-	return nil
-}
-
-func (s *SubmissionList) Length() int {
-	return len(s.submissions)
-}
-
-func (s *SubmissionList) Get(idx int) string {
-	if idx >= s.Length() || idx < 0 {
-		return "STUB: out of range"
-	}
-	book := s.submissions[idx]
-	prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
-	switch book.Variant {
-	case repo.Read | repo.Loaned:
-		return fmt.Sprintf("%s (loaned) (read)", prefix)
-	case repo.Loaned:
-		return fmt.Sprintf("%s (loaned)", prefix)
-	case repo.Read:
-		return fmt.Sprintf("%s (read)", prefix)
-	case repo.Book:
-		return prefix
-	default:
-		return "STUB: variant not found"
-	}
-}
-
-func (s *SubmissionList) Remove(idx int) {
-	if idx >= s.Length() || idx < 0 {
-		return
-	}
-
-	s.submissions = append(s.submissions[:idx], s.submissions[idx+1:]...)
-
-	s.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Submission removed",
-	})
-
-	s.l.notify()
-}
-
-func (s *SubmissionList) Edit(idx int) {
-	if s.form == nil {
-		return
-	}
-
-	if idx >= s.Length() || idx < 0 {
-		return
-	}
-
-	book := s.submissions[idx]
-	s.form.Set(&book)
-	s.Remove(idx)
-}
-
-func (s *SubmissionList) AddListener(l binding.DataListener) {
-	s.l.AddListener(l)
-}
-
-type CreateBookForm struct {
-	bus       *bus.Bus
-	sl        *SubmissionList
-	repo      repo.BookCreator
-	Genres    *UniqueGenres
-	BookForm
-}
-
-func NewCreateBookForm(vms *vmService) *CreateBookForm {
-	bf := &CreateBookForm{
-		sl: NewSubmissionList(vms.bus),
-		bus: vms.bus,
-		Genres: vms.genres,
-		repo: vms.app.bookCreator,
-		BookForm: *NewBookForm(),
-	}
-	bf.sl.form = bf
-	return bf
-}
-
 func (bf *BookForm) validate() error {
 	title, _ := bf.Title.Get()
 	author, _ := bf.Author.Get()
@@ -290,6 +113,184 @@ func (bf *BookForm) validate() error {
 	return nil
 }
 
+func (bf *BookForm) Set(book *repo.BookEntry) {
+	bf.reset()
+	bf.id = book.ID
+	_ = bf.Title.Set(book.Title)
+	_ = bf.Author.Set(book.Author)
+	_ = bf.Genre.Set(book.Genre)
+
+	if repo.Loaned & book.Variant != 0 {
+		_ = bf.IsLoaned.Set(true)
+		_ = bf.Date.Set(formatDate(&book.Loaned))
+		_ = bf.Borrower.Set(book.Borrower)
+	}
+
+	if repo.Read & book.Variant != 0 {
+		_ = bf.IsRead.Set(true)
+		_ = bf.Rating.Set(formatRating(book.Rating))
+		_ = bf.Completed.Set(formatDate(&book.Read))
+	}
+}
+
+func (bf *BookForm) ToBookEntry() *repo.BookEntry {
+	book := &repo.BookEntry{ID: bf.id}
+
+	isOnLoan, _ := bf.IsLoaned.Get()
+	isRead, _ := bf.IsRead.Get()
+
+	if isOnLoan {
+		book.Variant |= repo.Loaned
+		date, _ := bf.Date.Get()
+		timeDate, _ := parseDate(date)
+		book.Loaned = *timeDate
+		book.Borrower, _ = bf.Borrower.Get()
+	}
+
+	if isRead {
+		book.Variant |= repo.Read
+		sdate, _ := bf.Completed.Get()
+		srating, _ := bf.Rating.Get()
+
+		date, _ := parseDate(sdate)
+		rating := slices.Index(Ratings(), srating)
+
+		book.Read = *date
+		book.Rating = rating
+	}
+
+	book.Title, _ = bf.Title.Get()
+	book.Author, _ = bf.Author.Get()
+	book.Genre, _ = bf.Genre.Get()
+	return book
+}
+
+
+
+
+type SubmissionList struct {
+	form       *CreateBookForm
+	bus        *bus.Bus
+	l          *listener
+	submissions []repo.BookEntry
+}
+func NewSubmissionList(bus *bus.Bus) *SubmissionList{
+	return &SubmissionList{
+		l: &listener{},
+		bus: bus,
+		submissions: make([]repo.BookEntry, 0),
+	}
+}
+
+func (s *SubmissionList) Clear() {
+	s.submissions = s.submissions[:0]
+}
+
+func (s *SubmissionList) pop() (*repo.BookEntry, error) {
+	if len(s.submissions) == 0 {
+		return nil, errors.New("empty list")
+	}
+	top := s.submissions[s.Length()-1]
+	s.Remove(s.Length()-1)
+	s.l.notify()
+	return &top, nil
+}
+
+func (s *SubmissionList) append(book *repo.BookEntry) {
+	s.submissions = append(s.submissions, *book)
+	s.l.notify()
+}
+
+func (s *SubmissionList) add(bf *BookForm) error {
+	book := bf.ToBookEntry()
+	s.append(book)
+	s.bus.Notify(bus.Event{
+		Name: msgUserInfo,
+		Data: "Added to submission",
+	})
+	return nil
+}
+
+func (s *SubmissionList) Length() int {
+	return len(s.submissions)
+}
+
+func (s *SubmissionList) GetView(idx int) string {
+	if idx >= s.Length() || idx < 0 {
+		return "STUB: out of range"
+	}
+	book := s.submissions[idx]
+	prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
+	switch book.Variant {
+	case repo.Read | repo.Loaned:
+		return fmt.Sprintf("%s (loaned) (read)", prefix)
+	case repo.Loaned:
+		return fmt.Sprintf("%s (loaned)", prefix)
+	case repo.Read:
+		return fmt.Sprintf("%s (read)", prefix)
+	case repo.Book:
+		return prefix
+	default:
+		return "STUB: variant not found"
+	}
+}
+
+func (s *SubmissionList) Remove(idx int) {
+	if idx >= s.Length() || idx < 0 {
+		return
+	}
+
+	s.submissions = append(s.submissions[:idx], s.submissions[idx+1:]...)
+
+	s.bus.Notify(bus.Event{
+		Name: msgUserInfo,
+		Data: "Submission removed",
+	})
+
+	s.l.notify()
+}
+
+func (s *SubmissionList) Edit(idx int) {
+	if s.form == nil {
+		return
+	}
+
+	if idx >= s.Length() || idx < 0 {
+		return
+	}
+
+	book := s.submissions[idx]
+	s.form.Set(&book)
+	s.Remove(idx)
+}
+
+func (s *SubmissionList) AddListener(l binding.DataListener) {
+	s.l.AddListener(l)
+}
+
+
+
+
+type CreateBookForm struct {
+	bus       *bus.Bus
+	sl        *SubmissionList
+	repo      repo.BookCreator
+	Genres    *UniqueGenres
+	BookForm
+}
+
+func NewCreateBookForm(vms *vmService) *CreateBookForm {
+	bf := &CreateBookForm{
+		sl: NewSubmissionList(vms.bus),
+		bus: vms.bus,
+		Genres: vms.genres,
+		repo: vms.app.bookCreator,
+		BookForm: *NewBookForm(),
+	}
+	bf.sl.form = bf
+	return bf
+}
+
 func (bf *CreateBookForm) AddSubmission() {
 	err := bf.BookForm.validate()
 	if err != nil {
@@ -305,7 +306,7 @@ func (bf *CreateBookForm) AddSubmission() {
 		Data: "Added submission",
 	})
 
-	bf.sl.addSubmission(&bf.BookForm)
+	bf.sl.add(&bf.BookForm)
 	bf.reset()
 }
 
@@ -332,7 +333,7 @@ func (bf *CreateBookForm) Submit() {
 
 	failed := make([]repo.BookEntry, 0)
 	for {
-		book, err := bf.sl.popSubmission()
+		book, err := bf.sl.pop()
 		if err != nil {
 			break
 		}
@@ -344,7 +345,7 @@ func (bf *CreateBookForm) Submit() {
 	}
 	bf.sl.Clear()
 	for _, f := range failed {
-		bf.sl.appendSubmission(&f)
+		bf.sl.append(&f)
 	}
 	if len(failed) > 0 {
 		bf.bus.Notify(bus.Event{

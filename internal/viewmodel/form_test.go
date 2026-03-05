@@ -3,11 +3,14 @@ package viewmodel
 import (
 	"testing"
 	"time"
+	"strings"
 	"fmt"
+	"slices"
 
 	"fyne.io/fyne/v2/app"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/bus"
 
 )
 
@@ -289,5 +292,154 @@ func testBookFormSet(t *testing.T, form *BookForm, books []repo.BookEntry) {
 		})
 	}
 }
+
+
+
+
+
+
+
+
+func TestSubmissionList(t *testing.T) {
+	b := &bus.Bus{}
+	list := NewSubmissionList(b)
+
+	errCount := 0
+	
+	b.Subscribe(bus.Handler{
+		Name: msgUserError,
+		Handler: func(e *bus.Event) {
+			errCount += 1
+		},
+	})
+	
+	books := []repo.BookEntry{
+		{
+			Variant: repo.Book,
+			Title: "Title",
+			Author: "Author",
+			Genre: "Genre",
+		},
+		{
+			Variant: repo.Book | repo.Read,
+			Title: "Title",
+			Author: "Author",
+			Genre: "Genre",
+			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating: 3,
+		},
+		{
+			Variant: repo.Book | repo.Loaned,
+			Title: "Title",
+			Author: "Author",
+			Genre: "Genre",
+			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Borrower: "Lane",
+		},
+		{
+			Variant: repo.Book | repo.Loaned | repo.Read,
+			Title: "Title",
+			Author: "Author",
+			Genre: "Genre",
+			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Borrower: "Lane",
+			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating: 3,
+		},
+	}
+
+	t.Run("add", func(t *testing.T) {
+		testSubmissionList_addSubmission(t, list, books)
+		if errCount != 0 {
+			t.Fatalf("unexpected error count")
+		}
+	})
+
+	t.Run("GetView", func(t *testing.T){
+		testSubmissionListGetView(t, list, books)
+		if errCount != 0 {
+			t.Fatalf("unexpected error count")
+		}
+	})
+
+	t.Run("pop", func(t *testing.T) {
+		testSubmissionList_popSubmission(t, list, books)
+		if errCount != 0 {
+			t.Fatalf("unexpected error count")
+		}
+	})
+}
+
+
+func testSubmissionList_popSubmission(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+	rbooks := slices.Clone(books)
+	slices.Reverse(rbooks)
+	for i, book := range rbooks {
+		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T) {
+			aBook, err := list.pop()
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if aBook == nil {
+				t.Fatal("unexpected nil")
+			}
+			if book != *aBook {
+				t.Fatalf("expect\n%v\n  got\n%v", book, aBook)
+			}
+		})
+	}
+}
+
+
+
+func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+	for i, book := range books {
+		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
+			actual := list.GetView(i)
+			if (book.Variant & repo.Read != 0) && !strings.Contains(actual, "(read)") {
+				t.Fatalf("expected to contain string '(read)', in '%s'", actual)
+			}
+			if (book.Variant & repo.Loaned != 0) && !strings.Contains(actual, "(loaned)") {
+				t.Fatalf("expected to contain string '(loaned)', in '%s'", actual)
+			}
+		})
+	}
+	actual := list.GetView(list.Length())
+	if !strings.Contains(actual, "out of range") {
+		t.Fatalf("expected to contain string 'out of range', in '%s'", actual)
+	}
+	actual = list.GetView(-1)
+	if !strings.Contains(actual, "out of range") {
+		t.Fatalf("expected to contain string 'out of range', in '%s'", actual)
+	}
+}
+
+
+func testSubmissionList_addSubmission(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+	form := NewBookForm()
+	for i, book := range books {
+		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
+			form.Set(&book)
+			list.add(form)
+		})
+	}
+	if len(books) != list.Length() {
+		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

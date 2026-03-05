@@ -17,13 +17,15 @@ case "$cmd" in
 	;;
 
 	all)
-		go test ./internal/... -cover
+		go test ./internal/... -coverprofile=cover.out
+		go tool cover -html cover.out -o cover.html
 	;;
 
 	*)
-		go test "$cmd" $@
+		go test "$cmd" $@ -coverprofile=cover.out
 	;;
 esac
+go tool cover -html cover.out -o cover.html
 
 
 

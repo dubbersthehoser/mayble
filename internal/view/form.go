@@ -138,7 +138,7 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 	update := func() {
 		content.RemoveAll()
 		for i := range sl.Length() {
-			v := sl.Get(i)
+			v := sl.GetView(i)
 			del := widget.NewButtonWithIcon(
 				"",
 				theme.DeleteIcon(),

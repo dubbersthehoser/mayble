@@ -1,6 +1,7 @@
 /bin/*
 /mayble
 /cover.out
+/cover.html
 /fyne-cross
 /build/*
 *.db
