@@ -18,40 +18,41 @@ import (
 
 type MenuVM struct {
 	DBFile binding.String
-	vms *vmService
-	
+	app *appService
+	bus *bus.Bus
 }
 
-func NewMenuVM(vms *vmService, dbFile binding.String) *MenuVM {
+func NewMenuVM(b *bus.Bus, app *appService, dbFile binding.String) *MenuVM {
 	m := &MenuVM{
 		DBFile: dbFile,
-		vms: vms,
+		bus: b,
+		app: app,
 	}
 	return m
 } 
 
 func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
 	if err != nil {
-		displayError(c.vms.bus, err)
+		displayError(c.bus, err)
 		return
 	}
 	if r == nil {
 		return
 	}
 	defer r.Close()
-	importCSV(r, c.vms.bus, c.vms.app.bookCreator)
+	importCSV(r, c.bus, c.app.bookCreator)
 
 }
 
 func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
 	if err != nil {
-		displayError(c.vms.bus, err)
+		displayError(c.bus, err)
 		return
 	}
 	if w == nil {
 		return
 	}
-	exportCSV(w, w.URI().Path(), c.vms.bus, c.vms.app.bookRetriever)
+	exportCSV(w, w.URI().Path(), c.bus, c.app.bookRetriever)
 }
 
 
@@ -61,17 +62,17 @@ func (c *MenuVM) OpenDatabase(r fyne.URIReadCloser, err error) {
 		return
 	}
 	if err != nil {
-		displayError(c.vms.bus, err)
+		displayError(c.bus, err)
 		return
 	}
 	r.Close()
-	openDatabase(r.URI().Path(), c.vms.app, c.vms.bus)
+	openDatabase(r.URI().Path(), c.app, c.bus)
 	_ = c.DBFile.Set(r.URI().Path())
 }
 
 func (c *MenuVM) CreateDatabase(w fyne.URIWriteCloser, err error) {
 	if err != nil {
-		displayError(c.vms.bus, err)
+		displayError(c.bus, err)
 		return
 	}
 
@@ -80,10 +81,7 @@ func (c *MenuVM) CreateDatabase(w fyne.URIWriteCloser, err error) {
 	}
 
 	w.Close()
-
 	filepath := w.URI().Path()
-
-
 	_ = c.DBFile.Set(filepath)
 }
 
@@ -157,7 +155,7 @@ func openDatabase(path string, as *appService, b *bus.Bus) {
 		return
 	}
 
-	err = as.setDB(db)
+	err = as.changeDB(db)
 	if err != nil {
 		displayError(b, err)
 		return
@@ -185,7 +183,7 @@ func createDatabase(path string, as *appService, b *bus.Bus) {
 		return
 	}
 
-	err = as.setDB(db)
+	err = as.changeDB(db)
 	if err != nil {
 		displayError(b, err)
 		return
@@ -201,7 +199,3 @@ func createDatabase(path string, as *appService, b *bus.Bus) {
 	})
 	
 }
-
-
-
-

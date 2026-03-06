@@ -12,6 +12,7 @@ import (
 )
 
 type appService struct {
+
 	cfg  *config.Config
 	dbs  *database.Service
 	
@@ -20,51 +21,37 @@ type appService struct {
 	bookCreator    repo.BookCreator
 	bookUpdator    repo.BookUpdator
 	bookDeletor    repo.BookDeletor
+
+	uniqueGenres    *UniqueGenres
 }
 
-func (as *appService) setDB(db *database.Database) error {
-	if as.dbs == nil {
-		as.dbs = database.NewService(db)
-	} else {
-		err := as.dbs.SetDB(db)
-		if err != nil {
-			return err
-		}
+func (as *appService) changeDB(db *database.Database) error {
+	err := as.dbs.SetDB(db)
+	if err != nil {
+		return err
 	}
+	as.setRepos(db)
+	return nil
+}
+
+func (as *appService) setRepos(db *database.Database) {
 	as.bookRetriever = db
 	as.genreRetriever = db
 	as.bookCreator = db
 	as.bookUpdator = db
 	as.bookDeletor = db
-	return nil
 }
 
-func newAppService(cfg *config.Config, dbs *database.Service) *appService {
+func newAppService(bus *bus.Bus, cfg *config.Config, db *database.Database) *appService {
 	as := &appService{
 		cfg: cfg,
-		dbs: dbs,
+		dbs: database.NewService(db),
 	}
-	as.setDB(dbs.DB())
+	as.setRepos(db)
+	as.uniqueGenres = NewUniqueGenres(bus, as.genreRetriever)
 	return as
 }
 
-
-type vmService struct {
-	bus    *bus.Bus
-	genres *UniqueGenres
-	app    *appService
-}
-
-func newVMService(as *appService) *vmService {
-	bus := &bus.Bus{}
-	genres := NewUniqueGenres(bus, binding.NewStringList(), as.genreRetriever)
-	vs := &vmService{
-		bus: bus,
-		genres: genres,
-		app: as,
-	}
-	return vs
-}
 
 
 
@@ -74,12 +61,13 @@ type UniqueGenres struct {
 	l      *listener
 }
 
-func NewUniqueGenres(b *bus.Bus, l binding.StringList, g repo.GenreRetriever) *UniqueGenres {
+func NewUniqueGenres(b *bus.Bus, g repo.GenreRetriever) *UniqueGenres {
 	ug := &UniqueGenres{
-		list:   l,
+		list:   binding.NewStringList(),
 		genres: g,
 		l:      &listener{},
 	}
+
 	b.Subscribe(bus.Handler{
 		Name: msgDataChanged,
 		Handler: func(e *bus.Event) {
@@ -94,8 +82,7 @@ func (u *UniqueGenres) Get() []string {
 	s, err := u.list.Get()
 	if err != nil {
 		log.Println("unique.genres.get: ", err.Error())
-		return []string{
-		}
+		return []string{}
 	}
 	return s
 }

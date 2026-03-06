@@ -14,12 +14,13 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
-
-
 func Test_DatabaseCreateAndOpen(t *testing.T) {
+	db, err := database.OpenMem()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 	b := &bus.Bus{}
-
-	as := &appService{}
+	as := newAppService(b, nil, db)
 
 	file, err := os.CreateTemp("", "*.db")
 	if err != nil {
@@ -63,6 +64,7 @@ func Test_DatabaseCreateAndOpen(t *testing.T) {
 		}
 	})
 }
+
 func test_createDatabase(t *testing.T, as *appService, b *bus.Bus, path string) {
 	var err error
 	createDatabase(path, as, b)
@@ -81,7 +83,6 @@ func test_createDatabase(t *testing.T, as *appService, b *bus.Bus, path string) 
 }
 
 func test_openDatabase(t *testing.T, as *appService, b *bus.Bus, path string) {
-	as.dbs = nil
 	openDatabase(path, as, b)
 	if as.dbs == nil {
 		t.Fatal("database service is nil")
@@ -160,10 +161,10 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 	}
 
 	db, err := database.OpenMem()
-
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+	defer db.Conn.Close()
 
 	t.Run("import", func(t *testing.T) {
 		testImportCSV(t, b, db, bytes.NewBuffer([]byte(csvStr)), books)

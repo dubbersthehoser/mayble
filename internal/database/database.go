@@ -33,6 +33,7 @@ func OpenMem() (*Database, error) {
 	if err != nil {
 		return nil, status.E(op, status.Unexpected, status.LevelError, err)
 	}
+
 	return db, nil
 }
 

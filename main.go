@@ -55,9 +55,7 @@ func main() {
 		defer db.Conn.Close()
 	}
 
-	dbs := database.NewService(db)
-
-	uiVM := viewmodel.NewMainUI(cfg, dbs, errList)
+	uiVM := viewmodel.NewMainUI(cfg, db, errList)
 	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()

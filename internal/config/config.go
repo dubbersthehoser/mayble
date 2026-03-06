@@ -99,7 +99,6 @@ func Load(root string) (*Config, error) {
 
 	fileIO, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
-		println("hello?")
 		cfg := &Config{
 			ConfigDir: root,
 			ConfigFile: path,

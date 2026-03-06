@@ -16,11 +16,15 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/table"
 )
 
-
+const (
+	notifySelect bool = true
+	stubValue    string = "N/A"
+)
 
 type TableVM struct {
 	repo     repo.BookRetriever
 	config   *config.Config
+	bus     *bus.Bus
 
 	SortBy     binding.String
 	SortOrder  binding.String
@@ -38,11 +42,12 @@ type TableVM struct {
 }
 
 
-func NewTableVM(vms *vmService) *TableVM {
+func NewTableVM(b *bus.Bus, app *appService) *TableVM {
 	t := &TableVM{
 		table:   table.NewTable("Main", entryHeaders()),
-		repo:    vms.app.bookRetriever,
-		config:  vms.app.cfg,
+		repo:    app.bookRetriever,
+		config:  app.cfg,
+		bus: b,
 
 		SortBy:     binding.NewString(),
 		SortOrder:  binding.NewString(),
@@ -56,28 +61,14 @@ func NewTableVM(vms *vmService) *TableVM {
 		},
 
 
-		selector: newEntrySelect(vms.app.bookRetriever),
+		selector: newEntrySelect(app.bookRetriever),
 
 		l: &listener{},
 	}
 
 	t.Search.Text.AddListener(binding.NewDataListener(func() {
-		t.selector.unselect(true)
-		search, _ := t.Search.Text.Get()
-		if search == "" {
-			return
-		}
-		header, _ := t.Search.Header.Get()
-		if header == "All" {
-			header = ""
-		}
-		result := table.Search(t.table, search, header)
-		if len(result) == 0 {
-			return
-		}
-		r := result[0]
-		t.selector.selectID(r.ID, false)
-		t.selector.selectCell(r.Row, r.Col, true)
+		t.selector.unselect(notifySelect)
+		t.search()
 	}))
 
 	_ = t.SortOrder.Set("ASC")
@@ -91,10 +82,10 @@ func NewTableVM(vms *vmService) *TableVM {
 		t.table.SetHidden(t.config.UI.Table.ColumnsHidden)
 	}
 
-	vms.bus.Subscribe(bus.Handler{
+	b.Subscribe(bus.Handler{
 		Name: msgDataChanged,
 		Handler: func(e *bus.Event) {
-			t.selector.unselect(true)
+			t.selector.unselect(notifySelect)
 			err := t.reload()
 			if err != nil {
 				log.Println(err)
@@ -105,6 +96,25 @@ func NewTableVM(vms *vmService) *TableVM {
 	})
 
 	return t
+}
+
+
+func (t *TableVM) search() {
+	search, _ := t.Search.Text.Get()
+	if search == "" {
+		return
+	}
+	header, _ := t.Search.Header.Get()
+	if header == "All" {
+		header = ""
+	}
+	result := table.Search(t.table, search, header)
+	if len(result) == 0 {
+		return
+	}
+	r := result[0]
+	t.selector.selectID(r.ID, !notifySelect)
+	t.selector.selectCell(r.Row, r.Col, notifySelect)
 }
 
 
@@ -134,14 +144,14 @@ func (t *TableVM) Selector() *EntrySelect {
 
 
 // Sort table using sort bindings.
-func (t *TableVM) Sort() {
-	t.selector.unselect(true)
+func (t *TableVM) Sort() error {
+	t.selector.unselect(notifySelect)
 	err := t.reload()
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 	t.l.notify()
+	return nil
 }
 
 
@@ -200,6 +210,7 @@ func (t *TableVM) Hidden() []string {
 	return hiddenHeadersToOptions(headers)
 }
 
+
 // hiddenHeadersToOptions returns hidden options from headers.
 func hiddenHeadersToOptions(headers []string) []string {
 	options := slices.Clone(headers)
@@ -237,12 +248,12 @@ func (t *TableVM) Headers() []string {
 
 func (t *TableVM) Select(row, col int) {
 	cell := t.table.GetCell(row, col)
-	t.selector.selectID(cell.ID(), false)
-	t.selector.selectCell(row, col, true)
+	t.selector.selectID(cell.ID(), !notifySelect)
+	t.selector.selectCell(row, col, notifySelect)
 }
 
 func (t *TableVM) Unselect(row, col int) {
-	t.selector.unselect(false)
+	t.selector.unselect(!notifySelect)
 }
 
 
@@ -252,24 +263,17 @@ func (t *TableVM) reload() error {
 	return t.load()
 }
 
-// load load entries form repostory sort then, and put them into table.
-func (t *TableVM) load() error {
+
+// sortbooks sort slice of books.
+func sortBooks(books []repo.BookEntry, header string, desending bool) error {
+
+	index := slices.Index(entryHeaders(), header)
+
+	if index == -1 {
+		return fmt.Errorf("sort_books: invalid header '%s'", header)
+	}
 	
-	items, err := t.repo.GetAllBooks(repo.Loaned | repo.Read)
-	if err != nil {
-		return err
-	}
-
-	if len(items) == 0 {
-		return nil
-	}
-
-	by, _ := t.SortBy.Get()
-	order, _ := t.SortOrder.Get()
-
-	index := slices.Index(entryHeaders(), by)
-
-	slices.SortFunc(items, func(a, b repo.BookEntry) int {
+	slices.SortFunc(books, func(a, b repo.BookEntry) int {
 		r := -1
 		switch index {
 		case repo.IdxTitle:
@@ -286,16 +290,34 @@ func (t *TableVM) load() error {
 			r = cmp.Compare(a.Rating, b.Rating)
 		case repo.IdxRead:
 			r = a.Read.Compare(b.Read)
-		default:
-			log.Println("load: sort field not found", index, by)
 		}
-		if order == "DESC" {
+		if desending {
 			return r * -1
 		} else {
 			return r
 		}
 	})
+	return nil
+}
 
+// load load entries form repostory sort then, and put them into table.
+func (t *TableVM) load() error {
+	
+	items, err := t.repo.GetAllBooks(repo.Book)
+	if err != nil {
+		return err
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	by, _ := t.SortBy.Get()
+	order, _ := t.SortOrder.Get()
+	err = sortBooks(items, by, order=="DESC")
+	if err != nil {
+		return err
+	}
 	for _, item := range items {
 		err := t.table.AppendRow(
 			item.ID,
@@ -316,7 +338,7 @@ func (t *TableVM) Get(row, col int) string {
 	cell := t.table.GetCell(row, col)
 	value := cell.Value()
 	if value == "" {
-		value = "N/A"
+		value = stubValue
 	}
 	return value
 }
@@ -344,26 +366,26 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 }
 
 
-
 type TableControllersVM struct {
 	SearchText    binding.String
 	selector      *EntrySelect
 	hiddenColumns []string
-	vms           *vmService
+	app           *appService
+	bus           *bus.Bus
 	EditIsOpen    binding.Bool
 	editbook      *EditBookVM            
 	table         *TableVM
 }
 
-func NewTableControllersVM(vms *vmService) *TableControllersVM {
+func NewTableControllersVM(b *bus.Bus, app *appService) *TableControllersVM {
 	tc := &TableControllersVM{
 		SearchText: binding.NewString(),
 		hiddenColumns: make([]string, 0),
-		selector: newEntrySelect(vms.app.bookRetriever),
+		selector: newEntrySelect(app.bookRetriever),
 		EditIsOpen: binding.NewBool(),
-		vms: vms,
+		app: app,
 	}
-	tc.editbook = NewEditBookVM(vms, tc.EditIsOpen)
+	tc.editbook = NewEditBookVM(b, app, tc.EditIsOpen)
 	return tc
 }
 
@@ -374,17 +396,17 @@ func (tc *TableControllersVM) Delete() {
 			log.Println(err)
 			return
 		}
-		err = tc.vms.app.bookDeletor.DeleteBook(book)
+		err = tc.app.bookDeletor.DeleteBook(book)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		fmt.Println(book)
-		tc.vms.bus.Notify(bus.Event{
+		tc.bus.Notify(bus.Event{
 			Name: msgDataChanged,
 		})
 	} else {
-		tc.vms.bus.Notify(bus.Event{
+		tc.bus.Notify(bus.Event{
 			Name: msgUserInfo,
 			Data: "Nothing selected",
 		})
@@ -392,7 +414,7 @@ func (tc *TableControllersVM) Delete() {
 }
 func (tc *TableControllersVM) Edit() {
 	if !tc.selector.HasSelected() {
-		tc.vms.bus.Notify(bus.Event{
+		tc.bus.Notify(bus.Event{
 			Name: msgUserInfo,
 			Data: "Nothing selected",
 		})

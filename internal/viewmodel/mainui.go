@@ -26,7 +26,8 @@ const (
 
 type MainUI struct {	
 
-	vms     *vmService
+	bus     *bus.Bus
+	app     *appService
 	errList []error
 
 	OpenedBody binding.Int
@@ -38,13 +39,14 @@ type MainUI struct {
 	Clear      binding.Bool
 }
 
-func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI {
+func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
 
-	as := newAppService(cfg, dbs)
-	vms := newVMService(as)
+	b := &bus.Bus{}
+	as := newAppService(b, cfg, db)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
-		vms: vms,
+		bus: b,
+		app: as,
 
 		errList: errs,
 
@@ -55,7 +57,6 @@ func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI 
 		Info: binding.NewString(),
 		Clear: binding.NewBool(),
 	}
-
 	_ = mu.DBFile.Set(cfg.DBFile)
 	mu.DBFile.AddListener(binding.NewDataListener(func() {
 		path, _ := mu.DBFile.Get()
@@ -75,7 +76,7 @@ func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI 
 		}()
 	}
 
-	mu.vms.bus.Subscribe(bus.Handler{
+	mu.bus.Subscribe(bus.Handler{
 		Name: msgUserInfo,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -91,7 +92,7 @@ func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI 
 			clearLine()
 		},
 	})
-	mu.vms.bus.Subscribe(bus.Handler{
+	mu.bus.Subscribe(bus.Handler{
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -107,7 +108,7 @@ func NewMainUI(cfg *config.Config, dbs *database.Service, errs []error) *MainUI 
 			clearLine()
 		},
 	})
-	mu.vms.bus.Subscribe(bus.Handler{
+	mu.bus.Subscribe(bus.Handler{
 		Name: msgUserSuccess,
 		Handler: func(e *bus.Event) {
 			if e.Data == nil {
@@ -140,20 +141,20 @@ func (m *MainUI) Errors() []string {
 }
 
 func (m *MainUI) GetMenuVM() *MenuVM {
-	return NewMenuVM(m.vms, m.DBFile,)
+	return NewMenuVM(m.bus, m.app, m.DBFile)
 }
 
 
 func (m *MainUI) GetTableVM() *TableVM {
-	return NewTableVM(m.vms)
+	return NewTableVM(m.bus, m.app)
 }
 
 func (m *MainUI) GetTableControllersVM() *TableControllersVM {
-	return NewTableControllersVM(m.vms)
+	return NewTableControllersVM(m.bus, m.app)
 }
 
 func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
-	return NewCreateBookForm(m.vms)
+	return NewCreateBookForm(m.bus, m.app)
 }
 
 type BookVM struct {

@@ -169,16 +169,17 @@ func (bf *BookForm) ToBookEntry() *repo.BookEntry {
 
 
 type SubmissionList struct {
-	form       *CreateBookForm
+	form       *BookForm
 	bus        *bus.Bus
 	l          *listener
 	submissions []repo.BookEntry
 }
-func NewSubmissionList(bus *bus.Bus) *SubmissionList{
+func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList{
 	return &SubmissionList{
 		l: &listener{},
 		bus: bus,
 		submissions: make([]repo.BookEntry, 0),
+		form: form,
 	}
 }
 
@@ -252,13 +253,13 @@ func (s *SubmissionList) Remove(idx int) {
 
 func (s *SubmissionList) Edit(idx int) {
 	if s.form == nil {
+		log.Println("submission_list.edit: nil form")
 		return
 	}
-
 	if idx >= s.Length() || idx < 0 {
+		log.Println("submission_list.edit: index out of range")
 		return
 	}
-
 	book := s.submissions[idx]
 	s.form.Set(&book)
 	s.Remove(idx)
@@ -270,7 +271,6 @@ func (s *SubmissionList) AddListener(l binding.DataListener) {
 
 
 
-
 type CreateBookForm struct {
 	bus       *bus.Bus
 	sl        *SubmissionList
@@ -279,15 +279,14 @@ type CreateBookForm struct {
 	BookForm
 }
 
-func NewCreateBookForm(vms *vmService) *CreateBookForm {
+func NewCreateBookForm(b *bus.Bus, app *appService) *CreateBookForm {
 	bf := &CreateBookForm{
-		sl: NewSubmissionList(vms.bus),
-		bus: vms.bus,
-		Genres: vms.genres,
-		repo: vms.app.bookCreator,
+		bus: b,
+		Genres: app.uniqueGenres,
+		repo: app.bookCreator,
 		BookForm: *NewBookForm(),
 	}
-	bf.sl.form = bf
+	bf.sl = NewSubmissionList(b, &bf.BookForm)
 	return bf
 }
 
@@ -371,16 +370,16 @@ type EditBookVM struct {
 	Genres  *UniqueGenres
 	bus     *bus.Bus
 	IsOpen  binding.Bool
-	vms     *vmService
+	app     *appService
 }
 
-func NewEditBookVM(vms *vmService, isOpen binding.Bool) *EditBookVM {
+func NewEditBookVM(b  *bus.Bus, app *appService, isOpen binding.Bool) *EditBookVM {
 	ed := &EditBookVM{
-		bus:      vms.bus,
+		bus:      b,
 		BookForm: *NewBookForm(),
-		Genres:   vms.genres,
+		app: app,
 		IsOpen:   isOpen,
-		vms:      vms,
+		Genres: app.uniqueGenres,
 	}
 	return ed
 }
@@ -397,7 +396,7 @@ func (ed *EditBookVM) Submit() {
 
 	book := ed.BookForm.ToBookEntry()
 
-	ed.vms.app.bookUpdator.UpdateBook(book)
+	ed.app.bookUpdator.UpdateBook(book)
 	
 	ed.bus.Notify(bus.Event{
 		Name: msgDataChanged,

@@ -293,16 +293,9 @@ func testBookFormSet(t *testing.T, form *BookForm, books []repo.BookEntry) {
 	}
 }
 
-
-
-
-
-
-
-
 func TestSubmissionList(t *testing.T) {
 	b := &bus.Bus{}
-	list := NewSubmissionList(b)
+	list := NewSubmissionList(b, NewBookForm())
 
 	errCount := 0
 	
@@ -349,7 +342,7 @@ func TestSubmissionList(t *testing.T) {
 	}
 
 	t.Run("add", func(t *testing.T) {
-		testSubmissionList_addSubmission(t, list, books)
+		testSubmissionList_add(t, list, books)
 		if errCount != 0 {
 			t.Fatalf("unexpected error count")
 		}
@@ -363,15 +356,42 @@ func TestSubmissionList(t *testing.T) {
 	})
 
 	t.Run("pop", func(t *testing.T) {
-		testSubmissionList_popSubmission(t, list, books)
+		testSubmissionList_pop(t, list, books)
 		if errCount != 0 {
 			t.Fatalf("unexpected error count")
 		}
 	})
+
+	t.Run("Edit", func(t *testing.T) {
+		for _, book := range books {
+			list.append(&book)
+		}
+		testSubmissionListEdit(t, list, books)
+	})
+
+	t.Run("clear", func(t *testing.T) {
+		list.Clear()
+		if list.Length() != 0 {
+			t.Fatalf("expect length 0, got %d", list.Length())
+		}
+	})
+}
+
+func testSubmissionListEdit(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+	lenExpect := list.Length() - 1
+	list.Edit(0)
+	form := list.form
+	if lenExpect != list.Length() {
+		t.Fatalf("expect length %d, got %d", lenExpect, list.Length())
+	}
+	book := form.ToBookEntry()
+	if *book != books[0] {
+		t.Fatalf("expect\n%v\n  got\n %v", books[0], *book)
+	}
 }
 
 
-func testSubmissionList_popSubmission(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+func testSubmissionList_pop(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	rbooks := slices.Clone(books)
 	slices.Reverse(rbooks)
 	for i, book := range rbooks {
@@ -389,7 +409,6 @@ func testSubmissionList_popSubmission(t *testing.T, list *SubmissionList, books 
 		})
 	}
 }
-
 
 
 func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
@@ -415,7 +434,7 @@ func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.
 }
 
 
-func testSubmissionList_addSubmission(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
+func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	form := NewBookForm()
 	for i, book := range books {
 		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
@@ -427,18 +446,6 @@ func testSubmissionList_addSubmission(t *testing.T, list *SubmissionList, books 
 		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
