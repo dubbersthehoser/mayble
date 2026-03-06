@@ -2,6 +2,7 @@ package viewmodel
 
 import (
 	"time"
+	"slices"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -193,6 +194,7 @@ func parseDate(t string) (*time.Time, error) {
 
 
 const capRating = 6
+
 func formatRating(r int) string {
 	switch r {
 	case 0:
@@ -211,19 +213,11 @@ func formatRating(r int) string {
 		return "ERROR"
 	}
 }
+
 func Ratings() []string{
 	r := make([]string, capRating)
 	for i := range capRating {
 		r[i] = formatRating(i)
-	}
-	return r
-}
-
-func RatingsStrings() []string {
-	s := 6
-	r := make([]string, s)
-	for i := range s {
-		r[i] = formatRating(i+1)
 	}
 	return r
 }
@@ -249,14 +243,19 @@ func (t *listener) RemoveListener(l binding.DataListener) {
 	if t.listeners == nil {
 		return
 	}
-	index := -1
-	for i, listener := range t.listeners {
-		if listener == l {
-			index = i
-		}
-	}
-	if index == -1 {
-		return
-	}
-	t.listeners = append(t.listeners[:index], t.listeners[index-1:]...)
+	t.listeners = slices.DeleteFunc(t.listeners, func(ll binding.DataListener) bool {
+		return l == ll
+	})
 }
+
+
+
+
+
+
+
+
+
+
+
+
