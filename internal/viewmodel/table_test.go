@@ -6,6 +6,8 @@ import (
 	"time"
 	"fmt"
 	"math/rand"
+	"database/sql"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/bus"
@@ -374,9 +376,6 @@ func Test_hiddenHeadersToOptions(t *testing.T) {
 	}
 }
 
-
-
-
 func TestTableControllerVM(t *testing.T) {
 	b := &bus.Bus{}
 	db, err := database.OpenMem()
@@ -392,6 +391,104 @@ func TestTableControllerVM(t *testing.T) {
 	}
 	controllers := NewTableControllersVM(b, as)
 	_ = controllers
+
+	var bookID int64 = 1
+
+	_, err = db.CreateBook(&repo.BookEntry{
+		ID: bookID,
+		Title: "title",
+		Author: "author",
+		Genre: "genre",
+	})
+
+	testHandler := func(t *testing.T, name string, test func(s string)) bus.Handler {
+		t.Helper()
+		return bus.Handler{
+			Name: name,
+			Handler: func(e *bus.Event) {
+				s, ok := e.Data.(string)
+				if e.Data != nil && !ok {
+					t.Fatalf("invalid event data type")
+				}
+				test(s)
+			},
+		}
+	}
+
+	t.Run("Edit", func(t *testing.T){
+		var ok bool
+		hid := b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+			ok = true
+			expect := "Nothing selected"
+			if s != expect {
+				t.Fatalf("expect '%s', got '%s'", expect, s)
+			}
+
+		}))
+		controllers.Edit()
+		if !ok {
+			t.Fatal("message handler was not called")
+		}
+		b.Unsubscribe(hid)
+		controllers.selector.selectID(bookID, !notifySelect)
+		controllers.Edit()
+		ok = false
+		hid = b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+			ok = true
+			unexpect := "Nothing selected"
+			if s == unexpect {
+				t.Fatalf("unexpected message '%s'", s)
+			}
+		}))
+		if ok {
+			t.Fatal("unexpected message info message")
+		}
+		b.Unsubscribe(hid)
+		if !controllers.selector.HasSelected() {
+			t.Fatal("entry was not selected")
+		}
+		controllers.editBook.Close()
+		controllers.selector.unselect(!notifySelect)
+		if controllers.selector.HasSelected() {
+			t.Fatal("entry was still selected")
+		}
+	})
+
+	t.Run("Delete", func(t *testing.T){
+		var ok bool
+		hid := b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+			ok = true
+			expect := "Nothing selected"
+			if s != expect {
+				t.Fatalf("expect '%s', got '%s'", expect, s)
+			}
+		}))
+		controllers.Delete()
+		if !ok {
+			t.Fatal("message handler was not called")
+		}
+		b.Unsubscribe(hid)
+
+		controllers.selector.selectID(bookID, !notifySelect)
+
+		
+		ok = false
+		hid = b.Subscribe(testHandler(t, msgDataChanged, func(s string) {
+			ok = true
+		}))
+		controllers.Delete()
+		if !ok {
+			t.Fatal("message handler was not called")
+		}
+		_, err := db.GetBookByID(bookID)
+		if !errors.Is(sql.ErrNoRows, errors.Unwrap(err)) {
+			t.Fatalf("expect error: %s, got %s", sql.ErrNoRows, err)
+		}
+	})
 }
+
+
+
+
 
 

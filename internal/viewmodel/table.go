@@ -373,7 +373,7 @@ type TableControllersVM struct {
 	app           *appService
 	bus           *bus.Bus
 	EditIsOpen    binding.Bool
-	editbook      *EditBookVM            
+	editBook      *EditBookVM            
 	table         *TableVM
 }
 
@@ -384,35 +384,13 @@ func NewTableControllersVM(b *bus.Bus, app *appService) *TableControllersVM {
 		selector: newEntrySelect(app.bookRetriever),
 		EditIsOpen: binding.NewBool(),
 		app: app,
+		bus: b,
 	}
-	tc.editbook = NewEditBookVM(b, app, tc.EditIsOpen)
+	tc.editBook = NewEditBookVM(b, app, tc.EditIsOpen)
 	return tc
 }
 
 func (tc *TableControllersVM) Delete() {
-	if tc.selector.HasSelected() {
-		book, err := tc.selector.getBook()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		err = tc.app.bookDeletor.DeleteBook(book)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		fmt.Println(book)
-		tc.bus.Notify(bus.Event{
-			Name: msgDataChanged,
-		})
-	} else {
-		tc.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Nothing selected",
-		})
-	}
-}
-func (tc *TableControllersVM) Edit() {
 	if !tc.selector.HasSelected() {
 		tc.bus.Notify(bus.Event{
 			Name: msgUserInfo,
@@ -423,10 +401,34 @@ func (tc *TableControllersVM) Edit() {
 	book, err := tc.selector.getBook()
 	if err != nil {
 		log.Println(err)
+		return
+	}
+	err = tc.app.bookDeletor.DeleteBook(book)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fmt.Println(book)
+	tc.bus.Notify(bus.Event{
+		Name: msgDataChanged,
+	})
+}
+func (tc *TableControllersVM) Edit() {
+	if !tc.selector.HasSelected() {
+		tc.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "Nothing selected",
+		})
+		return
 	}
 
-	tc.editbook.reset()
-	tc.editbook.Set(book)
+	book, err := tc.selector.getBook()
+	if err != nil {
+		log.Println(err)
+	}
+
+	tc.editBook.reset()
+	tc.editBook.Set(book)
 	_ = tc.EditIsOpen.Set(true)
 }
 
@@ -435,7 +437,7 @@ func (tc *TableControllersVM) Selector() *EntrySelect {
 }
 
 func (tc *TableControllersVM) GetEditBook() *EditBookVM {
-	return tc.editbook
+	return tc.editBook
 }
 
 

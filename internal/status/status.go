@@ -52,6 +52,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Op, e.Err)
 }
 
+func (e *Error) Unwrap() error {
+	return e.Err
+}
+
 func E(args ...any) error {
 	e := &Error{}
 	for _, arg := range args {
