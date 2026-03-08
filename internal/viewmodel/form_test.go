@@ -10,7 +10,9 @@ import (
 	"fyne.io/fyne/v2/app"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/config"
 
 )
 
@@ -446,6 +448,41 @@ func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.Boo
 		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
 	}
 }
+
+
+
+
+
+
+
+func TestCreateBookForm(t *testing.T) {
+	b := &bus.Bus{}
+	db, err := database.OpenMem()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer db.Conn.Close()
+	cfg := &config.Config{}
+	as := newAppService(b, cfg, db)
+	err = db.Conn.Ping()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	
+	cForm := NewCreateBookForm(b, as)
+
+
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

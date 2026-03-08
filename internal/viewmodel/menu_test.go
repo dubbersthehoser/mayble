@@ -9,19 +9,44 @@ import (
 	"time"
 	"os"
 
+	"fyne.io/fyne/v2/data/binding"
+
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
-func Test_DatabaseCreateAndOpen(t *testing.T) {
+func TestMenuUI(t *testing.T) {
+	b := &bus.Bus{}
 	db, err := database.OpenMem()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	b := &bus.Bus{}
-	as := newAppService(b, nil, db)
+	defer db.Conn.Close()
+	cfg := &config.Config{}
+	as := newAppService(b, cfg, db)
+	err = db.Conn.Ping()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
+	DBPath := binding.NewString()
+
+	menu := NewMenuVM(b, as, DBPath)
+	_ = menu
+
+
+	t.Run("CSVImportAndExport", func(t *testing.T){
+		testCSVImportAndExport(t, menu)
+	})
+
+	t.Run("DatabaseCreateAndOpen", func(t *testing.T){
+		testDatabaseCreateAndOpen(t, menu)
+	})
+}
+
+func testDatabaseCreateAndOpen(t *testing.T, menu *MenuVM) {
 	file, err := os.CreateTemp("", "*.db")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -31,20 +56,20 @@ func Test_DatabaseCreateAndOpen(t *testing.T) {
 
 	errCount := 0
 	
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserInfo,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_info:", e.Data.(string))
 		},
 	})
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_error:", e.Data.(string))
 			errCount += 1
 		},
 	})
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserSuccess,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_success:", e.Data.(string))
@@ -52,27 +77,28 @@ func Test_DatabaseCreateAndOpen(t *testing.T) {
 	})
 
 	t.Run("create", func(t *testing.T){
-		test_createDatabase(t, as, b, dbPath)
+		test_createDatabase(t, menu, dbPath)
 		if errCount != 0 {
 			t.Fatalf("there was an error in message bus")
 		}
 	})
 	t.Run("open", func(t *testing.T) {
-		test_openDatabase(t, as, b, dbPath)
+		test_openDatabase(t, menu, dbPath)
 		if errCount != 0 {
 			t.Fatalf("there was an error in message bus")
 		}
 	})
 }
 
-func test_createDatabase(t *testing.T, as *appService, b *bus.Bus, path string) {
+func test_createDatabase(t *testing.T, menu *MenuVM, path string) {
 	var err error
-	createDatabase(path, as, b)
+
+	menu.CreateDatabase(path, err)
 
 	file, err := os.CreateTemp("", "")
 	path = file.Name()
 	file.Close()
-	createDatabase(path, as, b)
+	menu.CreateDatabase(path, err)
 	
 	expect := path + ".db"
 
@@ -82,9 +108,9 @@ func test_createDatabase(t *testing.T, as *appService, b *bus.Bus, path string) 
 	}
 }
 
-func test_openDatabase(t *testing.T, as *appService, b *bus.Bus, path string) {
-	openDatabase(path, as, b)
-	if as.dbs == nil {
+func test_openDatabase(t *testing.T, menu *MenuVM, path string) {
+	menu.OpenDatabase(path, nil)
+	if menu.app.dbs == nil {
 		t.Fatal("database service is nil")
 	}
 }
@@ -92,23 +118,21 @@ func test_openDatabase(t *testing.T, as *appService, b *bus.Bus, path string) {
 
 
 
+func testCSVImportAndExport(t *testing.T, menu *MenuVM) {
 
-func Test_CSVImportAndExport(t *testing.T) {
-	b := &bus.Bus{}
-
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserInfo,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_info:", e.Data.(string))
 		},
 	})
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_error:", e.Data.(string))
 		},
 	})
-	b.Subscribe(bus.Handler{
+	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserSuccess,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_success:", e.Data.(string))
@@ -167,18 +191,18 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 	defer db.Conn.Close()
 
 	t.Run("import", func(t *testing.T) {
-		testImportCSV(t, b, db, bytes.NewBuffer([]byte(csvStr)), books)
+		testImportCSV(t, menu, bytes.NewBuffer([]byte(csvStr)), books)
 	})
 
 	t.Run("export", func(t *testing.T) {
-		testExportCSV(t, b, db, csvStr)
+		testExportCSV(t, menu, csvStr)
 	})
 }
 
-func testImportCSV(t *testing.T, b *bus.Bus, db *database.Database, input io.Reader, expect []repo.BookEntry) {
+func testImportCSV(t *testing.T, menu *MenuVM, input io.Reader, expect []repo.BookEntry) {
 
-	importCSV(input, b, db)
-	actual, err := db.GetAllBooks(repo.Book)
+	menu.ImportCSV(io.NopCloser(input), nil)
+	actual, err := menu.app.bookRetriever.GetAllBooks(repo.Book)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -194,13 +218,13 @@ func testImportCSV(t *testing.T, b *bus.Bus, db *database.Database, input io.Rea
 	}
 }
 
-func testExportCSV(t *testing.T, b *bus.Bus, db *database.Database, expect string) {
+func testExportCSV(t *testing.T, menu *MenuVM, expect string) {
 	file, err := os.CreateTemp("", "*.csv")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	exportCSV(file, file.Name(), b, db)
+	menu.ExportCSV(file, file.Name(), nil)
 
 	file, err = os.Open(file.Name())
 	if err != nil {
@@ -218,8 +242,6 @@ func testExportCSV(t *testing.T, b *bus.Bus, db *database.Database, expect strin
 	file.Close()
 	os.Remove(file.Name())
 
-
-
 	file, err = os.CreateTemp("", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -228,7 +250,7 @@ func testExportCSV(t *testing.T, b *bus.Bus, db *database.Database, expect strin
 	filepath := file.Name()
 	expectPath := filepath + ".csv"
 
-	exportCSV(file, file.Name(), b, db)
+	menu.ExportCSV(file, file.Name(), nil)
 	
 	_, err = os.Lstat(expectPath)
 	if err != nil {

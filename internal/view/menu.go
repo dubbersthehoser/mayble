@@ -18,14 +18,22 @@ import (
 func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 
 	csvImportBtn := widget.NewButton("Import", func() {
-		d := dialog.NewFileOpen(vm.ImportCSV, w)
+		d := dialog.NewFileOpen(func(r fyne.URIReadCloser, err error){
+			vm.ImportCSV(r, err)
+		}, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Import CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
 	csvExportBtn := widget.NewButton("Export", func() {
-		d := dialog.NewFileSave(vm.ExportCSV, w)
+		d := dialog.NewFileSave(func(w fyne.URIWriteCloser, err error) {
+			var path string
+			if w != nil {
+				path = w.URI().Path()
+			}
+			vm.ExportCSV(w, path, err)
+		}, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Export CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
@@ -33,7 +41,14 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 	})
 
 	openDBBtn := widget.NewButton("Open", func(){
-		d := dialog.NewFileOpen(vm.OpenDatabase, w)
+		d := dialog.NewFileOpen(func(r fyne.URIReadCloser, err error) {
+			var path string
+			if r != nil {
+				path = r.URI().Path()
+				r.Close()
+			}
+			vm.OpenDatabase(path, err)
+		}, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Open Database")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))
@@ -41,7 +56,14 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		
 	})
 	saveDBBtn := widget.NewButton("Create", func(){
-		d := dialog.NewFileSave(vm.CreateDatabase, w)
+		d := dialog.NewFileSave(func(w fyne.URIWriteCloser, err error) {
+			var path string
+			if w != nil {
+				path = w.URI().Path()
+				w.Close()
+			}
+			vm.CreateDatabase(path, err)
+		}, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Create Database")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))

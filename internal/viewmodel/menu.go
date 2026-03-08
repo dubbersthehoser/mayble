@@ -6,7 +6,6 @@ import (
 	"os"
 	"fmt"
 
-	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/csv"
@@ -31,7 +30,7 @@ func NewMenuVM(b *bus.Bus, app *appService, dbFile binding.String) *MenuVM {
 	return m
 } 
 
-func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
+func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -40,136 +39,110 @@ func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
 		return
 	}
 	defer r.Close()
-	importCSV(r, c.bus, c.app.bookCreator)
-
-}
-
-func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
-	if err != nil {
-		displayError(c.bus, err)
-		return
-	}
-	if w == nil {
-		return
-	}
-	exportCSV(w, w.URI().Path(), c.bus, c.app.bookRetriever)
-}
-
-
-
-func (c *MenuVM) OpenDatabase(r fyne.URIReadCloser, err error) {
-	if r == nil {
-		return
-	}
-	if err != nil {
-		displayError(c.bus, err)
-		return
-	}
-	r.Close()
-	openDatabase(r.URI().Path(), c.app, c.bus)
-	_ = c.DBFile.Set(r.URI().Path())
-}
-
-func (c *MenuVM) CreateDatabase(w fyne.URIWriteCloser, err error) {
-	if err != nil {
-		displayError(c.bus, err)
-		return
-	}
-
-	if w == nil {
-		return
-	}
-
-	w.Close()
-	filepath := w.URI().Path()
-	_ = c.DBFile.Set(filepath)
-}
-
-func displayError(b *bus.Bus, err error) {
-	b.Notify(bus.Event{
-		Name: msgUserError,
-		Data: err,
-	})
-}
-
-
-
-func importCSV(r io.Reader, b *bus.Bus, bc repo.BookCreator) {
 	books, err := csv.Import(r)
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 	}
 
 	for _, book := range books {
-		_, err = bc.CreateBook(&book)
+		_, err = c.app.bookCreator.CreateBook(&book)
 		if err != nil {
-			displayError(b, err)
+			displayError(c.bus, err)
 			return
 		}
 	}
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 		Data: nil,
 	})
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgUserSuccess,
 		Data: "Imported!",
 	})
 }
 
-func exportCSV(w io.WriteCloser, filepath string, b *bus.Bus, br repo.BookRetriever) {
-	var err error
+func (c *MenuVM) ExportCSV(w io.WriteCloser, filepath string, err error) {
+	if err != nil {
+		displayError(c.bus, err)
+		return
+	}
+	if w == nil {
+		return
+	}
+
 	if !strings.HasSuffix(filepath, ".csv") {
 		filepath += ".csv"
 		w.Close()
 		w, err = os.Create(filepath)
 		if err != nil {
-			displayError(b, err)
+			displayError(c.bus, err)
 			return
 		}
 	}
 	defer w.Close()
 
-	books, err := br.GetAllBooks(repo.Book)
+	books, err := c.app.bookRetriever.GetAllBooks(repo.Book)
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
 
 	err = csv.Export(w, books)
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
 
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgUserSuccess,
 		Data: "Exported!",
 	})
 }
 
-func openDatabase(path string, as *appService, b *bus.Bus) {
-	db, err := database.Open(path)
+
+
+func (c *MenuVM) OpenDatabase(path string, err error) {
+	if path == "" {
+		return
+	}
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
 
-	err = as.changeDB(db)
+	db, err := database.Open(path)
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
-	b.Notify(bus.Event{
+
+	err = c.app.changeDB(db)
+	if err != nil {
+		displayError(c.bus, err)
+		return
+	}
+	c.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 	})
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: fmt.Sprintf("opened: '%s'", path),
 	})
+
+	_ = c.DBFile.Set(path)
 }
 
-func createDatabase(path string, as *appService, b *bus.Bus) {
+func (c *MenuVM) CreateDatabase(path string, err error) {
+	if err != nil {
+		displayError(c.bus, err)
+		return
+	}
+
+	if path == "" {
+		return
+	}
+	_ = c.DBFile.Set(path)
+
 	if !strings.HasSuffix(path, ".db") &&
 	   !strings.HasSuffix(path, ".sqlite") &&
 	   !strings.HasSuffix(path, ".sqlite3") {
@@ -179,23 +152,29 @@ func createDatabase(path string, as *appService, b *bus.Bus) {
 	db, err := database.Open(path)
 
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
 
-	err = as.changeDB(db)
+	err = c.app.changeDB(db)
 	if err != nil {
-		displayError(b, err)
+		displayError(c.bus, err)
 		return
 	}
 
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: fmt.Sprintf("created: '%s'", path),
 	})
 
-	b.Notify(bus.Event{
+	c.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 	})
-	
+}
+
+func displayError(b *bus.Bus, err error) {
+	b.Notify(bus.Event{
+		Name: msgUserError,
+		Data: err,
+	})
 }

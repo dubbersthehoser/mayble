@@ -158,26 +158,6 @@ func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
 	return NewCreateBookForm(m.bus, m.app)
 }
 
-type BookVM struct {
-	id int64
-	Title binding.String
-	Author binding.String
-	Genre binding.String
-}
-func NewBookVM(id int64, title, author, genre string) *BookVM {
-	vm := &BookVM{
-		id: id,
-		Title: binding.NewString(),
-		Author: binding.NewString(),
-		Genre: binding.NewString(),
-	}
-	_ = vm.Title.Set(title)
-	_ = vm.Author.Set(author)
-	_ = vm.Genre.Set(genre)
-	return vm
-}
-
-
 const dateFormat = "02/01/2006"
 
 func formatDate(t *time.Time) string {

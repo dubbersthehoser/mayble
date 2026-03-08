@@ -6,7 +6,82 @@ import (
 	"fmt"
 
 	"fyne.io/fyne/v2/data/binding"
+
+	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/bus"
 )
+
+
+
+
+
+func TestMainUI(t *testing.T) {
+	db, err := database.OpenMem()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer db.Conn.Close()
+	cfg := &config.Config{}
+	err = db.Conn.Ping()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	mainUI := NewMainUI(cfg, db, []error{})
+
+	if mainUI.OpenedBody == nil {
+		t.Fatal("unexpected nil")
+	}
+	if mainUI.DBFile == nil {
+		t.Fatal("unexpected nil")
+	}
+	if mainUI.Error == nil {
+		t.Fatal("unexpected nil")
+	}
+	if mainUI.Info == nil {
+		t.Fatal("unexpected nil")
+	}
+	if mainUI.Clear == nil {
+		t.Fatal("unexpected nil")
+	}
+
+	msgTests := []struct{
+		name   string
+		expect string
+		getter binding.String
+	}{
+		{
+			name: msgUserInfo,
+			expect: "Info",
+			getter: mainUI.Info,
+		},
+		{
+			name: msgUserSuccess,
+			expect: "Success",
+			getter: mainUI.Success,
+		},
+		{
+			name: msgUserError,
+			expect: "Error",
+			getter: mainUI.Error,
+		},
+	}
+
+	for _, c := range msgTests {
+		t.Run(c.expect, func(t *testing.T) {
+			mainUI.bus.Notify(bus.Event{
+				Name: c.name,
+				Data: c.expect,
+			})
+			actual, _ := c.getter.Get()
+			if actual != c.expect {
+				t.Fatalf("expect '%s', got '%s'", c.expect, actual)
+			}
+		})
+
+	}
+}
 
 func Test_formatRating(t *testing.T) {
 	tests := []struct{
