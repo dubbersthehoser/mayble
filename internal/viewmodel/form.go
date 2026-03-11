@@ -205,10 +205,6 @@ func (s *SubmissionList) append(book *repo.BookEntry) {
 func (s *SubmissionList) add(bf *BookForm) error {
 	book := bf.ToBookEntry()
 	s.append(book)
-	s.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Added to submission",
-	})
 	return nil
 }
 
@@ -236,19 +232,21 @@ func (s *SubmissionList) GetView(idx int) string {
 	}
 }
 
-func (s *SubmissionList) Remove(idx int) {
+func (s *SubmissionList) remove(idx int) {
 	if idx >= s.Length() || idx < 0 {
 		return
 	}
 
 	s.submissions = append(s.submissions[:idx], s.submissions[idx+1:]...)
+	s.l.notify()
+}
 
+func (s *SubmissionList) Remove(idx int) {
 	s.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: "Submission removed",
 	})
-
-	s.l.notify()
+	s.remove(idx)
 }
 
 func (s *SubmissionList) Edit(idx int) {
@@ -268,7 +266,6 @@ func (s *SubmissionList) Edit(idx int) {
 func (s *SubmissionList) AddListener(l binding.DataListener) {
 	s.l.AddListener(l)
 }
-
 
 
 type CreateBookForm struct {
@@ -304,7 +301,6 @@ func (bf *CreateBookForm) AddSubmission() {
 		Name: msgUserInfo,
 		Data: "Added submission",
 	})
-
 	bf.sl.add(&bf.BookForm)
 	bf.reset()
 }
@@ -314,18 +310,19 @@ func (bf *CreateBookForm) SubmissionList() *SubmissionList {
 }
 
 func (bf *CreateBookForm) Submit() {
-	if bf.sl.Length() == 0  {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "No submissions to submit",
-		})
-		return
-	}
 
 	if bf.repo == nil {
 		bf.bus.Notify(bus.Event{
 			Name: msgUserInfo,
 			Data: "Not implemented.",
+		})
+		return
+	}
+
+	if bf.sl.Length() == 0  {
+		bf.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "No submissions to submit",
 		})
 		return
 	}

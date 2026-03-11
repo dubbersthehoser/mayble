@@ -376,6 +376,22 @@ func Test_hiddenHeadersToOptions(t *testing.T) {
 	}
 }
 
+
+func busMsgTestHelper(t *testing.T, eventName string, check func(s string)) bus.Handler {
+	t.Helper()
+	return bus.Handler{
+		Name: eventName,
+		Handler: func(e *bus.Event) {
+			s, ok := e.Data.(string)
+			if e.Data != nil && !ok {
+				t.Fatalf("invalid event data type")
+			}
+			check(s)
+		},
+	}
+}
+
+
 func TestTableControllerVM(t *testing.T) {
 	b := &bus.Bus{}
 	db, err := database.OpenMem()
@@ -401,23 +417,10 @@ func TestTableControllerVM(t *testing.T) {
 		Genre: "genre",
 	})
 
-	testHandler := func(t *testing.T, name string, test func(s string)) bus.Handler {
-		t.Helper()
-		return bus.Handler{
-			Name: name,
-			Handler: func(e *bus.Event) {
-				s, ok := e.Data.(string)
-				if e.Data != nil && !ok {
-					t.Fatalf("invalid event data type")
-				}
-				test(s)
-			},
-		}
-	}
 
 	t.Run("Edit", func(t *testing.T){
 		var ok bool
-		hid := b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+		hid := b.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 			ok = true
 			expect := "Nothing selected"
 			if s != expect {
@@ -433,7 +436,7 @@ func TestTableControllerVM(t *testing.T) {
 		controllers.selector.selectID(bookID, !notifySelect)
 		controllers.Edit()
 		ok = false
-		hid = b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+		hid = b.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 			ok = true
 			unexpect := "Nothing selected"
 			if s == unexpect {
@@ -456,7 +459,7 @@ func TestTableControllerVM(t *testing.T) {
 
 	t.Run("Delete", func(t *testing.T){
 		var ok bool
-		hid := b.Subscribe(testHandler(t, msgUserInfo, func(s string) {
+		hid := b.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 			ok = true
 			expect := "Nothing selected"
 			if s != expect {
@@ -473,7 +476,7 @@ func TestTableControllerVM(t *testing.T) {
 
 		
 		ok = false
-		hid = b.Subscribe(testHandler(t, msgDataChanged, func(s string) {
+		hid = b.Subscribe(busMsgTestHelper(t, msgDataChanged, func(s string) {
 			ok = true
 		}))
 		controllers.Delete()

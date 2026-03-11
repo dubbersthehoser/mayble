@@ -27,6 +27,7 @@ func GetQueries(db *sql.DB) *database.Queries {
 
 // MigrateUp current connection.
 func MigrateUpTo(db *sql.DB, version int64) error {
+	goose.SetLogger(goose.NopLogger())
 	goose.SetBaseFS(api.SQLiteFS)
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		return fmtError(err)

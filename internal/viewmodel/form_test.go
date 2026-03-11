@@ -438,19 +438,18 @@ func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.
 
 func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	form := NewBookForm()
+
 	for i, book := range books {
 		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
 			form.Set(&book)
 			list.add(form)
 		})
 	}
+
 	if len(books) != list.Length() {
 		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
 	}
 }
-
-
-
 
 
 
@@ -470,8 +469,98 @@ func TestCreateBookForm(t *testing.T) {
 	}
 	
 	cForm := NewCreateBookForm(b, as)
+	_ = cForm
 
+	t.Run("AddSubmission", func(t *testing.T) {
+		testCreateBookFormAddsubmission(t, cForm)
+	})
+	cForm.BookForm.reset()
+	t.Run("Submit", func(t *testing.T) {
+		testCreateBookFormSubmit(t, cForm)
+	})
+}
 
+func testCreateBookFormSubmit(t *testing.T, form *CreateBookForm) {
+	var ok bool
+	id := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
+		ok = true
+		expect := "No submissions to submit"
+		if s != expect {
+			t.Fatalf("expect message '%s', got '%s'", expect, s)
+		}
+	}))
+
+	form.Submit()
+
+	if !ok {
+		t.Fatal("message was not signaled")
+	}
+	form.bus.Unsubscribe(id)
+
+	repo := form.repo
+	form.repo = nil
+
+	ok = false
+	id = form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
+		ok = true
+		expect := "Not implemented."
+		if s != expect {
+			t.Fatalf("expect message '%s', got '%s'", expect, s)
+		}
+	}))
+
+	form.Submit()
+	if !ok {
+		t.Fatal("message was not signaled")
+	}
+	form.bus.Unsubscribe(id)
+	form.repo = repo
+	_ = form.BookForm.Title.Set("title")
+	_ = form.BookForm.Author.Set("author")
+	_ = form.BookForm.Genre.Set("genre")
+	form.AddSubmission()
+
+	id = form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
+		
+	}))
+	form.Submit()
+}
+
+func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
+
+	var ok bool
+	id := form.bus.Subscribe(busMsgTestHelper(t, msgUserError, func(s string) {
+		ok = true
+	}))
+	form.AddSubmission()
+	if !ok {
+		t.Fatal("validation error was not signaled")
+	}
+	form.bus.Unsubscribe(id)
+
+	_  = form.BookForm.Title.Set("title")
+	_ = form.BookForm.Author.Set("author")
+	_ = form.BookForm.Genre.Set("genre")
+
+	ok = false
+	sid := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
+		ok = true
+		expect := "Added submission"
+		if s !=  expect {
+			t.Fatalf("expect message '%s', got '%s'", expect, s)
+		}
+	}))
+	fid := form.bus.Subscribe(busMsgTestHelper(t, msgUserError, func(s string) {
+		t.Fatalf("unexpected validation error message: %s", s)
+	}))
+	form.AddSubmission()
+
+	if !ok {
+		t.Fatalf("validation success was not signaled")
+	}
+	form.bus.Unsubscribe(sid)
+	form.bus.Unsubscribe(fid)
+	form.sl.remove(0)
 }
 
 
