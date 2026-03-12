@@ -518,12 +518,21 @@ func testCreateBookFormSubmit(t *testing.T, form *CreateBookForm) {
 	_ = form.BookForm.Title.Set("title")
 	_ = form.BookForm.Author.Set("author")
 	_ = form.BookForm.Genre.Set("genre")
+
 	form.AddSubmission()
 
-	id = form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
-		
+	ok = false
+	id = form.bus.Subscribe(busMsgTestHelper(t, msgUserSuccess, func(s string) {
+		ok = true
+		expect := "Books Added!"
+		if s != expect {
+			t.Fatalf("expect message '%s', got '%s'", expect, s)
+		}
 	}))
 	form.Submit()
+	if !ok {
+		t.Fatal("message was not signaled")
+	}
 }
 
 func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {

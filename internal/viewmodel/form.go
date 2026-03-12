@@ -337,20 +337,14 @@ func (bf *CreateBookForm) Submit() {
 		if err != nil {
 			failed = append(failed, *book)
 			log.Println(fmt.Errorf("form.Submit: %w", err))
+			bf.bus.Notify(bus.Event{
+				Name: msgUserError,
+				Data: "Submission failed",
+			})
+			return
 		}
 	}
 	bf.sl.Clear()
-	for _, f := range failed {
-		bf.sl.append(&f)
-	}
-	if len(failed) > 0 {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserError,
-			Data: "Submission failed be added.",
-		})
-		return
-	}
-
 	bf.bus.Notify(bus.Event{
 		Name: msgUserSuccess,
 		Data: "Books Added!",
