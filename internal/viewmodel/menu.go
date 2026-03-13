@@ -175,6 +175,6 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 func displayError(b *bus.Bus, err error) {
 	b.Notify(bus.Event{
 		Name: msgUserError,
-		Data: err,
+		Data: err.Error(),
 	})
 }

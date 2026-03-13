@@ -2,6 +2,7 @@ package viewmodel
 
 import (
 	"testing"
+	"errors"
 	"slices"
 	"strings"
 	"bytes"
@@ -54,8 +55,6 @@ func testDatabaseCreateAndOpen(t *testing.T, menu *MenuVM) {
 	dbPath := file.Name()
 	file.Close()
 
-	errCount := 0
-	
 	menu.bus.Subscribe(bus.Handler{
 		Name: msgUserInfo,
 		Handler: func(e *bus.Event) {
@@ -66,7 +65,6 @@ func testDatabaseCreateAndOpen(t *testing.T, menu *MenuVM) {
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			t.Log("bus.msg_user_error:", e.Data.(string))
-			errCount += 1
 		},
 	})
 	menu.bus.Subscribe(bus.Handler{
@@ -78,15 +76,9 @@ func testDatabaseCreateAndOpen(t *testing.T, menu *MenuVM) {
 
 	t.Run("create", func(t *testing.T){
 		test_createDatabase(t, menu, dbPath)
-		if errCount != 0 {
-			t.Fatalf("there was an error in message bus")
-		}
 	})
 	t.Run("open", func(t *testing.T) {
 		test_openDatabase(t, menu, dbPath)
-		if errCount != 0 {
-			t.Fatalf("there was an error in message bus")
-		}
 	})
 }
 
@@ -106,6 +98,23 @@ func test_createDatabase(t *testing.T, menu *MenuVM, path string) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+
+	menu.CreateDatabase("", nil)
+
+	var ok bool
+	err = errors.New("invalid permissions")
+	id := menu.bus.Subscribe(busMsgTestHelper(t, msgUserError, func(s string) {
+		ok = true
+		expect := "invalid permissions"
+		if expect != s {
+			t.Fatalf("expect message '%s', got '%s'", expect, s )
+		}
+	}))
+	menu.CreateDatabase("", err)
+	if !ok {
+		t.Fatalf("expected message")
+	}
+	menu.bus.Unsubscribe(id)
 }
 
 func test_openDatabase(t *testing.T, menu *MenuVM, path string) {

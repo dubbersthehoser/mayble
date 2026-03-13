@@ -96,7 +96,7 @@ func searchCompare(text, search string) int {
 	}
 }
 
-// SearchResult a result of a search.
+// A SearchResult is a result of a table search.
 type SearchResult struct {
 	ID       int64
 	Row, Col int

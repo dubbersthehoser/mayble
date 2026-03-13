@@ -97,3 +97,41 @@ func Test_searchCompare(t *testing.T) {
 		})
 	}
 }
+
+func TestSearch(t *testing.T) {
+	books := [][]string{
+			{
+				"A Title",
+				"A Author",
+				"A Genre",
+			},
+			{
+				"B Title",
+				"B Author",
+				"B Genre",
+			},
+			{
+				"C Title",
+				"C Author",
+				"C Genre",
+			},
+			{
+				"D Title",
+				"D Author",
+				"D Genre",
+			},
+	}
+
+	table := NewTable("SearchTest", []string{"Title", "Author", "Genre"})
+	for i, book := range books {
+		table.AppendRow(int64(i+1), book)
+	}
+	results := Search(table, "D Title", "")
+	if len(results) == 0 {
+		t.Fatal("expected length > 0")
+	}
+
+	if results[0].ID != 4 {
+		t.Fatalf("expect id of 4, got %d", results[0].ID)
+	}
+}
