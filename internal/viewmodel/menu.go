@@ -1,34 +1,33 @@
 package viewmodel
 
 import (
-	"strings"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
+	"strings"
 
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/csv"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/csv"
 	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
-
 )
 
 type MenuVM struct {
 	DBFile binding.String
-	app *appService
-	bus *bus.Bus
+	app    *appService
+	bus    *bus.Bus
 }
 
 func NewMenuVM(b *bus.Bus, app *appService, dbFile binding.String) *MenuVM {
 	m := &MenuVM{
 		DBFile: dbFile,
-		bus: b,
-		app: app,
+		bus:    b,
+		app:    app,
 	}
 	return m
-} 
+}
 
 func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
 	if err != nil {
@@ -99,8 +98,6 @@ func (c *MenuVM) ExportCSV(w io.WriteCloser, filepath string, err error) {
 	})
 }
 
-
-
 func (c *MenuVM) OpenDatabase(path string, err error) {
 	if path == "" {
 		return
@@ -144,8 +141,8 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 	_ = c.DBFile.Set(path)
 
 	if !strings.HasSuffix(path, ".db") &&
-	   !strings.HasSuffix(path, ".sqlite") &&
-	   !strings.HasSuffix(path, ".sqlite3") {
+		!strings.HasSuffix(path, ".sqlite") &&
+		!strings.HasSuffix(path, ".sqlite3") {
 		path += ".db"
 	}
 

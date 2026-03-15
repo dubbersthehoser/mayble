@@ -2,9 +2,9 @@ package config
 
 import (
 	"os"
-	"testing"
-	"slices"
 	"path/filepath"
+	"slices"
+	"testing"
 )
 
 func unexpectError(t *testing.T, err error) {
@@ -15,10 +15,10 @@ func unexpectError(t *testing.T, err error) {
 }
 
 func TestConfig(t *testing.T) {
-	
+
 	dir, err := os.MkdirTemp("", "")
 	unexpectError(t, err)
-	t.Cleanup(func(){
+	t.Cleanup(func() {
 		err := os.RemoveAll(dir)
 		if err != nil {
 			t.Log(err)

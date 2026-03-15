@@ -2,22 +2,21 @@ package viewmodel
 
 import (
 	"errors"
-	"slices"
 	"fmt"
 	"log"
+	"slices"
 
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
-
 )
 
 type BookForm struct {
-	id        int64
-	Title     binding.String
-	Author    binding.String
-	Genre     binding.String
+	id     int64
+	Title  binding.String
+	Author binding.String
+	Genre  binding.String
 
 	IsLoaned binding.Bool
 	Borrower binding.String
@@ -30,10 +29,10 @@ type BookForm struct {
 
 func NewBookForm() *BookForm {
 	return &BookForm{
-		id: -1,
-		Title: binding.NewString(),
+		id:     -1,
+		Title:  binding.NewString(),
 		Author: binding.NewString(),
-		Genre: binding.NewString(),
+		Genre:  binding.NewString(),
 
 		IsRead:    binding.NewBool(),
 		Rating:    binding.NewString(),
@@ -41,7 +40,7 @@ func NewBookForm() *BookForm {
 
 		IsLoaned: binding.NewBool(),
 		Borrower: binding.NewString(),
-		Date: binding.NewString(),
+		Date:     binding.NewString(),
 	}
 }
 
@@ -66,9 +65,9 @@ func (bf *BookForm) validate() error {
 	if title == "" {
 		return errors.New("Missing Title")
 	}
-	if author == "" {	
+	if author == "" {
 		return errors.New("Missing Auther")
-	} 
+	}
 	if genre == "" {
 		return errors.New("Missing Genre")
 	}
@@ -120,13 +119,13 @@ func (bf *BookForm) Set(book *repo.BookEntry) {
 	_ = bf.Author.Set(book.Author)
 	_ = bf.Genre.Set(book.Genre)
 
-	if repo.Loaned & book.Variant != 0 {
+	if repo.Loaned&book.Variant != 0 {
 		_ = bf.IsLoaned.Set(true)
 		_ = bf.Date.Set(formatDate(&book.Loaned))
 		_ = bf.Borrower.Set(book.Borrower)
 	}
 
-	if repo.Read & book.Variant != 0 {
+	if repo.Read&book.Variant != 0 {
 		_ = bf.IsRead.Set(true)
 		_ = bf.Rating.Set(formatRating(book.Rating))
 		_ = bf.Completed.Set(formatDate(&book.Read))
@@ -165,21 +164,19 @@ func (bf *BookForm) ToBookEntry() *repo.BookEntry {
 	return book
 }
 
-
-
-
 type SubmissionList struct {
-	form       *BookForm
-	bus        *bus.Bus
-	l          *listener
+	form        *BookForm
+	bus         *bus.Bus
+	l           *listener
 	submissions []repo.BookEntry
 }
-func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList{
+
+func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
 	return &SubmissionList{
-		l: &listener{},
-		bus: bus,
+		l:           &listener{},
+		bus:         bus,
 		submissions: make([]repo.BookEntry, 0),
-		form: form,
+		form:        form,
 	}
 }
 
@@ -192,7 +189,7 @@ func (s *SubmissionList) pop() (*repo.BookEntry, error) {
 		return nil, errors.New("empty list")
 	}
 	top := s.submissions[s.Length()-1]
-	s.Remove(s.Length()-1)
+	s.Remove(s.Length() - 1)
 	s.l.notify()
 	return &top, nil
 }
@@ -267,20 +264,19 @@ func (s *SubmissionList) AddListener(l binding.DataListener) {
 	s.l.AddListener(l)
 }
 
-
 type CreateBookForm struct {
-	bus       *bus.Bus
-	sl        *SubmissionList
-	repo      repo.BookCreator
-	Genres    *UniqueGenres
+	bus    *bus.Bus
+	sl     *SubmissionList
+	repo   repo.BookCreator
+	Genres *UniqueGenres
 	BookForm
 }
 
 func NewCreateBookForm(b *bus.Bus, app *appService) *CreateBookForm {
 	bf := &CreateBookForm{
-		bus: b,
-		Genres: app.uniqueGenres,
-		repo: app.bookCreator,
+		bus:      b,
+		Genres:   app.uniqueGenres,
+		repo:     app.bookCreator,
 		BookForm: *NewBookForm(),
 	}
 	bf.sl = NewSubmissionList(b, &bf.BookForm)
@@ -294,7 +290,7 @@ func (bf *CreateBookForm) AddSubmission() {
 			Name: msgUserError,
 			Data: err.Error(),
 		})
-		return 
+		return
 	}
 
 	bf.bus.Notify(bus.Event{
@@ -319,7 +315,7 @@ func (bf *CreateBookForm) Submit() {
 		return
 	}
 
-	if bf.sl.Length() == 0  {
+	if bf.sl.Length() == 0 {
 		bf.bus.Notify(bus.Event{
 			Name: msgUserInfo,
 			Data: "No submissions to submit",
@@ -355,22 +351,21 @@ func (bf *CreateBookForm) Submit() {
 	})
 }
 
-
 type EditBookVM struct {
 	BookForm
-	Genres  *UniqueGenres
-	bus     *bus.Bus
-	IsOpen  binding.Bool
-	app     *appService
+	Genres *UniqueGenres
+	bus    *bus.Bus
+	IsOpen binding.Bool
+	app    *appService
 }
 
-func NewEditBookVM(b  *bus.Bus, app *appService, isOpen binding.Bool) *EditBookVM {
+func NewEditBookVM(b *bus.Bus, app *appService, isOpen binding.Bool) *EditBookVM {
 	ed := &EditBookVM{
 		bus:      b,
 		BookForm: *NewBookForm(),
-		app: app,
+		app:      app,
 		IsOpen:   isOpen,
-		Genres: app.uniqueGenres,
+		Genres:   app.uniqueGenres,
 	}
 	return ed
 }
@@ -382,13 +377,13 @@ func (ed *EditBookVM) Submit() {
 			Name: msgUserError,
 			Data: err.Error(),
 		})
-		return 
+		return
 	}
 
 	book := ed.BookForm.ToBookEntry()
 
 	ed.app.bookUpdator.UpdateBook(book)
-	
+
 	ed.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 	})

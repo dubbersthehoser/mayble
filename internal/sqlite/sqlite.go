@@ -1,14 +1,14 @@
 package sqlite
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
-	
-	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
+
 	"github.com/dubbersthehoser/mayble/api"
+	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 )
 
 func fmtError(err error) error {
@@ -38,7 +38,7 @@ func MigrateUpTo(db *sql.DB, version int64) error {
 	return nil
 }
 
-// GetVersion 
+// GetVersion
 func GetVersion(db *sql.DB) int64 {
 	v, err := goose.GetDBVersion(db)
 	if err != nil {

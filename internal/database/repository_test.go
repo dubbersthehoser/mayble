@@ -8,7 +8,7 @@ import (
 )
 
 func Test_bookBuilder(t *testing.T) {
-	
+
 	t.Run("invalid builds", func(t *testing.T) {
 		builder := newBookBuilder()
 		builder.SetID(432)
@@ -53,16 +53,16 @@ func Test_bookBuilder(t *testing.T) {
 
 func testBuilderBuild(t *testing.T) {
 	type input struct {
-			id       int64
-			title,
-			author,
-			genre,
-			loanDate, 
-			borrower, 
-			readDate  string
-			rating    int64
+		id int64
+		title,
+		author,
+		genre,
+		loanDate,
+		borrower,
+		readDate string
+		rating int64
 	}
-	tests := []struct{
+	tests := []struct {
 		name   string
 		input  input
 		expect repo.BookEntry
@@ -70,80 +70,80 @@ func testBuilderBuild(t *testing.T) {
 		{
 			name: "just a book",
 			input: input{
-				id: 132,
-				title: "A Title",
+				id:     132,
+				title:  "A Title",
 				author: "A Author",
-				genre: "A Genre",
+				genre:  "A Genre",
 			},
 			expect: repo.BookEntry{
-				ID: 132,
-				Title: "A Title",
+				ID:     132,
+				Title:  "A Title",
 				Author: "A Author",
-				Genre: "A Genre",
+				Genre:  "A Genre",
 			},
 		},
 		{
 			name: "just loaned book",
 			input: input{
-				id: 132,
-				title: "A Title",
-				author: "A Author",
-				genre: "A Genre",
+				id:       132,
+				title:    "A Title",
+				author:   "A Author",
+				genre:    "A Genre",
 				loanDate: "2020-02-03",
 				borrower: "Lane",
 			},
 			expect: repo.BookEntry{
-				Variant: repo.Loaned,
-				ID: 132,
-				Title: "A Title",
-				Author: "A Author",
-				Genre: "A Genre",
-				Loaned: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Loaned,
+				ID:       132,
+				Title:    "A Title",
+				Author:   "A Author",
+				Genre:    "A Genre",
+				Loaned:   time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
 			},
 		},
 		{
 			name: "just read book",
 			input: input{
-				id: 132,
-				title: "A Title",
-				author: "A Author",
-				genre: "A Genre",
+				id:       132,
+				title:    "A Title",
+				author:   "A Author",
+				genre:    "A Genre",
 				readDate: "2020-02-03",
-				rating: 3,
+				rating:   3,
 			},
 			expect: repo.BookEntry{
 				Variant: repo.Read,
-				ID: 132,
-				
-				Title: "A Title",
+				ID:      132,
+
+				Title:  "A Title",
 				Author: "A Author",
-				Genre: "A Genre",
-				Read: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+				Genre:  "A Genre",
+				Read:   time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
 				Rating: 3,
 			},
 		},
 		{
 			name: "just book and read loaned",
 			input: input{
-				id: 132,
-				title: "A Title",
-				author: "A Author",
-				genre: "A Genre",
+				id:       132,
+				title:    "A Title",
+				author:   "A Author",
+				genre:    "A Genre",
 				readDate: "2020-02-03",
-				rating: 3,
+				rating:   3,
 				loanDate: "2020-02-03",
 				borrower: "Lane",
 			},
 			expect: repo.BookEntry{
-				Variant: repo.Read | repo.Loaned,
-				ID: 132,
-				Title: "A Title",
-				Author: "A Author",
-				Genre: "A Genre",
-				Read: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
-				Loaned: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Read | repo.Loaned,
+				ID:       132,
+				Title:    "A Title",
+				Author:   "A Author",
+				Genre:    "A Genre",
+				Read:     time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
+				Loaned:   time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
 			},
 		},
@@ -177,8 +177,6 @@ func testBuilderBuild(t *testing.T) {
 	}
 }
 
-
-
 func TestDatabase(t *testing.T) {
 
 	db, err := OpenMem()
@@ -202,7 +200,7 @@ func TestDatabase(t *testing.T) {
 		if expect != genres[0] {
 			t.Fatalf("expect '%s', got '%s'", expect, genres[0])
 		}
-		
+
 	})
 
 	t.Run("update_book", func(t *testing.T) {
@@ -214,7 +212,6 @@ func TestDatabase(t *testing.T) {
 	})
 
 }
-
 
 func testDatabaseDeleteBook(db *Database, t *testing.T) {
 
@@ -243,11 +240,10 @@ func testDatabaseDeleteBook(db *Database, t *testing.T) {
 		t.Fatalf("expect length 0, got %d", len(actual))
 	}
 
-
 }
 
 func testDatabaseUpdateBook(db *Database, t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		name    string
 		input   repo.BookEntry
 		willErr bool
@@ -255,22 +251,22 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "a simple book",
 			input: repo.BookEntry{
-				ID: 1,
-				Title: "a_title_update",
+				ID:     1,
+				Title:  "a_title_update",
 				Author: "a_author_update",
-				Genre: "a_genre_update",
+				Genre:  "a_genre_update",
 			},
 			willErr: false,
 		},
 		{
 			name: "a loaned book",
 			input: repo.BookEntry{
-				ID: 2,
-				Variant: repo.Loaned,
-				Title: "a_title_update",
-				Author: "a_author_update",
-				Genre: "a_genre_update",
-				Loaned: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+				ID:       2,
+				Variant:  repo.Loaned,
+				Title:    "a_title_update",
+				Author:   "a_author_update",
+				Genre:    "a_genre_update",
+				Loaned:   time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
 				Borrower: "Bob",
 			},
 			willErr: false,
@@ -278,38 +274,38 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "a read book",
 			input: repo.BookEntry{
-				ID: 3,
+				ID:      3,
 				Variant: repo.Read,
-				Title: "a_title_update",
-				Author: "a_author_update",
-				Genre: "a_genre_update",
-				Read: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
-				Rating: 1,
+				Title:   "a_title_update",
+				Author:  "a_author_update",
+				Genre:   "a_genre_update",
+				Read:    time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+				Rating:  1,
 			},
 			willErr: false,
 		},
 		{
 			name: "remove loaned and read from book",
 			input: repo.BookEntry{
-				ID: 4,
+				ID:      4,
 				Variant: repo.Book,
-				Title: "a_title_update",
-				Author: "a_author_update",
-				Genre: "a_genre_update",
+				Title:   "a_title_update",
+				Author:  "a_author_update",
+				Genre:   "a_genre_update",
 			},
 			willErr: false,
 		},
 		{
 			name: "add loaned and read back book",
 			input: repo.BookEntry{
-				ID: 4,
-				Variant: repo.Loaned | repo.Read,
-				Title: "a_title_update",
-				Author: "a_author_update",
-				Genre: "a_genre_update",
-				Read: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
-				Rating: 1,
-				Loaned: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+				ID:       4,
+				Variant:  repo.Loaned | repo.Read,
+				Title:    "a_title_update",
+				Author:   "a_author_update",
+				Genre:    "a_genre_update",
+				Read:     time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+				Rating:   1,
+				Loaned:   time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
 				Borrower: "Bob",
 			},
 			willErr: false,
@@ -317,7 +313,7 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 	}
 
 	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T){
+		t.Run(c.name, func(t *testing.T) {
 			err := db.UpdateBook(&c.input)
 			if c.willErr {
 				if err == nil {
@@ -345,7 +341,7 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 
 func testDatabaseCreateBook(db *Database, t *testing.T) {
 
-	tests := []struct{
+	tests := []struct {
 		name    string
 		input   repo.BookEntry
 		expect  int64
@@ -354,58 +350,58 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 		{
 			name: "a simple book",
 			input: repo.BookEntry{
-				Title: "A_Title",
+				Title:  "A_Title",
 				Author: "A_Author",
-				Genre: "A_Genre",
+				Genre:  "A_Genre",
 			},
-			expect: 1,
+			expect:  1,
 			willErr: false,
 		},
 		{
 			name: "a loaned book",
 			input: repo.BookEntry{
-				Variant: repo.Loaned,
-				Title: "A_Title",
-				Author: "A_Author",
-				Genre: "A_Genre",
-				Loaned: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Loaned,
+				Title:    "A_Title",
+				Author:   "A_Author",
+				Genre:    "A_Genre",
+				Loaned:   time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
 			},
-			expect: 2,
+			expect:  2,
 			willErr: false,
 		},
 		{
 			name: "a read book",
 			input: repo.BookEntry{
 				Variant: repo.Read,
-				Title: "A_Title",
-				Author: "A_Author",
-				Genre: "A_Genre",
-				Read: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
-				Rating: 5,
+				Title:   "A_Title",
+				Author:  "A_Author",
+				Genre:   "A_Genre",
+				Read:    time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+				Rating:  5,
 			},
-			expect: 3,
+			expect:  3,
 			willErr: false,
 		},
 		{
 			name: "a loaned and read book",
 			input: repo.BookEntry{
-				Variant: repo.Loaned | repo.Read,
-				Title: "A_Title",
-				Author: "A_Author",
-				Genre: "A_Genre",
-				Loaned: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Loaned | repo.Read,
+				Title:    "A_Title",
+				Author:   "A_Author",
+				Genre:    "A_Genre",
+				Loaned:   time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
-				Rating: 5,
+				Read:     time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+				Rating:   5,
 			},
-			expect: 4,
+			expect:  4,
 			willErr: false,
 		},
 	}
 
 	for _, c := range tests {
-		t.Run(c.name, func(t *testing.T){
+		t.Run(c.name, func(t *testing.T) {
 			id, err := db.CreateBook(&c.input)
 			if c.willErr {
 				if err == nil {
@@ -432,6 +428,5 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 			}
 		})
 	}
-
 
 }

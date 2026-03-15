@@ -1,65 +1,62 @@
 package viewmodel
 
-
 import (
-	"slices"
-	"strings"
 	"cmp"
 	"fmt"
 	"log"
+	"slices"
+	"strings"
 
 	"fyne.io/fyne/v2/data/binding"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/table"
 )
 
 const (
-	notifySelect bool = true
+	notifySelect bool   = true
 	stubValue    string = "N/A"
 )
 
 type TableVM struct {
-	repo     repo.BookRetriever
-	config   *config.Config
-	bus     *bus.Bus
+	repo   repo.BookRetriever
+	config *config.Config
+	bus    *bus.Bus
 
-	SortBy     binding.String
-	SortOrder  binding.String
+	SortBy    binding.String
+	SortOrder binding.String
 
-	selector   *EntrySelect
+	selector *EntrySelect
 
 	Search struct {
-		Text binding.String
+		Text   binding.String
 		Header binding.String
 	}
-	
-	table    *table.Table
-	
-	l        *listener
-}
 
+	table *table.Table
+
+	l *listener
+}
 
 func NewTableVM(b *bus.Bus, app *appService) *TableVM {
 	t := &TableVM{
-		table:   table.NewTable("Main", entryHeaders()),
-		repo:    app.bookRetriever,
-		config:  app.cfg,
-		bus: b,
+		table:  table.NewTable("Main", entryHeaders()),
+		repo:   app.bookRetriever,
+		config: app.cfg,
+		bus:    b,
 
-		SortBy:     binding.NewString(),
-		SortOrder:  binding.NewString(),
+		SortBy:    binding.NewString(),
+		SortOrder: binding.NewString(),
 
-		Search: struct{
-			Text binding.String
+		Search: struct {
+			Text   binding.String
 			Header binding.String
 		}{
-			Text: binding.NewString(),
+			Text:   binding.NewString(),
 			Header: binding.NewString(),
 		},
-
 
 		selector: newEntrySelect(app.bookRetriever),
 
@@ -98,7 +95,6 @@ func NewTableVM(b *bus.Bus, app *appService) *TableVM {
 	return t
 }
 
-
 func (t *TableVM) search() {
 	search, _ := t.Search.Text.Get()
 	if search == "" {
@@ -117,13 +113,10 @@ func (t *TableVM) search() {
 	t.selector.selectCell(r.Row, r.Col, notifySelect)
 }
 
-
 func (t *TableVM) SetSelector(es *EntrySelect) *TableVM {
 	t.selector = es
 	return t
 }
-
-
 
 // SearchOptions a list of searchable options.
 func (t *TableVM) SearchOptions() []string {
@@ -136,12 +129,10 @@ func (t *TableVM) SearchOptions() []string {
 	}
 }
 
-
 // Selector returns the table's selector.
 func (t *TableVM) Selector() *EntrySelect {
 	return t.selector
 }
-
 
 // Sort table using sort bindings.
 func (t *TableVM) Sort() error {
@@ -153,8 +144,6 @@ func (t *TableVM) Sort() error {
 	t.l.notify()
 	return nil
 }
-
-
 
 // The smallest width that a column can be.
 const MinColWidth float32 = 100.0
@@ -173,7 +162,6 @@ func (t *TableVM) StoreColumnWidth(col int, width float32) {
 	label := cell.Header()
 	table.SetColumnWidth(label, width)
 }
-
 
 // GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
 func (t *TableVM) GetColumnWidth(col int) float32 {
@@ -194,7 +182,6 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 	return width
 }
 
-
 func (t *TableVM) SetHidden(options []string) {
 	hide := hiddenOptionsToHeaders(options)
 	if t.config != nil {
@@ -209,7 +196,6 @@ func (t *TableVM) Hidden() []string {
 	headers := t.table.HiddenHeaders()
 	return hiddenHeadersToOptions(headers)
 }
-
 
 // hiddenHeadersToOptions returns hidden options from headers.
 func hiddenHeadersToOptions(headers []string) []string {
@@ -256,13 +242,11 @@ func (t *TableVM) Unselect(row, col int) {
 	t.selector.unselect(!notifySelect)
 }
 
-
 // reload clear table, then call load.
 func (t *TableVM) reload() error {
 	t.table.ClearValues()
 	return t.load()
 }
-
 
 // sortbooks sort slice of books.
 func sortBooks(books []repo.BookEntry, header string, desending bool) error {
@@ -272,7 +256,7 @@ func sortBooks(books []repo.BookEntry, header string, desending bool) error {
 	if index == -1 {
 		return fmt.Errorf("sort_books: invalid header '%s'", header)
 	}
-	
+
 	slices.SortFunc(books, func(a, b repo.BookEntry) int {
 		r := -1
 		switch index {
@@ -302,7 +286,7 @@ func sortBooks(books []repo.BookEntry, header string, desending bool) error {
 
 // load load entries form repostory sort then, and put them into table.
 func (t *TableVM) load() error {
-	
+
 	items, err := t.repo.GetAllBooks(repo.Book)
 	if err != nil {
 		return err
@@ -314,7 +298,7 @@ func (t *TableVM) load() error {
 
 	by, _ := t.SortBy.Get()
 	order, _ := t.SortOrder.Get()
-	err = sortBooks(items, by, order=="DESC")
+	err = sortBooks(items, by, order == "DESC")
 	if err != nil {
 		return err
 	}
@@ -365,7 +349,6 @@ func (t *TableVM) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
 
-
 type TableControllersVM struct {
 	SearchText    binding.String
 	selector      *EntrySelect
@@ -373,18 +356,18 @@ type TableControllersVM struct {
 	app           *appService
 	bus           *bus.Bus
 	EditIsOpen    binding.Bool
-	editBook      *EditBookVM            
+	editBook      *EditBookVM
 	table         *TableVM
 }
 
 func NewTableControllersVM(b *bus.Bus, app *appService) *TableControllersVM {
 	tc := &TableControllersVM{
-		SearchText: binding.NewString(),
+		SearchText:    binding.NewString(),
 		hiddenColumns: make([]string, 0),
-		selector: newEntrySelect(app.bookRetriever),
-		EditIsOpen: binding.NewBool(),
-		app: app,
-		bus: b,
+		selector:      newEntrySelect(app.bookRetriever),
+		EditIsOpen:    binding.NewBool(),
+		app:           app,
+		bus:           b,
 	}
 	tc.editBook = NewEditBookVM(b, app, tc.EditIsOpen)
 	return tc
@@ -439,7 +422,6 @@ func (tc *TableControllersVM) Selector() *EntrySelect {
 func (tc *TableControllersVM) GetEditBook() *EditBookVM {
 	return tc.editBook
 }
-
 
 // entryHeaders lists the headers labels for book entry.
 func entryHeaders() []string {

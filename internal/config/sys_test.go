@@ -13,7 +13,7 @@ func TestGetDefaultDir(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	t.Logf("created: '%s'", path)
-	defer func(){
+	defer func() {
 		_ = os.Remove(path)
 		t.Logf("removed: '%s'", path)
 	}()
@@ -22,7 +22,6 @@ func TestGetDefaultDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("path was not created '%s'", path)
 	}
-
 
 	pathTwo, err := GetDefaultDir(appName)
 	if err != nil {

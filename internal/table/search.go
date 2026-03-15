@@ -1,28 +1,26 @@
 package table
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 	"unicode"
-	"slices"
-	"cmp"
 )
-
-
 
 // EditDist an Levenshtein distance function.
 //
 // Returns the total number edits to make s and t match.
 func EditDist(s, t string) int {
-	
+
 	if len(s) == 0 {
 		return len(t)
 	}
 	if len(t) == 0 {
 		return len(s)
 	}
-	
-	height := len(t)+1
-	width := len(s)+1
+
+	height := len(t) + 1
+	width := len(s) + 1
 
 	topbuf := make([]int, width)
 	buffer := make([]int, width)
@@ -30,10 +28,10 @@ func EditDist(s, t string) int {
 	for i := range width {
 		topbuf[i] = i
 	}
-	
-	for y:=1; y<height; y++ {
+
+	for y := 1; y < height; y++ {
 		buffer[0] = y
-		for x:=1; x<width; x++ {
+		for x := 1; x < width; x++ {
 			if t[y-1] != s[x-1] {
 				del := 1 + topbuf[x]
 				ins := 1 + buffer[x-1]
@@ -58,8 +56,8 @@ func searchCompare(text, search string) int {
 	search = strings.ToLower(search)
 
 	const (
-		ExactMatch    int = 10000
-		NoMatch       int = -1
+		ExactMatch int = 10000
+		NoMatch    int = -1
 
 		SubString     int = 5000 // Base sub-string search score.
 		BoundaryBonus int = 1000 // Sub-string bonus for being a prefix of a word.
@@ -85,10 +83,10 @@ func searchCompare(text, search string) int {
 
 	distance := EditDist(text, search)
 	maxLength := max(len(text), len(search))
-	if distance*100 > (maxLength*fuzzyTheshold) {
+	if distance*100 > (maxLength * fuzzyTheshold) {
 		return NoMatch
 	}
-	score := Fuzzy + (distance*fuzzyStep)
+	score := Fuzzy + (distance * fuzzyStep)
 	if score < 0 {
 		return NoMatch
 	} else {
@@ -111,7 +109,7 @@ func Search(t *Table, search, header string) []SearchResult {
 		return []SearchResult{}
 	}
 	result := []SearchResult{}
-	WalkVisableValues(t, func(row, col int, c *DataCell){
+	WalkVisableValues(t, func(row, col int, c *DataCell) {
 
 		if search == "" {
 			return
@@ -125,9 +123,9 @@ func Search(t *Table, search, header string) []SearchResult {
 		}
 		r := SearchResult{
 			Score: score,
-			Row: row,
-			Col: col,
-			ID: c.ID(),
+			Row:   row,
+			Col:   col,
+			ID:    c.ID(),
 		}
 		result = append(result, r)
 	})

@@ -27,7 +27,6 @@ func (s *Service) SetDB(db *Database) error {
 	return nil
 }
 
-
 func (s *Service) DB() *Database {
 	return s.db
 }

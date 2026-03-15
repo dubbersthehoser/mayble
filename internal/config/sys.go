@@ -17,7 +17,7 @@ func HasUserConfigDir() (string, bool) {
 	return userConfig, true
 }
 
-// HasUserHomeDir returns user home directory path and true if found. If not 
+// HasUserHomeDir returns user home directory path and true if found. If not
 // returns empty string and false.
 func HasUserHomeDir() (string, bool) {
 	userHome, err := os.UserHomeDir()
@@ -27,8 +27,8 @@ func HasUserHomeDir() (string, bool) {
 	return userHome, true
 }
 
-// FindConfigDir with given application name returns the full path of exsisting 
-// folder if exists starting from user config then user home. If not found 
+// FindConfigDir with given application name returns the full path of exsisting
+// folder if exists starting from user config then user home. If not found
 // returns the approprite path to use if not returns empty string.
 func FindConfigDir(appName string) (string, bool) {
 	userConfig, isConfig := HasUserConfigDir()
@@ -41,7 +41,7 @@ func FindConfigDir(appName string) (string, bool) {
 		}
 	}
 	if isHome {
-		path := filepath.Join(userHome, "." + appName)
+		path := filepath.Join(userHome, "."+appName)
 		_, err := os.Stat(path)
 		if err == nil {
 			return path, true
@@ -53,7 +53,7 @@ func FindConfigDir(appName string) (string, bool) {
 		return path, false
 	}
 	if isHome {
-		path := filepath.Join(userHome, "." + appName)
+		path := filepath.Join(userHome, "."+appName)
 		return path, false
 	}
 	return "", false
@@ -63,7 +63,7 @@ func FindConfigDir(appName string) (string, bool) {
 // directory if it dose not exsits.
 func GetDefaultDir(appName string) (string, error) {
 	const op status.Op = "config.GetDefaultDir"
-	
+
 	path, found := FindConfigDir(appName)
 	if path == "" {
 		return "", status.E(op, status.LevelError, "could not find config directory")
@@ -76,4 +76,3 @@ func GetDefaultDir(appName string) (string, error) {
 	}
 	return path, nil
 }
-

@@ -1,9 +1,9 @@
 package config
 
 import (
-	"os"
-	"errors"
 	"encoding/json"
+	"errors"
+	"os"
 	"path/filepath"
 
 	"github.com/dubbersthehoser/mayble/internal/status"
@@ -11,9 +11,9 @@ import (
 
 // Table config for table view.
 type Table struct {
-		ColumnsHidden []string           `json:"hidden_columns"`
-		ColumnWidths  map[string]float32 `json:"column_width"`
-		cfg           *Config
+	ColumnsHidden []string           `json:"hidden_columns"`
+	ColumnWidths  map[string]float32 `json:"column_width"`
+	cfg           *Config
 }
 
 // SetColumnWidth for column lable for size s.
@@ -25,12 +25,12 @@ func (t *Table) SetColumnWidth(label string, s float32) {
 	w[label] = s
 }
 
-// GetColumnWidth from named label. 
+// GetColumnWidth from named label.
 func (t *Table) GetColumnWidth(label string) float32 {
 	w := t.ColumnWidths
 	if w == nil {
 		return 0.0
-	} 
+	}
 	v, ok := w[label]
 	if !ok {
 		return 0.0
@@ -38,24 +38,20 @@ func (t *Table) GetColumnWidth(label string) float32 {
 	return v
 }
 
-
-
 // UI contains ui settings.
 type UI struct {
 	Table Table `json:"table"`
 }
-
 
 // Config contains all configuration for the application.
 type Config struct {
 	Version    string `json:"version"`
 	ConfigDir  string `json:"config_dir"`
 	ConfigFile string `json:"config_file"`
-	DBDriver   string `json:"db_driver"`   // NOTE deprecated.
+	DBDriver   string `json:"db_driver"` // NOTE deprecated.
 	DBFile     string `json:"db_file"`
 	UI         UI
 }
-
 
 // GetUITable grab table by name if not found returns an new table.
 func (c *Config) GetUITable() *Table {
@@ -100,7 +96,7 @@ func Load(root string) (*Config, error) {
 	fileIO, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
 		cfg := &Config{
-			ConfigDir: root,
+			ConfigDir:  root,
 			ConfigFile: path,
 		}
 		return cfg, nil
@@ -113,7 +109,7 @@ func Load(root string) (*Config, error) {
 	cfg := &Config{}
 
 	decoder := json.NewDecoder(fileIO)
-	
+
 	err = decoder.Decode(cfg)
 	if err != nil {
 		return nil, status.E(op, status.FailedToDecode, status.LevelError, err)
@@ -121,7 +117,6 @@ func Load(root string) (*Config, error) {
 	err = backupV1(path, cfg)
 	return cfg, err
 }
-
 
 // backupV1 create a backup of the old config if it is.
 func backupV1(path string, cfg *Config) error {

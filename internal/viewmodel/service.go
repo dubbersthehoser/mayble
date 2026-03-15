@@ -3,26 +3,25 @@ package viewmodel
 import (
 	"log"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 
 	"fyne.io/fyne/v2/data/binding"
 )
 
 type appService struct {
+	cfg *config.Config
+	dbs *database.Service
 
-	cfg  *config.Config
-	dbs  *database.Service
-	
 	bookRetriever  repo.BookRetriever
 	genreRetriever repo.GenreRetriever
 	bookCreator    repo.BookCreator
 	bookUpdator    repo.BookUpdator
 	bookDeletor    repo.BookDeletor
 
-	uniqueGenres    *UniqueGenres
+	uniqueGenres *UniqueGenres
 }
 
 func (as *appService) changeDB(db *database.Database) error {
@@ -51,9 +50,6 @@ func newAppService(bus *bus.Bus, cfg *config.Config, db *database.Database) *app
 	as.uniqueGenres = NewUniqueGenres(bus, as.genreRetriever)
 	return as
 }
-
-
-
 
 type UniqueGenres struct {
 	list   binding.StringList
@@ -91,7 +87,7 @@ func (u *UniqueGenres) Update() {
 	genres, err := u.genres.GetUniqueGenres()
 	if err != nil {
 		log.Println("unique.genres.update: ", err.Error())
-		return 
+		return
 	}
 	for i := range u.list.Length() {
 		v, _ := u.list.GetValue(i)

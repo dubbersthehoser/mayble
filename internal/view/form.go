@@ -2,11 +2,11 @@ package view
 
 import (
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
-	
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
@@ -26,11 +26,11 @@ func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 		loanCheck,
 		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
 		readCheck,
-		newReadEntry(vm.IsRead, vm.Completed, vm.Rating), 
+		newReadEntry(vm.IsRead, vm.Completed, vm.Rating),
 		container.NewBorder(nil, nil, add, submit, add, submit),
 	)
 
-	//return container.New(layout.NewVBoxLayout(), 
+	//return container.New(layout.NewVBoxLayout(),
 	return container.NewBorder(top, nil, nil, nil,
 		top,
 		newSubmitionList(vm.SubmissionList()),
@@ -38,7 +38,7 @@ func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 }
 
 func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.UniqueGenres) *fyne.Container {
-	
+
 	titleEntry := widget.NewEntryWithData(title)
 	authorEntry := widget.NewEntryWithData(author)
 
@@ -56,12 +56,12 @@ func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.U
 	genreEntry.SetPlaceHolder("Genre...")
 
 	c := container.NewVBox(
-			titleEntry,
-			authorEntry,
-			genreEntry,
+		titleEntry,
+		authorEntry,
+		genreEntry,
 	)
 	return c
-	
+
 }
 
 func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.String) *fyne.Container {
@@ -132,8 +132,7 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 	return c
 }
 
-
-func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {	
+func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 	content := container.NewVBox()
 	update := func() {
 		content.RemoveAll()
@@ -163,7 +162,7 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 
 			btns := container.NewHBox(edt, del)
 
-			object := container.NewBorder(nil, nil, nil, btns, btns, widget.NewLabel(v), )
+			object := container.NewBorder(nil, nil, nil, btns, btns, widget.NewLabel(v))
 			content.Add(object)
 		}
 
@@ -172,7 +171,7 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 		update()
 	}))
 	update()
-	
+
 	list := container.NewStack(container.NewVScroll(container.NewStack(content)))
 	return list
 }

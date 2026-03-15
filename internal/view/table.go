@@ -4,19 +4,18 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 
 	"fyne.io/fyne/v2/data/binding"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-
 func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
-	
+
 	cancel := widget.NewButton("Cancel", vm.Close)
 	update := widget.NewButton("Update", vm.Submit)
-	
+
 	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
 	isRead := widget.NewCheckWithData("Is Read", vm.IsRead)
 	isLoaned := widget.NewCheckWithData("On Loan", vm.IsLoaned)
@@ -34,7 +33,6 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 	)
 	return c
 }
-
 
 func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fyne.CanvasObject {
 
@@ -80,7 +78,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 
 	vmt.SetSelector(vmc.Selector())
 	table := bookTable(vmt)
-	
+
 	hide := widget.NewCheckGroup(vmt.HiddenOptions(), func(list []string) {
 		vmt.SetHidden(list)
 	})
@@ -151,7 +149,7 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	// Table
 	//
 	// Code sections (A) are to allow user to resize the last column with the header,
-	// by adding an invisable header with an empty column, allows the user to move 
+	// by adding an invisable header with an empty column, allows the user to move
 	// the last visable header / column to be resized with the mouse. Down side is
 	// that there is an empty selectable item on the first entry of that last column.
 
@@ -159,7 +157,7 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 		func() (rowLen, colLen int) {
 			rowLen, colLen = vm.Size()
 			colLen += 1 // (A) have an extra header.
-			return 
+			return
 		},
 		func() fyne.CanvasObject {
 			object := widget.NewLabel("")
@@ -241,18 +239,17 @@ func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
 	return table
 }
 
-
 type HeaderButton struct {
 	widget.Button
-	minSize    fyne.Size
-	label      string
-	vm *viewmodel.TableVM
+	minSize fyne.Size
+	label   string
+	vm      *viewmodel.TableVM
 }
 
 func NewHeaderButton(label string, vm *viewmodel.TableVM) *HeaderButton {
 	hb := &HeaderButton{
 		label: label,
-		vm: vm,
+		vm:    vm,
 	}
 
 	hb.OnTapped = func() {
@@ -289,7 +286,6 @@ func (hb *HeaderButton) InitLabel(s string) {
 		hb.SetText(hb.NormalLabel())
 	}
 }
-
 
 func (hb *HeaderButton) NormalLabel() string {
 	return "- " + hb.label

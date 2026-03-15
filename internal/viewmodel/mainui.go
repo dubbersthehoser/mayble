@@ -1,14 +1,14 @@
 package viewmodel
 
 import (
-	"time"
 	"slices"
+	"time"
 
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
-	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/database"
 )
 
 const (
@@ -18,15 +18,13 @@ const (
 	msgDataChanged string = "message.data.changed"
 )
 
-
 const (
 	BodyData int = iota
 	BodyForm
 	BodyMenu
 )
 
-type MainUI struct {	
-
+type MainUI struct {
 	bus     *bus.Bus
 	app     *appService
 	errList []error
@@ -34,10 +32,10 @@ type MainUI struct {
 	OpenedBody binding.Int
 	DBFile     binding.String
 
-	Error      binding.String
-	Success    binding.String
-	Info       binding.String
-	Clear      binding.Bool
+	Error   binding.String
+	Success binding.String
+	Info    binding.String
+	Clear   binding.Bool
 }
 
 func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
@@ -46,17 +44,17 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	as := newAppService(b, cfg, db)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
-		bus: b,
-		app: as,
+		bus:        b,
+		app:        as,
 
 		errList: errs,
 
 		DBFile: binding.NewString(),
 
-		Error: binding.NewString(),
+		Error:   binding.NewString(),
 		Success: binding.NewString(),
-		Info: binding.NewString(),
-		Clear: binding.NewBool(),
+		Info:    binding.NewString(),
+		Clear:   binding.NewBool(),
 	}
 	_ = mu.DBFile.Set(cfg.DBFile)
 	mu.DBFile.AddListener(binding.NewDataListener(func() {
@@ -72,7 +70,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 			_ = mu.Clear.Set(false)
 			timer.Stop()
 			timer.Reset(countDown)
-			<- timer.C
+			<-timer.C
 			_ = mu.Clear.Set(true)
 		}()
 	}
@@ -88,7 +86,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 				return
 			}
 			_ = mu.Error.Set("")
-			_= mu.Success.Set("")
+			_ = mu.Success.Set("")
 			_ = mu.Info.Set(v)
 			clearLine()
 		},
@@ -103,7 +101,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 			if !ok {
 				return
 			}
-			_= mu.Success.Set("")
+			_ = mu.Success.Set("")
 			_ = mu.Info.Set("")
 			_ = mu.Error.Set(v)
 			clearLine()
@@ -128,7 +126,6 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	return mu
 }
 
-
 func (m *MainUI) HasErrored() bool {
 	return len(m.errList) > 0
 }
@@ -144,7 +141,6 @@ func (m *MainUI) Errors() []string {
 func (m *MainUI) GetMenuVM() *MenuVM {
 	return NewMenuVM(m.bus, m.app, m.DBFile)
 }
-
 
 func (m *MainUI) GetTableVM() *TableVM {
 	return NewTableVM(m.bus, m.app)
@@ -172,7 +168,6 @@ func parseDate(t string) (*time.Time, error) {
 	return &ret, err
 }
 
-
 const capRating = 6
 
 func formatRating(r int) string {
@@ -194,7 +189,7 @@ func formatRating(r int) string {
 	}
 }
 
-func Ratings() []string{
+func Ratings() []string {
 	r := make([]string, capRating)
 	for i := range capRating {
 		r[i] = formatRating(i)
@@ -227,15 +222,3 @@ func (t *listener) RemoveListener(l binding.DataListener) {
 		return l == ll
 	})
 }
-
-
-
-
-
-
-
-
-
-
-
-

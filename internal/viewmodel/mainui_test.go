@@ -1,20 +1,16 @@
 package viewmodel
 
 import (
+	"fmt"
 	"slices"
 	"testing"
-	"fmt"
 
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/database"
-	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/database"
 )
-
-
-
-
 
 func TestMainUI(t *testing.T) {
 	db, err := database.OpenMem()
@@ -46,23 +42,23 @@ func TestMainUI(t *testing.T) {
 		t.Fatal("unexpected nil")
 	}
 
-	msgTests := []struct{
+	msgTests := []struct {
 		name   string
 		expect string
 		getter binding.String
 	}{
 		{
-			name: msgUserInfo,
+			name:   msgUserInfo,
 			expect: "Info",
 			getter: mainUI.Info,
 		},
 		{
-			name: msgUserSuccess,
+			name:   msgUserSuccess,
 			expect: "Success",
 			getter: mainUI.Success,
 		},
 		{
-			name: msgUserError,
+			name:   msgUserError,
 			expect: "Error",
 			getter: mainUI.Error,
 		},
@@ -84,40 +80,40 @@ func TestMainUI(t *testing.T) {
 }
 
 func Test_formatRating(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		input  int
 		expect string
 	}{
 		{
-			input: 0,
+			input:  0,
 			expect: "",
 		},
 		{
-			input: 1,
+			input:  1,
 			expect: "⭐",
 		},
 		{
-			input: 2,
+			input:  2,
 			expect: "⭐⭐",
 		},
 		{
-			input: 3,
+			input:  3,
 			expect: "⭐⭐⭐",
 		},
 		{
-			input: 4,
+			input:  4,
 			expect: "⭐⭐⭐⭐",
 		},
 		{
-			input: 5,
+			input:  5,
 			expect: "⭐⭐⭐⭐⭐",
 		},
 		{
-			input: 6,
+			input:  6,
 			expect: "ERROR",
 		},
 		{
-			input: 7,
+			input:  7,
 			expect: "ERROR",
 		},
 	}
@@ -193,5 +189,4 @@ func Test_listener(t *testing.T) {
 		t.Fatalf("expect %d, got %d", 0, len(l.listeners))
 	}
 
-	
 }

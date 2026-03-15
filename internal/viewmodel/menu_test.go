@@ -1,14 +1,14 @@
 package viewmodel
 
 import (
-	"testing"
+	"bytes"
 	"errors"
+	"io"
+	"os"
 	"slices"
 	"strings"
-	"bytes"
-	"io"
+	"testing"
 	"time"
-	"os"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -37,12 +37,11 @@ func TestMenuUI(t *testing.T) {
 	menu := NewMenuVM(b, as, DBPath)
 	_ = menu
 
-
-	t.Run("CSVImportAndExport", func(t *testing.T){
+	t.Run("CSVImportAndExport", func(t *testing.T) {
 		testCSVImportAndExport(t, menu)
 	})
 
-	t.Run("DatabaseCreateAndOpen", func(t *testing.T){
+	t.Run("DatabaseCreateAndOpen", func(t *testing.T) {
 		testDatabaseCreateAndOpen(t, menu)
 	})
 }
@@ -74,7 +73,7 @@ func testDatabaseCreateAndOpen(t *testing.T, menu *MenuVM) {
 		},
 	})
 
-	t.Run("create", func(t *testing.T){
+	t.Run("create", func(t *testing.T) {
 		test_createDatabase(t, menu, dbPath)
 	})
 	t.Run("open", func(t *testing.T) {
@@ -91,7 +90,7 @@ func test_createDatabase(t *testing.T, menu *MenuVM, path string) {
 	path = file.Name()
 	file.Close()
 	menu.CreateDatabase(path, err)
-	
+
 	expect := path + ".db"
 
 	_, err = os.Lstat(expect)
@@ -107,7 +106,7 @@ func test_createDatabase(t *testing.T, menu *MenuVM, path string) {
 		ok = true
 		expect := "invalid permissions"
 		if expect != s {
-			t.Fatalf("expect message '%s', got '%s'", expect, s )
+			t.Fatalf("expect message '%s', got '%s'", expect, s)
 		}
 	}))
 	menu.CreateDatabase("", err)
@@ -123,9 +122,6 @@ func test_openDatabase(t *testing.T, menu *MenuVM, path string) {
 		t.Fatal("database service is nil")
 	}
 }
-
-
-
 
 func testCSVImportAndExport(t *testing.T, menu *MenuVM) {
 
@@ -157,39 +153,39 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 	books := []repo.BookEntry{
 		{
 			Variant: repo.Book,
-			ID: 1,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
+			ID:      1,
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
 		},
 		{
 			Variant: repo.Book | repo.Read,
-			ID: 2,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			ID:      2,
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
+			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:  3,
 		},
 		{
-			Variant: repo.Book | repo.Loaned,
-			ID: 3,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned,
+			ID:       3,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
 		},
 		{
-			Variant: repo.Book | repo.Loaned | repo.Read,
-			ID: 4,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned | repo.Read,
+			ID:       4,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:   3,
 		},
 	}
 
@@ -260,18 +256,9 @@ func testExportCSV(t *testing.T, menu *MenuVM, expect string) {
 	expectPath := filepath + ".csv"
 
 	menu.ExportCSV(file, file.Name(), nil)
-	
+
 	_, err = os.Lstat(expectPath)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
-
-
-
-
-
-
-
-
-

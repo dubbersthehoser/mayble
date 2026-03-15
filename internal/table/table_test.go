@@ -1,9 +1,9 @@
 package table
 
 import (
-	"testing"
-	"slices"
 	"fmt"
+	"slices"
+	"testing"
 )
 
 func unexpectedError(t *testing.T, err error) {
@@ -12,7 +12,6 @@ func unexpectedError(t *testing.T, err error) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }
-
 
 func TextCellPool(t *testing.T) {
 	cells := newCellPool()
@@ -30,7 +29,6 @@ func TextCellPool(t *testing.T) {
 	}
 }
 
-
 const RowCount = 3
 
 func headers() []string {
@@ -46,9 +44,10 @@ func headers() []string {
 }
 
 type entryGen struct {
-	count int
+	count    int
 	template []string
 }
+
 func newEntryGen() *entryGen {
 	return &entryGen{
 		template: []string{
@@ -61,7 +60,7 @@ func newEntryGen() *entryGen {
 			"example_borrower",
 		},
 	}
-} 
+}
 
 func (e *entryGen) Gen() []string {
 	c := slices.Clone(e.template)
@@ -80,9 +79,8 @@ func (e *entryGen) Range(n int) [][]string {
 	return g
 }
 
-
 func TestTable(t *testing.T) {
-	
+
 	var data [][]string
 	gen := newEntryGen()
 
@@ -116,7 +114,6 @@ func TestTable(t *testing.T) {
 		},
 	)
 
-
 	t.Run(
 		"SetHidden",
 		func(t *testing.T) {
@@ -131,7 +128,6 @@ func TestTable(t *testing.T) {
 		},
 	)
 
-
 	// Check Clear
 	table.ClearValues()
 	erow, ecol := 0, len(headers())
@@ -142,7 +138,6 @@ func TestTable(t *testing.T) {
 	if col != ecol {
 		t.Fatalf("expect %d, got %d", ecol, col)
 	}
-
 
 	t.Run(
 		"AppendRowAfterClear",
@@ -165,8 +160,7 @@ func TestTable(t *testing.T) {
 		},
 	)
 
-}	
-
+}
 
 func test_TableAppendRow(table *Table, data [][]string, t *testing.T) {
 
@@ -174,9 +168,9 @@ func test_TableAppendRow(table *Table, data [][]string, t *testing.T) {
 	if c := slices.Compare(headers(), table.BaseHeaders()); c != 0 {
 		t.Fatalf("expect\n\t%#v\ngot\n\t%#v\n", headers(), table.BaseHeaders())
 	}
-	
+
 	// Check append rows
-	type Test  struct{
+	type Test struct {
 		header []string
 		values []string
 	}
@@ -206,18 +200,15 @@ func test_TableAppendRow(table *Table, data [][]string, t *testing.T) {
 	}
 }
 
-
-
 func testSetHidden(table *Table, t *testing.T) {
 	// Check hide header
 
-	hideTests := []struct{
+	hideTests := []struct {
 		input  []string
 		expect []string
 	}{
 		{
-			input: []string{
-			},
+			input: []string{},
 			expect: []string{
 				"Title",
 				"Author",
@@ -269,7 +260,7 @@ func testSetHidden(table *Table, t *testing.T) {
 	table.SetHidden([]string{})
 }
 func testWalkVisableValues(table *Table, data [][]string, t *testing.T) {
-	
+
 	var expect [][]string
 	for _, s := range data {
 		item := slices.Clone(s)
@@ -278,7 +269,7 @@ func testWalkVisableValues(table *Table, data [][]string, t *testing.T) {
 
 	actual := make([][]string, 0)
 
-	WalkVisableValues(table, func(row, col int, cell *DataCell){
+	WalkVisableValues(table, func(row, col int, cell *DataCell) {
 		if len(actual) == row {
 			actual = append(actual, make([]string, 0))
 		}
@@ -303,13 +294,13 @@ func testWalkVisableValues(table *Table, data [][]string, t *testing.T) {
 	table.SetHidden([]string{"Title"})
 	defer table.SetHidden([]string{})
 
-	for row := range expect  {
+	for row := range expect {
 		expect[row] = expect[row][1:]
 	}
 
 	actual = make([][]string, 0)
 
-	WalkVisableValues(table, func(row, col int, cell *DataCell){
+	WalkVisableValues(table, func(row, col int, cell *DataCell) {
 		if len(actual) == row {
 			actual = append(actual, make([]string, 0))
 		}

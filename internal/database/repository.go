@@ -2,29 +2,29 @@ package database
 
 import (
 	"context"
-	"time"
 	"errors"
-	
+	"time"
+
 	"database/sql"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/status"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
+	"github.com/dubbersthehoser/mayble/internal/status"
 )
 
 // A BookBuilder for converting database book to a repository book.
 type bookBuilder struct {
-	id                   int64
+	id int64
 	title,
 	author,
 	genre,
 	loanedDate,
 	readDate,
-	borrowerName         string
-	rating               int64
+	borrowerName string
+	rating int64
 }
 
 // newBookBuilder returns a builder with a id error value to ensure id was set.
-func newBookBuilder() *bookBuilder{
+func newBookBuilder() *bookBuilder {
 	return &bookBuilder{
 		id: -127,
 	}
@@ -45,12 +45,12 @@ func (b *bookBuilder) Build() (*repo.BookEntry, error) {
 	if b.genre == "" {
 		return nil, errors.New("book_builder.build: genre was not set")
 	}
-	
+
 	book := &repo.BookEntry{
-		ID: b.id,
-		Title: b.title,
+		ID:     b.id,
+		Title:  b.title,
 		Author: b.author,
-		Genre: b.genre,
+		Genre:  b.genre,
 	}
 
 	if b.loanedDate != "" && b.borrowerName != "" {
@@ -118,16 +118,14 @@ func (b *bookBuilder) SetRating(r int64) *bookBuilder {
 	return b
 }
 
-
-
 // CreateBook insert b into database.
 func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
 	const op status.Op = "database.create_book"
 
 	params := database.CreateBookParams{
-		Title: b.Title,
+		Title:  b.Title,
 		Author: b.Author,
-		Genre: b.Genre,
+		Genre:  b.Genre,
 	}
 	row, err := db.Queries.CreateBook(context.Background(), params)
 	if err != nil {
@@ -135,12 +133,12 @@ func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
 	}
 	bookID := row.ID
 
-	if b.Variant & repo.Loaned != 0 {
+	if b.Variant&repo.Loaned != 0 {
 		date := b.Loaned.Format(time.DateOnly)
 		params := database.CreateLoanParams{
 			BookID: bookID,
-			Name: b.Borrower,
-			Date: date,
+			Name:   b.Borrower,
+			Date:   date,
 		}
 		_, err := db.Queries.CreateLoan(context.Background(), params)
 		if err != nil {
@@ -148,11 +146,11 @@ func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
 		}
 	}
 
-	if b.Variant & repo.Read != 0 {
+	if b.Variant&repo.Read != 0 {
 		date := b.Read.Format(time.DateOnly)
 		params := database.CreateReadParams{
-			BookID: bookID,
-			Rating: int64(b.Rating),
+			BookID:        bookID,
+			Rating:        int64(b.Rating),
 			DateCompleted: date,
 		}
 		_, err := db.Queries.CreateRead(context.Background(), params)
@@ -196,7 +194,6 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 	var (
 		hasLoaned bool = true
 		hasRead   bool = true
-
 	)
 
 	_, err := db.Queries.GetLoanByBookID(context.Background(), b.ID)
@@ -214,18 +211,18 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 		hasRead = false
 	}
 
-	if b.Variant & repo.Loaned != 0 {
+	if b.Variant&repo.Loaned != 0 {
 
 		loanUpdateParams := database.UpdateLoanParams{
 			BookID: b.ID,
-			Name: b.Borrower,
-			Date: b.Loaned.Format(time.DateOnly),
+			Name:   b.Borrower,
+			Date:   b.Loaned.Format(time.DateOnly),
 		}
 
 		loanCreateParams := database.CreateLoanParams{
 			BookID: b.ID,
-			Name: b.Borrower,
-			Date: b.Loaned.Format(time.DateOnly),
+			Name:   b.Borrower,
+			Date:   b.Loaned.Format(time.DateOnly),
 		}
 
 		if hasLoaned {
@@ -248,17 +245,17 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 		}
 	}
 
-	if b.Variant & repo.Read != 0 {
+	if b.Variant&repo.Read != 0 {
 
 		readUpdateParams := database.UpdateReadParams{
-			BookID: b.ID,
-			Rating: int64(b.Rating),
+			BookID:        b.ID,
+			Rating:        int64(b.Rating),
 			DateCompleted: b.Read.Format(time.DateOnly),
 		}
 
 		readCreateParams := database.CreateReadParams{
-			BookID: b.ID,
-			Rating: int64(b.Rating),
+			BookID:        b.ID,
+			Rating:        int64(b.Rating),
 			DateCompleted: b.Read.Format(time.DateOnly),
 		}
 
@@ -283,10 +280,10 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 	}
 
 	updateBookParams := database.UpdateBookParams{
-		ID: b.ID,
-		Title: b.Title,
+		ID:     b.ID,
+		Title:  b.Title,
 		Author: b.Author,
-		Genre: b.Genre,
+		Genre:  b.Genre,
 	}
 
 	_, err = db.Queries.UpdateBook(context.Background(), updateBookParams)
@@ -296,7 +293,7 @@ func (db *Database) UpdateBook(b *repo.BookEntry) error {
 	return nil
 }
 
-// GetAllBooks returns all books from database when v is zero, otherwise filters for variant. 
+// GetAllBooks returns all books from database when v is zero, otherwise filters for variant.
 func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 	const op status.Op = "database.get_all_books"
 
@@ -309,14 +306,14 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 		hasLoaned := true
 		hasRead := true
 		loan, err := db.Queries.GetLoanByBookID(context.Background(), book.ID)
-		if err != nil { // return error when err is not ErrNoRows. 
+		if err != nil { // return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, status.E(op, status.LevelWarn, err)
 			}
 			hasLoaned = false
 		}
 		read, err := db.Queries.GetReadByBookID(context.Background(), book.ID)
-		if err != nil { // return error when err is not ErrNoRows. 
+		if err != nil { // return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, status.E(op, status.LevelWarn, err)
 			}
@@ -342,23 +339,21 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 		if err != nil {
 			return nil, status.E(op, status.LevelWarn, err)
 		}
-		if v == 0 || book.Variant & v != 0 {
+		if v == 0 || book.Variant&v != 0 {
 			entries = append(entries, *book)
 		}
 	}
 	return entries, nil
 }
 
-
 // GetBookByID returns book entry by id.
 func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 	const op status.Op = "database.get_book_by_id"
-	
+
 	bookRow, err := db.Queries.GetBookByID(context.Background(), id)
 	if err != nil {
 		return repo.BookEntry{}, status.E(op, status.LevelError, err)
 	}
-
 
 	hasLoan := true
 	loanRow, err := db.Queries.GetLoanByBookID(context.Background(), id)
@@ -368,7 +363,7 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 		}
 		hasLoan = false
 	}
-	
+
 	hasRead := true
 	readRow, err := db.Queries.GetReadByBookID(context.Background(), id)
 	if err != nil {

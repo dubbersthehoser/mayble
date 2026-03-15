@@ -1,24 +1,22 @@
 package status
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"log/slog"
 )
 
+type StatusCode int
 
-type StatusCode int 
 const (
-	LoadConfig     StatusCode = iota
+	LoadConfig StatusCode = iota
 	OpenedDatabase
 )
 
 type Status struct {
-	Code StatusCode
+	Code   StatusCode
 	ErrLog []error
 }
-
-
 
 const (
 	LevelDebug slog.Level = slog.LevelDebug
@@ -28,6 +26,7 @@ const (
 )
 
 type Kind string
+
 const (
 	FileNotFound   Kind = "file not found"
 	FailedToCreate Kind = "failed to create"
@@ -39,9 +38,9 @@ const (
 type Op string
 
 type Error struct {
-	Op   Op
-	Kind Kind    
-	Err  error
+	Op       Op
+	Kind     Kind
+	Err      error
 	Severity slog.Level
 }
 
@@ -76,4 +75,3 @@ func E(args ...any) error {
 	}
 	return e
 }
-

@@ -1,24 +1,24 @@
 package database
 
 import (
-	"testing"
-	"path/filepath"
 	"os"
+	"path/filepath"
+	"testing"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
 func TestOpenMem(t *testing.T) {
-	
+
 	db, err := OpenMem()
 	if err != nil {
 		t.Fatalf("unexpected error: '%s'", err)
 	}
 
 	book := repo.BookEntry{
-		Title: "title",
+		Title:  "title",
 		Author: "author",
-		Genre: "genre",
+		Genre:  "genre",
 	}
 
 	id, err := db.CreateBook(&book)
@@ -40,7 +40,7 @@ func TestOpenMem(t *testing.T) {
 }
 
 func TestOpen(t *testing.T) {
-	
+
 	dir := os.TempDir()
 
 	path := filepath.Join(dir, "test.db")
@@ -58,9 +58,9 @@ func TestOpen(t *testing.T) {
 	defer os.Remove(path + ".bak")
 
 	book := repo.BookEntry{
-		Title: "title",
+		Title:  "title",
 		Author: "author",
-		Genre: "genre",
+		Genre:  "genre",
 	}
 
 	id, err := db.CreateBook(&book)

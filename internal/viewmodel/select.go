@@ -6,7 +6,6 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
-
 type EntrySelect struct {
 	retriever  repo.BookRetriever
 	isSelected bool
@@ -17,7 +16,7 @@ type EntrySelect struct {
 		row int
 	}
 
-	l          *listener
+	l *listener
 }
 
 func newEntrySelect(r repo.BookRetriever) *EntrySelect {
@@ -67,4 +66,3 @@ func (e *EntrySelect) HasSelected() bool {
 func (e *EntrySelect) AddListener(l binding.DataListener) {
 	e.l.AddListener(l)
 }
-

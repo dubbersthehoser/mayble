@@ -7,14 +7,14 @@ import (
 type Variant int
 
 const (
-	Book     Variant = 0
-	Loaned   Variant = 1 << iota
+	Book   Variant = 0
+	Loaned Variant = 1 << iota
 	Read
 )
 
 func (v Variant) String() string {
 	switch v {
-	case (Loaned|Read):
+	case (Loaned | Read):
 		return "book|loaned|Read"
 	case (Loaned):
 		return "book|loaned"
@@ -43,10 +43,10 @@ type BookEntry struct {
 }
 
 const (
-	IdxTitle  int = iota
+	IdxTitle int = iota
 	IdxAuthor
 	IdxGenre
-	
+
 	IdxRead
 	IdxRating
 

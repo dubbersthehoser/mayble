@@ -51,7 +51,7 @@ func (b *Bus) Subscribe(h Handler) int {
 }
 
 func (b *Bus) Unsubscribe(id int) {
-	if b.items == nil || b.live == nil  {
+	if b.items == nil || b.live == nil {
 		return
 	}
 	if id > len(b.items) || id <= 0 {
@@ -70,7 +70,7 @@ func (b *Bus) Unsubscribe(id int) {
 				b.items[prev].next = next
 			}
 			b.items[curr].next = b.items[b.free].next
-			b.free = curr 
+			b.free = curr
 			return
 		}
 		prev = curr

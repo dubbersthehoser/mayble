@@ -1,11 +1,11 @@
 package csv
 
 import (
-	"testing"
 	"bytes"
-	"time"
 	"fmt"
 	"strings"
+	"testing"
+	"time"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
@@ -57,35 +57,35 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 	books := []repo.BookEntry{
 		{
 			Variant: repo.Book,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
 		},
 		{
 			Variant: repo.Book | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
+			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:  3,
 		},
 		{
-			Variant: repo.Book | repo.Loaned,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
 		},
 		{
-			Variant: repo.Book | repo.Loaned | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned | repo.Read,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:   3,
 		},
 	}
 
@@ -126,6 +126,3 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 		}
 	})
 }
-
-
-

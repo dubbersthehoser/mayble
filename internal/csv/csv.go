@@ -1,16 +1,15 @@
 package csv
 
 import (
-	"io"
-	"fmt"
-	"time"
-	"strconv"
 	"encoding/csv"
 	"errors"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
-
 
 var (
 	ErrInvalidFormat error = errors.New("invalid format")
@@ -27,13 +26,13 @@ func entryToFields(book *repo.BookEntry) []string {
 	f[repo.IdxAuthor] = book.Author
 	f[repo.IdxGenre] = book.Genre
 
-	if book.Variant & repo.Read != 0 {
+	if book.Variant&repo.Read != 0 {
 		f[repo.IdxRead] = book.Read.Format(time.DateOnly)
 		rating := strconv.Itoa(book.Rating)
 		f[repo.IdxRating] = rating
 	}
-	
-	if book.Variant & repo.Loaned != 0 {
+
+	if book.Variant&repo.Loaned != 0 {
 		f[repo.IdxLoaned] = book.Loaned.Format(time.DateOnly)
 		f[repo.IdxBorrower] = book.Borrower
 	}
@@ -42,7 +41,7 @@ func entryToFields(book *repo.BookEntry) []string {
 }
 
 func fieldsToEntry(f []string) (*repo.BookEntry, error) {
-	
+
 	if len(f) != fieldLength() {
 		return nil, fmt.Errorf("invalid length of slice: %d != %d", fieldLength(), len(f))
 	}
@@ -107,13 +106,13 @@ func Import(r io.Reader) ([]repo.BookEntry, error) {
 }
 
 func Export(w io.Writer, entries []repo.BookEntry) error {
-	
+
 	writer := csv.NewWriter(w)
 
-	fields := make([][]string, len(entries)) 
+	fields := make([][]string, len(entries))
 
 	for i := range entries {
 		fields[i] = entryToFields(&entries[i])
 	}
 	return writer.WriteAll(fields)
-} 
+}

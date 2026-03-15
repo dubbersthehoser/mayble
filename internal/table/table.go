@@ -1,9 +1,9 @@
 package table
 
 import (
+	"cmp"
 	"errors"
 	"slices"
-	"cmp"
 )
 
 // cellIndex handle for a cell.
@@ -12,14 +12,14 @@ type CellIndex uint
 // noneIndex a handle to the None cell.
 const NoneIndex CellIndex = 0
 
-type CellKind int 
+type CellKind int
 
 const (
-	CellNone CellKind = iota // A free, avaliable, or stub cell.
-	cellFree                 // Set as a free list cell. (this is to prevent a bug)
-	cellTable                // Root grand parent of all cells
-	CellHeader               // Cell representing a table's header
-	CellView                 // Cell representing a table's view data
+	CellNone   CellKind = iota // A free, avaliable, or stub cell.
+	cellFree                   // Set as a free list cell. (this is to prevent a bug)
+	cellTable                  // Root grand parent of all cells
+	CellHeader                 // Cell representing a table's header
+	CellView                   // Cell representing a table's view data
 )
 
 // DataCell is a genric table cell foreach kind of cell that can be linked
@@ -33,7 +33,7 @@ type DataCell struct {
 	header string
 
 	value string
-	id   int64
+	id    int64
 
 	parent CellIndex
 	first  CellIndex
@@ -51,12 +51,11 @@ func (dc *DataCell) ID() int64 {
 
 func (dc *DataCell) Value() string {
 	return dc.value
-} 
+}
 
 func (dc *DataCell) Kind() CellKind {
 	return dc.kind
 }
-
 
 // cellPool manages the collection of cells, their handels and creation.
 type cellPool struct {
@@ -65,7 +64,7 @@ type cellPool struct {
 }
 
 // newCellPool create a new cell pool with stub cell.
-func newCellPool() *cellPool{
+func newCellPool() *cellPool {
 	cl := &cellPool{
 		cells: make([]DataCell, 1),
 	}
@@ -98,7 +97,7 @@ func (cl *cellPool) destroy(idx CellIndex) {
 		kind: cellFree,
 	}
 	next := cl.nextFree
-	cl.cells[idx].next = next 
+	cl.cells[idx].next = next
 	cl.nextFree = idx
 }
 
@@ -127,7 +126,6 @@ func appendCellToParent(cells *cellPool, parent, item CellIndex) {
 	cells.get(item).parent = parent
 }
 
-
 // A Table stores cell values of a table in a tree like structure.
 //
 // This structure helps keep track of hidden columns in the table by having the
@@ -135,20 +133,20 @@ func appendCellToParent(cells *cellPool, parent, item CellIndex) {
 // The structure's root node is a table node its has one child node being the
 // top-left header. The header links to it's the next header and its next's
 // next and so forth until linking back around to the first header. Then each
-// header has children of their values for that column with the same ring 
+// header has children of their values for that column with the same ring
 // linking as the headers.
 type Table struct {
-	name          string
-	headerOrder   map[string]int        // Keep original header locations.
-	cells         *cellPool             // Pool storing all the cells.
-	root          CellIndex             // The root table table cell.
-	rowCount      int                   // Keep track of rows in table.
+	name        string
+	headerOrder map[string]int // Keep original header locations.
+	cells       *cellPool      // Pool storing all the cells.
+	root        CellIndex      // The root table table cell.
+	rowCount    int            // Keep track of rows in table.
 }
 
 func NewTable(name string, headers []string) *Table {
 	t := &Table{
 		cells: newCellPool(),
-		name: name,
+		name:  name,
 	}
 
 	t.cells.get(NoneIndex).value = "STUB"
@@ -161,7 +159,7 @@ func NewTable(name string, headers []string) *Table {
 		t.headerOrder[h] = i
 	}
 
-	root  := t.cells.create(cellTable)
+	root := t.cells.create(cellTable)
 	t.root = root
 	for _, h := range headers {
 		cell := t.cells.create(CellHeader)
@@ -189,7 +187,6 @@ func (t *Table) Name() string {
 	return t.name
 }
 
-
 // Headers list current header order in their cell based order.
 func (t *Table) Headers() []string {
 	headers := make([]string, 0)
@@ -208,12 +205,11 @@ func (t *Table) Headers() []string {
 // BaseHeader lists headers in their orignal order.
 func (t *Table) BaseHeaders() []string {
 	l := make([]string, len(t.headerOrder))
-	for h, v  := range t.headerOrder {
+	for h, v := range t.headerOrder {
 		l[v] = h
 	}
 	return l
 }
-
 
 // VisableHeader list of visable headers.
 func (t *Table) VisableHeaders() []string {
@@ -263,7 +259,7 @@ func (t *Table) addValue(id int64, header, s string) error {
 
 	first := t.cells.get(t.root).first
 	curr := first
-	for { 
+	for {
 		if t.cells.get(curr).header == header {
 			appendCellToParent(t.cells, curr, newCell)
 			return nil
@@ -275,7 +271,6 @@ func (t *Table) addValue(id int64, header, s string) error {
 	}
 	return errors.New("table: header not found")
 }
-
 
 // AppendRow add a row of values to table, marked by its id.
 func (t *Table) AppendRow(id int64, values []string) error {
@@ -294,7 +289,6 @@ func (t *Table) AppendRow(id int64, values []string) error {
 	t.rowCount += 1
 	return nil
 }
-
 
 // clearColumnValues clear data cells form header.
 func (t *Table) clearColumnValues(header CellIndex) {
@@ -367,7 +361,7 @@ func (t *Table) GetHeaderCell(col int) *DataCell {
 		if count == col {
 			return t.cells.get(curr)
 		}
-		count+=1
+		count += 1
 		curr = t.cells.get(curr).next
 		if first == curr {
 			break
@@ -384,7 +378,7 @@ func (t *Table) Size() (row int, col int) {
 
 // SetHidden given headers to hidden and retaining, or restoring hidden headers.
 func (t *Table) SetHidden(headers []string) {
-	
+
 	hiddenCells := make([]CellIndex, 0)
 
 	showCells := make([]CellIndex, 0)
@@ -416,10 +410,10 @@ func (t *Table) SetHidden(headers []string) {
 	// rearrange columns to keep shown columns to the left and hidden to the right.
 	parent := t.root
 	t.cells.get(parent).first = 0
-	for _, idx := range(showCells) {
+	for _, idx := range showCells {
 		appendCellToParent(t.cells, parent, idx)
 	}
-	for _, idx := range(hiddenCells) {
+	for _, idx := range hiddenCells {
 		appendCellToParent(t.cells, parent, idx)
 	}
 }

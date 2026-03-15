@@ -1,13 +1,13 @@
-Website = "https://example.com"
+Website = "https://github.com/dubbersthehoser/mayble"
 
 [Details]
-  Icon = "Icon.png"
-  Name = "mayble"
-  ID = "com.dubbersthehoser.mayble"
-  Version = "1.0.0"
-  Build = 22
+Icon = "Icon.png"
+Name = "mayble"
+ID = "com.dubbersthehoser.mayble"
+Version = "2.0.0"
+Build = 23
 
 [LinuxAndBSD]
-  GenericName = "Book Management"
-  Categories = ["Office", "Database"]
-  Keywords = ["books", "office"]
+GenericName = "Book Management"
+Categories = ["Office", "Database"]
+Keywords = ["books", "office"]

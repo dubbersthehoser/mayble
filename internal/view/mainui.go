@@ -2,17 +2,16 @@ package view
 
 import (
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
-	
 	// render unexpected errors. Force Stop.
 	if uiVM.HasErrored() {
 		o := container.NewVBox()
@@ -23,7 +22,6 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		}
 		return o
 	}
-
 
 	toolbar := widget.NewToolbar(
 		widget.NewToolbarAction(
@@ -51,7 +49,7 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	tablesButton := toolbar.Items[1].ToolbarObject().(*widget.Button)
 	addButton := toolbar.Items[2].ToolbarObject().(*widget.Button)
 
-	// Status Line 
+	// Status Line
 	// Displays input form .Error, .Info, .Success string bindings with proper colors.
 	//
 	statusLabel := widget.NewLabel("")
@@ -89,12 +87,10 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	menu := NewMenu(w, uiVM.GetMenuVM())
 	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
 
-
 	table := fullBookTable(
 		uiVM.GetTableControllersVM(),
 		uiVM.GetTableVM(),
 	)
-
 
 	body := container.NewStack(
 		menu,
@@ -138,5 +134,3 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
 	return frame
 }
-
-

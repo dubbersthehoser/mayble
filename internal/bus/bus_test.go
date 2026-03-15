@@ -12,17 +12,17 @@ func TestBus(t *testing.T) {
 	}
 
 	var bus *Bus = &Bus{}
-	
-	tests := []struct{
+
+	tests := []struct {
 		input     Handler
 		id        int
 		callCount int
 	}{
-		{ input: Handler{ Handler: call, Name: "first",}, id: 1, callCount: 1},
-		{ input: Handler{ Handler: call, Name: "second"}, id: 2, callCount: 3},
-		{ input: Handler{ Handler: call, Name: "second"}, id: 3, callCount: 5},
-		{ input: Handler{ Handler: call, Name: "third"},  id: 4, callCount: 6},
-		{ input: Handler{ Handler: call, Name: "fourth"}, id: 5, callCount: 7},
+		{input: Handler{Handler: call, Name: "first"}, id: 1, callCount: 1},
+		{input: Handler{Handler: call, Name: "second"}, id: 2, callCount: 3},
+		{input: Handler{Handler: call, Name: "second"}, id: 3, callCount: 5},
+		{input: Handler{Handler: call, Name: "third"}, id: 4, callCount: 6},
+		{input: Handler{Handler: call, Name: "fourth"}, id: 5, callCount: 7},
 	}
 
 	for i, c := range tests {
@@ -54,7 +54,7 @@ func TestBus(t *testing.T) {
 
 	fid := bus.free
 	id := bus.Subscribe(Handler{
-		Name: "freelist",
+		Name:    "freelist",
 		Handler: nop,
 	})
 	if fid != id {
@@ -68,4 +68,3 @@ func TestBus(t *testing.T) {
 		t.Fatalf("expect %d, got %d", id, first)
 	}
 }
-

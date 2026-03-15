@@ -6,12 +6,11 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
-	"github.com/dubbersthehoser/mayble/internal/view"
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/view"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
-
 
 func main() {
 	appName := "mayble"
@@ -61,9 +60,7 @@ func main() {
 	window.ShowAndRun()
 }
 
-
-
-func openDatabase(cfg *config.Config ) (*database.Database, error) {
+func openDatabase(cfg *config.Config) (*database.Database, error) {
 	if cfg.DBFile == "" {
 		cfg.DBFile = ":memory:"
 	}

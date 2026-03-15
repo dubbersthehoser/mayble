@@ -1,8 +1,8 @@
 package database
 
 import (
-	"os"
 	"database/sql"
+	"os"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
@@ -12,8 +12,8 @@ import (
 const version int64 = 5
 
 type Database struct {
-	Conn      *sql.DB
-	Queries   *database.Queries
+	Conn    *sql.DB
+	Queries *database.Queries
 }
 
 // OpenMem create a memory base database.
@@ -29,7 +29,7 @@ func OpenMem() (*Database, error) {
 	db.Conn = conn
 	db.Queries = sqlite.GetQueries(db.Conn)
 
-	err = sqlite.MigrateUpTo(conn,  version)
+	err = sqlite.MigrateUpTo(conn, version)
 	if err != nil {
 		return nil, status.E(op, status.Unexpected, status.LevelError, err)
 	}
@@ -39,11 +39,11 @@ func OpenMem() (*Database, error) {
 
 // Open open database from path.
 func Open(path string) (*Database, error) {
-	
+
 	const op status.Op = "database.open"
 
 	db := &Database{}
-	
+
 	conn, err := sqlite.OpenDB(path)
 	if err != nil {
 		return nil, status.E(op, status.Unexpected, status.LevelError, err)
@@ -81,15 +81,15 @@ func dbCopy(pathFrom, pathTo string) error {
 }
 
 // migrate up database and create backup.
-func migrate(path string, conn *sql.DB)  error {
+func migrate(path string, conn *sql.DB) error {
 
 	const op status.Op = "database.migrage"
 
-	err := dbCopy(path, path + ".bak")
+	err := dbCopy(path, path+".bak")
 	if err != nil {
 		return status.E(op, status.Unexpected, status.LevelError, err)
 	}
-	return sqlite.MigrateUpTo(conn,  version)
+	return sqlite.MigrateUpTo(conn, version)
 }
 
 // checkIsV1 check if db is a mayble 1.0.0 database or lower.
@@ -97,4 +97,3 @@ func checkIsV1(conn *sql.DB) bool {
 	v := sqlite.GetVersion(conn)
 	return v < version
 }
-

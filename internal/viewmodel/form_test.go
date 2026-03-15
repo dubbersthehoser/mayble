@@ -1,60 +1,59 @@
 package viewmodel
 
 import (
-	"testing"
-	"time"
-	"strings"
 	"fmt"
 	"slices"
+	"strings"
+	"testing"
+	"time"
 
 	"fyne.io/fyne/v2/app"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
-	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/config"
-
+	"github.com/dubbersthehoser/mayble/internal/database"
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
 func TestBookForm(t *testing.T) {
-	
+
 	// need to create fyne app for binding to work.
 	_ = app.New() // I'm never going to use this lib/framwork ever again.
-	
+
 	form := NewBookForm()
 
 	books := []repo.BookEntry{
 		{
 			Variant: repo.Book,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
 		},
 		{
 			Variant: repo.Book | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
+			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:  3,
 		},
 		{
-			Variant: repo.Book | repo.Loaned,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
 		},
 		{
-			Variant: repo.Book | repo.Loaned | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned | repo.Read,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:   3,
 		},
 	}
 
@@ -72,134 +71,134 @@ func TestBookForm(t *testing.T) {
 }
 
 func testBookForm_validate(t *testing.T, form *BookForm) {
-	tests := []struct{
-		name string
-		input repo.BookEntry
+	tests := []struct {
+		name    string
+		input   repo.BookEntry
 		willErr bool
 	}{
 		{
 			name: "complete",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: false,
 		},
 		{
 			name: "without title",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without author",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without genre",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without loaned date",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Time{},
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Time{},
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without loaned borrower",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 3,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without read date",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Time{},
-				Rating: 3,
+				Read:     time.Time{},
+				Rating:   3,
 			},
 			willErr: true,
 		},
 		{
 			name: "without rating",
 			input: repo.BookEntry{
-				Variant: repo.Book | repo.Loaned | repo.Read,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Variant:  repo.Book | repo.Loaned | repo.Read,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
-				Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating: 0,
+				Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   0,
 			},
 			willErr: true,
 		},
 		{
 			name: "just a book",
 			input: repo.BookEntry{
-				Variant: repo.Book,
-				Title: "Title",
-				Author: "Author",
-				Genre: "Genre",
-				Loaned: time.Time{},
+				Variant:  repo.Book,
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+				Loaned:   time.Time{},
 				Borrower: "",
-				Read: time.Time{},
-				Rating: 0,
+				Read:     time.Time{},
+				Rating:   0,
 			},
 			willErr: false,
 		},
@@ -224,7 +223,7 @@ func testBookForm_validate(t *testing.T, form *BookForm) {
 
 func testBookFormToBookEntry(t *testing.T, form *BookForm, books []repo.BookEntry) {
 	for i, book := range books {
-		t.Run(fmt.Sprintf("book: %d", i), func(t *testing.T){
+		t.Run(fmt.Sprintf("book: %d", i), func(t *testing.T) {
 			form.Set(&book)
 			abook := *form.ToBookEntry()
 			if abook != book {
@@ -235,9 +234,9 @@ func testBookFormToBookEntry(t *testing.T, form *BookForm, books []repo.BookEntr
 }
 
 func testBookFormSet(t *testing.T, form *BookForm, books []repo.BookEntry) {
-	
+
 	for i, book := range books {
-		t.Run(fmt.Sprintf("book: %d", i), func(t *testing.T){
+		t.Run(fmt.Sprintf("book: %d", i), func(t *testing.T) {
 			form.Set(&book)
 
 			aTitle, _ := form.Title.Get()
@@ -256,7 +255,7 @@ func testBookFormSet(t *testing.T, form *BookForm, books []repo.BookEntry) {
 				t.Fatalf("expect '%s', got '%s'", book.Genre, aGenre)
 			}
 
-			if book.Variant & repo.Loaned != 0 {
+			if book.Variant&repo.Loaned != 0 {
 				ok, _ := form.IsLoaned.Get()
 				if !ok {
 					t.Fatalf("expect %t, got %t", true, ok)
@@ -274,7 +273,7 @@ func testBookFormSet(t *testing.T, form *BookForm, books []repo.BookEntry) {
 				}
 			}
 
-			if book.Variant & repo.Read != 0 {
+			if book.Variant&repo.Read != 0 {
 				ok, _ := form.IsRead.Get()
 				if !ok {
 					t.Fatalf("expect %t, got %t", true, ok)
@@ -300,46 +299,46 @@ func TestSubmissionList(t *testing.T) {
 	list := NewSubmissionList(b, NewBookForm())
 
 	errCount := 0
-	
+
 	b.Subscribe(bus.Handler{
 		Name: msgUserError,
 		Handler: func(e *bus.Event) {
 			errCount += 1
 		},
 	})
-	
+
 	books := []repo.BookEntry{
 		{
 			Variant: repo.Book,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
 		},
 		{
 			Variant: repo.Book | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Title:   "Title",
+			Author:  "Author",
+			Genre:   "Genre",
+			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:  3,
 		},
 		{
-			Variant: repo.Book | repo.Loaned,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
 		},
 		{
-			Variant: repo.Book | repo.Loaned | repo.Read,
-			Title: "Title",
-			Author: "Author",
-			Genre: "Genre",
-			Loaned: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Variant:  repo.Book | repo.Loaned | repo.Read,
+			Title:    "Title",
+			Author:   "Author",
+			Genre:    "Genre",
+			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 			Borrower: "Lane",
-			Read: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating: 3,
+			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+			Rating:   3,
 		},
 	}
 
@@ -350,7 +349,7 @@ func TestSubmissionList(t *testing.T) {
 		}
 	})
 
-	t.Run("GetView", func(t *testing.T){
+	t.Run("GetView", func(t *testing.T) {
 		testSubmissionListGetView(t, list, books)
 		if errCount != 0 {
 			t.Fatalf("unexpected error count")
@@ -392,7 +391,6 @@ func testSubmissionListEdit(t *testing.T, list *SubmissionList, books []repo.Boo
 	}
 }
 
-
 func testSubmissionList_pop(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	rbooks := slices.Clone(books)
 	slices.Reverse(rbooks)
@@ -412,15 +410,14 @@ func testSubmissionList_pop(t *testing.T, list *SubmissionList, books []repo.Boo
 	}
 }
 
-
 func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	for i, book := range books {
-		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
+		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T) {
 			actual := list.GetView(i)
-			if (book.Variant & repo.Read != 0) && !strings.Contains(actual, "(read)") {
+			if (book.Variant&repo.Read != 0) && !strings.Contains(actual, "(read)") {
 				t.Fatalf("expected to contain string '(read)', in '%s'", actual)
 			}
-			if (book.Variant & repo.Loaned != 0) && !strings.Contains(actual, "(loaned)") {
+			if (book.Variant&repo.Loaned != 0) && !strings.Contains(actual, "(loaned)") {
 				t.Fatalf("expected to contain string '(loaned)', in '%s'", actual)
 			}
 		})
@@ -435,12 +432,11 @@ func testSubmissionListGetView(t *testing.T, list *SubmissionList, books []repo.
 	}
 }
 
-
 func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.BookEntry) {
 	form := NewBookForm()
 
 	for i, book := range books {
-		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T){
+		t.Run(fmt.Sprintf("book#%d", i), func(t *testing.T) {
 			form.Set(&book)
 			list.add(form)
 		})
@@ -450,9 +446,6 @@ func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.Boo
 		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
 	}
 }
-
-
-
 
 func TestCreateBookForm(t *testing.T) {
 	b := &bus.Bus{}
@@ -467,7 +460,7 @@ func TestCreateBookForm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	
+
 	cForm := NewCreateBookForm(b, as)
 	_ = cForm
 
@@ -547,7 +540,7 @@ func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
 	}
 	form.bus.Unsubscribe(id)
 
-	_  = form.BookForm.Title.Set("title")
+	_ = form.BookForm.Title.Set("title")
 	_ = form.BookForm.Author.Set("author")
 	_ = form.BookForm.Genre.Set("genre")
 
@@ -555,7 +548,7 @@ func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
 	sid := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 		ok = true
 		expect := "Added submission"
-		if s !=  expect {
+		if s != expect {
 			t.Fatalf("expect message '%s', got '%s'", expect, s)
 		}
 	}))
@@ -571,17 +564,3 @@ func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
 	form.bus.Unsubscribe(fid)
 	form.sl.remove(0)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
