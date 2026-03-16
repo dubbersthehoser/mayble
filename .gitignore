@@ -1,9 +1,8 @@
-/bin/*
 /mayble
 /cover.out
 /cover.html
-/fyne-cross
-/build/*
+/dist
+/fyne-cross/*
 *.db
 *.sqlite
 *.sqlite3

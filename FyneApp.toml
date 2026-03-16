@@ -5,7 +5,7 @@ Icon = "Icon.png"
 Name = "mayble"
 ID = "com.dubbersthehoser.mayble"
 Version = "2.0.0"
-Build = 23
+Build = 25
 
 [LinuxAndBSD]
 GenericName = "Book Management"
