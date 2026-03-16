@@ -308,11 +308,8 @@ func (t *Table) clearColumnValues(header CellIndex) {
 	t.cells.get(header).first = NoneIndex
 }
 
-var clearCount int = 0
-
 // clearValue clear all values form table, while retaining headers.
 func (t *Table) ClearValues() error {
-	clearCount += 1
 	first := t.cells.get(t.root).first
 	curr := first
 	if first == NoneIndex { // nothing to remove

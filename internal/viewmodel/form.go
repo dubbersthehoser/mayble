@@ -63,13 +63,13 @@ func (bf *BookForm) validate() error {
 	genre, _ := bf.Genre.Get()
 
 	if title == "" {
-		return errors.New("Missing Title")
+		return errors.New("missing title")
 	}
 	if author == "" {
-		return errors.New("Missing Auther")
+		return errors.New("missing auther")
 	}
 	if genre == "" {
-		return errors.New("Missing Genre")
+		return errors.New("missing genre")
 	}
 
 	isLoaned, _ := bf.IsLoaned.Get()
@@ -80,14 +80,14 @@ func (bf *BookForm) validate() error {
 		borrower, _ := bf.Borrower.Get()
 
 		if borrower == "" {
-			return errors.New("Missing Borrower")
+			return errors.New("missing borrower")
 		}
 		if date == "" {
-			return errors.New("Missing Borrower Date")
+			return errors.New("missing borrower date")
 		}
 		_, err := parseDate(date)
 		if err != nil {
-			return errors.New("Invalid Borrower Date (DD/MM/YYYY)")
+			return errors.New("invalid borrower date")
 		}
 	}
 
@@ -96,16 +96,16 @@ func (bf *BookForm) validate() error {
 		rating, _ := bf.Rating.Get()
 
 		if completed == "" {
-			return errors.New("Missing Completion Date")
+			return errors.New("missing completion date")
 		}
 		_, err := parseDate(completed)
 		if err != nil {
-			return errors.New("Invalid Completion Date (DD/MM/YYYY)")
+			return errors.New("invalid completion date")
 		}
 		ratings := Ratings()
 		rank := slices.Index(ratings[1:], rating)
 		if rank == -1 {
-			return errors.New("Invalid Rating")
+			return errors.New("invalid rating")
 
 		}
 	}
@@ -323,7 +323,6 @@ func (bf *CreateBookForm) Submit() {
 		return
 	}
 
-	failed := make([]repo.BookEntry, 0)
 	for {
 		book, err := bf.sl.pop()
 		if err != nil {
@@ -331,7 +330,6 @@ func (bf *CreateBookForm) Submit() {
 		}
 		_, err = bf.repo.CreateBook(book)
 		if err != nil {
-			failed = append(failed, *book)
 			log.Println(fmt.Errorf("form.Submit: %w", err))
 			bf.bus.Notify(bus.Event{
 				Name: msgUserError,

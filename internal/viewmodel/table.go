@@ -357,7 +357,6 @@ type TableControllersVM struct {
 	bus           *bus.Bus
 	EditIsOpen    binding.Bool
 	editBook      *EditBookVM
-	table         *TableVM
 }
 
 func NewTableControllersVM(b *bus.Bus, app *appService) *TableControllersVM {

@@ -13,7 +13,6 @@ import (
 type Table struct {
 	ColumnsHidden []string           `json:"hidden_columns"`
 	ColumnWidths  map[string]float32 `json:"column_width"`
-	cfg           *Config
 }
 
 // SetColumnWidth for column lable for size s.

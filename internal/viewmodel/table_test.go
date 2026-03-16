@@ -410,6 +410,9 @@ func TestTableControllerVM(t *testing.T) {
 		Author: "author",
 		Genre:  "genre",
 	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	t.Run("Edit", func(t *testing.T) {
 		var ok bool
@@ -476,8 +479,9 @@ func TestTableControllerVM(t *testing.T) {
 			t.Fatal("message handler was not called")
 		}
 		_, err := db.GetBookByID(bookID)
-		if !errors.Is(sql.ErrNoRows, errors.Unwrap(err)) {
+		if !errors.Is(errors.Unwrap(err), sql.ErrNoRows) {
 			t.Fatalf("expect error: %s, got %s", sql.ErrNoRows, err)
 		}
+		b.Unsubscribe(hid)
 	})
 }

@@ -526,6 +526,8 @@ func testCreateBookFormSubmit(t *testing.T, form *CreateBookForm) {
 	if !ok {
 		t.Fatal("message was not signaled")
 	}
+
+	form.bus.Unsubscribe(id)
 }
 
 func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
