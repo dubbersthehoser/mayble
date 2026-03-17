@@ -7,7 +7,7 @@ A simple book management desktop application.
 
 ## Dependencies
 
-The Fyne framework was used to create the UI, and I used it's command line tools for packaging: `fyne`, and `fyne-cross`. `fyne-cross` requires docker to be installed and running. It is used for creating releases.
+The Fyne framework was used to create the UI, and its command line tools for packaging: `fyne`, and `fyne-cross`. `fyne-cross` requires docker to be installed and running. It is used for creating releases.
 
 # Reason 
 
