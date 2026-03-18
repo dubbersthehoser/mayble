@@ -3,16 +3,21 @@
 
 A simple book management desktop application.
 
-# Build and Packaging
-
-## Dependencies
-
-The Fyne framework was used to create the UI, and its command line tools for packaging: `fyne`, and `fyne-cross`. `fyne-cross` requires docker to be installed and running. It is used for creating releases.
-
 # Reason 
 
-I wrote this software for a family member whom has a collection of books and needed a system to keep track of the book she has read, or has been loaned out to.
+I wrote this software for a family member who has a collection of books and needed a way to keep track of what books she has read, or has been loaned out to. She requested a me to create this CRUD app for her, so she wouldn't need to keep track through pencil and paper and now have it on her Chrome Book.
+
+# Dependencies
+
+- [The Fyne framework and it's needed dependencies.](https://docs.fyne.io/started/quick/)
+- And Go 1.24
+
+# Build
+
+Once the dependencies are installed you can do `go run .` and it should build and run the program.
+
+# Futures
 
 # Why Is It On V2?
 
-The first implementation was missing a feature, and the code base was a mess, so I rewrote most of the application in more a manageable structure while adding more features.
+The first implementation was missing a required feature, and the code I wrote for was a mess so I rewrote most of it while adding some extra features.

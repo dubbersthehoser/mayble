@@ -1,13 +1,13 @@
 Website = "https://github.com/dubbersthehoser/mayble"
 
 [Details]
-Icon = "Icon.png"
-Name = "mayble"
-ID = "com.dubbersthehoser.mayble"
-Version = "2.0.1"
-Build = 36
+  Icon = "Icon.png"
+  Name = "mayble"
+  ID = "com.dubbersthehoser.mayble"
+  Version = "2.0.1"
+  Build = 38
 
 [LinuxAndBSD]
-GenericName = "Book Management"
-Categories = ["Office", "Database"]
-Keywords = ["books", "office"]
+  GenericName = "Book Management"
+  Categories = ["Office", "Database"]
+  Keywords = ["books", "office"]
