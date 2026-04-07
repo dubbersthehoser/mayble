@@ -1,23 +1,27 @@
 
 # Mayble V2
 
-A simple book management desktop application.
+A book management desktop application.
 
-# Reason 
+## Reason 
 
-I wrote this software for a family member who has a collection of books and needed a way to keep track of what books she has read, or has been loaned out to. She requested a me to create this CRUD app for her, so she wouldn't need to keep track through pencil and paper and now have it on her Chrome Book.
+I wrote this software for a family member who has a collection of books and needed a way to keep track of what books have been read, and or have been loaned out. She requested a me to create this app for her, so she wouldn't need to keep track through pencil and paper and have it on her Chrome Book.
 
-# Dependencies
+## Requirements
 
 - [The Fyne framework and it's needed dependencies.](https://docs.fyne.io/started/quick/)
 - And Go 1.24
 
-# Build
+## Build
 
-Once the dependencies are installed you can do `go run .` and it should build and run the program.
+You can run `go run .` to build and run the program and try it out.
 
-# Futures
+## Notice on Releases
 
-# Why Is It On V2?
+The releases for this project are primarily for personal use and will not have any more platform package builds then what is needed for the goal of this project.
 
-The first implementation was missing a required feature, and the code I wrote for was a mess so I rewrote most of it while adding some extra features.
+## Futures
+
+## Why Is It On v2?
+
+The first implementation was missing a required feature, and the code I wrote for was a mess so I rewrote most of it while adding some extra features. Ditching v1, and creating v2.
