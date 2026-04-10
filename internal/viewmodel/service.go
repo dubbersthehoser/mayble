@@ -15,6 +15,8 @@ type appService struct {
 	cfg *config.Config
 	dbs *database.Service
 
+	store repo.BookStore
+
 	bookRetriever  repo.BookRetriever
 	genreRetriever repo.GenreRetriever
 	bookCreator    repo.BookCreator

@@ -71,6 +71,12 @@ type BookRetriever interface {
 	GetBookByID(id int64) (BookEntry, error)
 }
 
+type BookStore interface {
+	BookCreator
+	BookUpdator
+	BookDeletor
+}
+
 type GenreRetriever interface {
 	GetUniqueGenres() ([]string, error)
 }
@@ -84,5 +90,5 @@ type BookUpdator interface {
 }
 
 type BookDeletor interface {
-	DeleteBook(b *BookEntry) error
+	DeleteBook(id int64) (*BookEntry, error)
 }
