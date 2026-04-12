@@ -1,9 +1,5 @@
 package database
 
-import (
-	"errors"
-)
-
 type Service struct {
 	db *Database
 }
@@ -14,16 +10,17 @@ func NewService(db *Database) *Service {
 	}
 }
 
-// SetDB closes previous db.Conn and sets db.Queries and db.Conn.
-func (s *Service) SetDB(db *Database) error {
-	if db == nil {
-		return errors.New("app_service.setdb: nil database")
-	}
-	if err := s.db.Conn.Close(); err != nil {
+func (s *Service) Open(path string) error {
+	ndb, err := Open(path)
+	if err != nil {
 		return err
 	}
-	s.db.Conn = db.Conn
-	s.db.Queries = db.Queries
+	err = s.db.Conn.Close()
+	if err != nil {
+		return err
+	}
+	s.db.Conn = ndb.Conn
+	s.db.Queries = ndb.Queries
 	return nil
 }
 

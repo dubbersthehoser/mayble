@@ -11,36 +11,36 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 )
 
+
+type dbService interface{
+	OpenDB(path string) error
+	CloseDB() error
+}
+
 type appService struct {
 	cfg *config.Config
 	dbs *database.Service
 
-	store repo.BookStore
+	store repo.BookStore 
 
 	bookRetriever  repo.BookRetriever
 	genreRetriever repo.GenreRetriever
-	bookCreator    repo.BookCreator
-	bookUpdator    repo.BookUpdator
-	bookDeletor    repo.BookDeletor
 
 	uniqueGenres *UniqueGenres
 }
 
-func (as *appService) changeDB(db *database.Database) error {
-	err := as.dbs.SetDB(db)
+func (as *appService) OpenDB(s string) error {
+	err := as.dbs.Open(s)
 	if err != nil {
 		return err
 	}
-	as.setRepos(db)
 	return nil
 }
 
 func (as *appService) setRepos(db *database.Database) {
 	as.bookRetriever = db
 	as.genreRetriever = db
-	as.bookCreator = db
-	as.bookUpdator = db
-	as.bookDeletor = db
+	as.store = db
 }
 
 func newAppService(bus *bus.Bus, cfg *config.Config, db *database.Database) *appService {

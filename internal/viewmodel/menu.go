@@ -10,7 +10,6 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/csv"
-	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
@@ -44,7 +43,7 @@ func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
 	}
 
 	for _, book := range books {
-		_, err = c.app.bookCreator.CreateBook(&book)
+		_, err = c.app.store.CreateBook(&book)
 		if err != nil {
 			displayError(c.bus, err)
 			return
@@ -107,25 +106,20 @@ func (c *MenuVM) OpenDatabase(path string, err error) {
 		return
 	}
 
-	db, err := database.Open(path)
+	err = c.app.OpenDB(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return
 	}
 
-	err = c.app.changeDB(db)
-	if err != nil {
-		displayError(c.bus, err)
-		return
-	}
 	c.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 	})
+
 	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: fmt.Sprintf("opened: '%s'", path),
 	})
-
 	_ = c.DBFile.Set(path)
 }
 
@@ -146,14 +140,7 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 		path += ".db"
 	}
 
-	db, err := database.Open(path)
-
-	if err != nil {
-		displayError(c.bus, err)
-		return
-	}
-
-	err = c.app.changeDB(db)
+	err = c.app.OpenDB(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return

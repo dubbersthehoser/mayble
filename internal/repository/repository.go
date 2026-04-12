@@ -90,5 +90,5 @@ type BookUpdator interface {
 }
 
 type BookDeletor interface {
-	DeleteBook(id int64) (*BookEntry, error)
+	DeleteBook(id int64) error
 }
