@@ -9,6 +9,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
 const (
@@ -26,7 +27,7 @@ const (
 
 type MainUI struct {
 	bus     *bus.Bus
-	app     *appService
+	app     *app.Service
 	errList []error
 
 	OpenedBody binding.Int
@@ -41,7 +42,7 @@ type MainUI struct {
 func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
 
 	b := &bus.Bus{}
-	as := newAppService(b, cfg, db)
+	as := app.NewService(b, cfg, db)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
@@ -56,11 +57,6 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 		Info:    binding.NewString(),
 		Clear:   binding.NewBool(),
 	}
-	_ = mu.DBFile.Set(cfg.DBFile)
-	mu.DBFile.AddListener(binding.NewDataListener(func() {
-		path, _ := mu.DBFile.Get()
-		cfg.DBFile = path
-	}))
 
 	// to clear info line
 	countDown := time.Duration(time.Minute / 10)

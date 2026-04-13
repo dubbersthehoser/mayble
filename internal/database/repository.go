@@ -162,10 +162,9 @@ func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
 }
 
 // DeleteBook remove book from database errors a database related error.
-func (db *Database) DeleteBook(b *repo.BookEntry) error {
+func (db *Database) DeleteBook(id int64) error {
 	const op status.Op = "database.delete_book"
 
-	id := b.ID
 	err := db.Queries.DeleteBook(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {

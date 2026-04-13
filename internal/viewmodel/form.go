@@ -351,19 +351,19 @@ func (bf *CreateBookForm) Submit() {
 
 type EditBookVM struct {
 	BookForm
-	Genres *UniqueGenres
 	bus    *bus.Bus
 	IsOpen binding.Bool
-	app    *appService
+	updator repo.BookUpdator
+	Genres *UniqueGenres
 }
 
-func NewEditBookVM(b *bus.Bus, app *appService, isOpen binding.Bool) *EditBookVM {
+func NewEditBookVM(b *bus.Bus, u repo.BookUpdator, g *UniqueGenres,  isOpen binding.Bool) *EditBookVM {
 	ed := &EditBookVM{
 		bus:      b,
 		BookForm: *NewBookForm(),
-		app:      app,
+		updator:  u,
 		IsOpen:   isOpen,
-		Genres:   app.uniqueGenres,
+		Genres:   g,
 	}
 	return ed
 }

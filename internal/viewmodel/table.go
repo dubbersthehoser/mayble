@@ -10,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
-	"github.com/dubbersthehoser/mayble/internal/config"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/table"
 )
@@ -20,10 +19,13 @@ const (
 	stubValue    string = "N/A"
 )
 
+// The smallest width a column can be.
+const MinColWidth float32 = 100.0
+
 type TableVM struct {
 	repo   repo.BookRetriever
-	config *config.Config
 	bus    *bus.Bus
+	cfg    UIConfig
 
 	SortBy    binding.String
 	SortOrder binding.String
@@ -40,11 +42,11 @@ type TableVM struct {
 	l *listener
 }
 
-func NewTableVM(b *bus.Bus, app *appService) *TableVM {
+func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *TableVM {
 	t := &TableVM{
 		table:  table.NewTable("Main", entryHeaders()),
-		repo:   app.bookRetriever,
-		config: app.cfg,
+		repo:   r,
+		cfg:    cfg,
 		bus:    b,
 
 		SortBy:    binding.NewString(),
@@ -58,7 +60,7 @@ func NewTableVM(b *bus.Bus, app *appService) *TableVM {
 			Header: binding.NewString(),
 		},
 
-		selector: newEntrySelect(app.bookRetriever),
+		selector: newEntrySelect(r),
 
 		l: &listener{},
 	}
@@ -73,10 +75,6 @@ func NewTableVM(b *bus.Bus, app *appService) *TableVM {
 	err := t.load()
 	if err != nil {
 		log.Println(err)
-	}
-
-	if t.config != nil {
-		t.table.SetHidden(t.config.UI.Table.ColumnsHidden)
 	}
 
 	b.Subscribe(bus.Handler{
@@ -145,37 +143,22 @@ func (t *TableVM) Sort() error {
 	return nil
 }
 
-// The smallest width that a column can be.
-const MinColWidth float32 = 100.0
-
 // StoreColumnWidth to the config file if it exists, else nop.
 // When width is smaller then MinColWidth, MinColWidth will be used.
 func (t *TableVM) StoreColumnWidth(col int, width float32) {
-	if t.config == nil {
-		return
-	}
 	if width < MinColWidth {
 		width = MinColWidth
 	}
-	table := t.config.GetUITable()
 	cell := t.table.GetHeaderCell(col)
 	label := cell.Header()
-	table.SetColumnWidth(label, width)
+	t.cfg.SetColumnWidth(label, width)
 }
 
 // GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
 func (t *TableVM) GetColumnWidth(col int) float32 {
-	if t.config == nil {
-		return MinColWidth
-	}
 	cell := t.table.GetHeaderCell(col)
 	label := cell.Header()
-
-	var width float32 = 0.0
-	if t.config != nil {
-		table := t.config.GetUITable()
-		width = table.GetColumnWidth(label)
-	}
+	width := t.cfg.GetColumnWidth(label)
 	if width < MinColWidth {
 		width = MinColWidth
 	}
@@ -184,10 +167,7 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 
 func (t *TableVM) SetHidden(options []string) {
 	hide := hiddenOptionsToHeaders(options)
-	if t.config != nil {
-		table := t.config.GetUITable()
-		table.ColumnsHidden = hide
-	}
+	t.cfg.SetHiddenColumns(hide)
 	t.table.SetHidden(hide)
 	t.l.notify()
 }
@@ -353,31 +333,38 @@ type TableControllersVM struct {
 	SearchText    binding.String
 	selector      *EntrySelect
 	hiddenColumns []string
-	app           *appService
 	bus           *bus.Bus
 	EditIsOpen    binding.Bool
 	editBook      *EditBookVM
+
+	store repo.BookStore
 }
 
-func NewTableControllersVM(b *bus.Bus, app *appService) *TableControllersVM {
+func NewTableControllersVM(b *bus.Bus, r repo.BookRetriever, s repo.BookStore, g *UniqueGenres, ) *TableControllersVM {
 	tc := &TableControllersVM{
 		SearchText:    binding.NewString(),
 		hiddenColumns: make([]string, 0),
-		selector:      newEntrySelect(app.bookRetriever),
 		EditIsOpen:    binding.NewBool(),
-		app:           app,
+
 		bus:           b,
+
+		selector: newEntrySelect(r),
+		store:    s,
 	}
-	tc.editBook = NewEditBookVM(b, app, tc.EditIsOpen)
+	tc.editBook = NewEditBookVM(b, s, g, tc.EditIsOpen)
 	return tc
+}
+
+func msgNotSelected(b *bus.Bus) {
+	b.Notify(bus.Event{
+		Name: msgUserInfo,
+		Data: "Nothing selected",
+	})
 }
 
 func (tc *TableControllersVM) Delete() {
 	if !tc.selector.HasSelected() {
-		tc.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Nothing selected",
-		})
+		msgNotSelected(tc.bus)
 		return
 	}
 	book, err := tc.selector.getBook()
@@ -385,7 +372,7 @@ func (tc *TableControllersVM) Delete() {
 		log.Println(err)
 		return
 	}
-	err = tc.app.bookDeletor.DeleteBook(book)
+	err = tc.store.DeleteBook(book.ID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -395,12 +382,10 @@ func (tc *TableControllersVM) Delete() {
 		Name: msgDataChanged,
 	})
 }
+
 func (tc *TableControllersVM) Edit() {
 	if !tc.selector.HasSelected() {
-		tc.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Nothing selected",
-		})
+		msgNotSelected(tc.bus)
 		return
 	}
 
