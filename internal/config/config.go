@@ -39,6 +39,7 @@ func (t *Table) GetColumnWidth(label string) float32 {
 
 // UI contains ui settings.
 type UI struct {
+	cfg   *Config
 	Table Table `json:"table"`
 }
 
@@ -50,6 +51,10 @@ type Config struct {
 	DBDriver   string `json:"db_driver"` // NOTE deprecated.
 	DBFile     string `json:"db_file"`
 	UI         UI
+}
+
+func (c *Config) GetUI() *UI {
+	return c.UI
 }
 
 // GetUITable grab table by name if not found returns an new table.

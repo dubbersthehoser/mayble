@@ -272,11 +272,11 @@ type CreateBookForm struct {
 	BookForm
 }
 
-func NewCreateBookForm(b *bus.Bus, app *appService) *CreateBookForm {
+func NewCreateBookForm(b *bus.Bus, c repo.BookCreator, g *UniqueGenres) *CreateBookForm {
 	bf := &CreateBookForm{
 		bus:      b,
-		Genres:   app.uniqueGenres,
-		repo:     app.bookCreator,
+		Genres:   g,
+		repo:     c,
 		BookForm: *NewBookForm(),
 	}
 	bf.sl = NewSubmissionList(b, &bf.BookForm)
@@ -351,10 +351,10 @@ func (bf *CreateBookForm) Submit() {
 
 type EditBookVM struct {
 	BookForm
-	bus    *bus.Bus
-	IsOpen binding.Bool
+	bus     *bus.Bus
+	IsOpen  binding.Bool
 	updator repo.BookUpdator
-	Genres *UniqueGenres
+	Genres  *UniqueGenres
 }
 
 func NewEditBookVM(b *bus.Bus, u repo.BookUpdator, g *UniqueGenres,  isOpen binding.Bool) *EditBookVM {
@@ -380,7 +380,7 @@ func (ed *EditBookVM) Submit() {
 
 	book := ed.BookForm.ToBookEntry()
 
-	ed.app.bookUpdator.UpdateBook(book)
+	ed.updator.UpdateBook(book)
 
 	ed.bus.Notify(bus.Event{
 		Name: msgDataChanged,

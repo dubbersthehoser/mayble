@@ -9,6 +9,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
@@ -27,8 +28,12 @@ const (
 
 type MainUI struct {
 	bus     *bus.Bus
-	app     *app.Service
+	cfg     UIConfig
 	errList []error
+
+	genres    *UniqueGenres
+	store     repo.BookStore
+	retriever repo.BookRetriever
 
 	OpenedBody binding.Int
 	DBFile     binding.String
@@ -46,7 +51,11 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
-		app:        as,
+		cfg:        cfg.GetUI(),
+
+		store:     as,
+		genres:    NewUniqueGenres(b, as),
+		retriever: as,
 
 		errList: errs,
 
@@ -139,15 +148,15 @@ func (m *MainUI) GetMenuVM() *MenuVM {
 }
 
 func (m *MainUI) GetTableVM() *TableVM {
-	return NewTableVM(m.bus, m.app)
+	return NewTableVM(m.bus, m.cfg, m.retriever)
 }
 
 func (m *MainUI) GetTableControllersVM() *TableControllersVM {
-	return NewTableControllersVM(m.bus, m.app)
+	return NewTableControllersVM(m.bus, m.retriever, m.store, m.genres)
 }
 
 func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
-	return NewCreateBookForm(m.bus, m.app)
+	return NewCreateBookForm(m.bus, m.store, m.genres)
 }
 
 const dateFormat = "02/01/2006"

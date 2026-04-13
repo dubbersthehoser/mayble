@@ -340,7 +340,7 @@ type TableControllersVM struct {
 	store repo.BookStore
 }
 
-func NewTableControllersVM(b *bus.Bus, r repo.BookRetriever, s repo.BookStore, g *UniqueGenres, ) *TableControllersVM {
+func NewTableControllersVM(b *bus.Bus, r repo.BookRetriever, s repo.BookStore, g *UniqueGenres) *TableControllersVM {
 	tc := &TableControllersVM{
 		SearchText:    binding.NewString(),
 		hiddenColumns: make([]string, 0),

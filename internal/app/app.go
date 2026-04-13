@@ -37,5 +37,20 @@ func NewService(bus *bus.Bus, cfg *config.Config, db *database.Database) *Servic
 }
 
 
-func (as *Service) CreateBook(b *repo.BookEntry) error {
+func (as *Service) CreateBook(b *repo.BookEntry) (int64, error) {
+}
+
+func (as *Service) UpdateBook(b *repo.BookEntry) error {
+}
+
+func (as *Service) DeleteBook(id int64) error {
+}
+
+func (as *Service) GetUniqueGenres() ([]string, error) {
+}
+
+func (as *Service) GetAllBooks(repo.Variant) ([]repo.BookEntry, error) {
+}
+
+func (as *Service) GetBookByID(id int64) (repo.BookEntry, error) {
 }
