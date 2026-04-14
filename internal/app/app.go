@@ -36,8 +36,10 @@ func NewService(bus *bus.Bus, cfg *config.Config, db *database.Database) *Servic
 	return as
 }
 
+// ??
 
 func (as *Service) CreateBook(b *repo.BookEntry) (int64, error) {
+	
 }
 
 func (as *Service) UpdateBook(b *repo.BookEntry) error {

@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"fmt"
 	"path/filepath"
-
-	"github.com/dubbersthehoser/mayble/internal/status"
 )
 
 // Table config for table view.
@@ -15,9 +14,14 @@ type Table struct {
 	ColumnWidths  map[string]float32 `json:"column_width"`
 }
 
+// UI contains ui settings.
+type UI struct {
+	Table Table `json:"table"`
+}
+
 // SetColumnWidth for column lable for size s.
-func (t *Table) SetColumnWidth(label string, s float32) {
-	w := t.ColumnWidths
+func (u *UI) SetColumnWidth(label string, s float32) {
+	w := u.Table.ColumnWidths
 	if w == nil {
 		w = make(map[string]float32)
 	}
@@ -25,8 +29,8 @@ func (t *Table) SetColumnWidth(label string, s float32) {
 }
 
 // GetColumnWidth from named label.
-func (t *Table) GetColumnWidth(label string) float32 {
-	w := t.ColumnWidths
+func (u *UI) GetColumnWidth(label string) float32 {
+	w := u.Table.ColumnWidths
 	if w == nil {
 		return 0.0
 	}
@@ -37,11 +41,14 @@ func (t *Table) GetColumnWidth(label string) float32 {
 	return v
 }
 
-// UI contains ui settings.
-type UI struct {
-	cfg   *Config
-	Table Table `json:"table"`
+func (u *UI) SetHiddenColumns(headers []string) {
+	u.Table.ColumnsHidden = headers
 }
+
+func (u *UI) GetHiddenColumns() []string {
+	return u.Table.ColumnsHidden
+}
+
 
 // Config contains all configuration for the application.
 type Config struct {
@@ -50,11 +57,7 @@ type Config struct {
 	ConfigFile string `json:"config_file"`
 	DBDriver   string `json:"db_driver"` // NOTE deprecated.
 	DBFile     string `json:"db_file"`
-	UI         UI
-}
-
-func (c *Config) GetUI() *UI {
-	return c.UI
+	UI
 }
 
 // GetUITable grab table by name if not found returns an new table.
@@ -71,12 +74,11 @@ func (c *Config) GetUITable() *Table {
 
 // save to config file.
 func (c *Config) Save() error {
-	const op status.Op = "config.save"
 	path := c.ConfigFile
 
 	file, err := os.Create(path)
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return fmt.Errorf("config.save %w", err)
 	}
 
 	encoder := json.NewEncoder(file)
@@ -92,7 +94,6 @@ func (c *Config) Open() (*Config, error) {
 // Load config from root directory. The file name will 'config.json'
 // and if file is not found it will return new Config type to be saved later.
 func Load(root string) (*Config, error) {
-	const op status.Op = "config.load"
 
 	file := "config.json"
 	path := filepath.Join(root, file)
@@ -106,7 +107,7 @@ func Load(root string) (*Config, error) {
 		return cfg, nil
 	}
 	if err != nil {
-		return nil, status.E(op, status.Unexpected, status.LevelError, err)
+		return nil, fmt.Errorf("config.load %w", err)
 	}
 	defer fileIO.Close()
 
@@ -116,7 +117,7 @@ func Load(root string) (*Config, error) {
 
 	err = decoder.Decode(cfg)
 	if err != nil {
-		return nil, status.E(op, status.FailedToDecode, status.LevelError, err)
+		return nil, fmt.Errorf("config.load %w", err)
 	}
 	err = backupV1(path, cfg)
 	return cfg, err
@@ -124,7 +125,6 @@ func Load(root string) (*Config, error) {
 
 // backupV1 create a backup of the old config if it is.
 func backupV1(path string, cfg *Config) error {
-	const op status.Op = "config.backupV1"
 	if cfg.Version != "" || cfg.DBFile == "" {
 		return nil
 	}
@@ -133,16 +133,16 @@ func backupV1(path string, cfg *Config) error {
 
 	to, err := os.Create(path + ".bak")
 	if err != nil {
-		return status.E(op, status.FailedToCreate, status.LevelError, err)
+		return fmt.Errorf("config.backup %w", err)
 	}
 	from, err := os.Open(path)
 	if err != nil {
-		return status.E(op, status.FailedToOpen, status.LevelError, err)
+		return fmt.Errorf("config.backup %w", err)
 	}
 
 	_, err = from.WriteTo(to)
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return fmt.Errorf("config.backup %w", err)
 	}
 	return nil
 }

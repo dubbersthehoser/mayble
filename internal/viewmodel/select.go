@@ -32,6 +32,10 @@ func (e *EntrySelect) getBook() (*repo.BookEntry, error) {
 	return &b, err
 }
 
+func (e *EntrySelect) getID() int64 {
+	return e.selected
+}
+
 func (e *EntrySelect) selectID(id int64, notify bool) {
 	e.selected = id
 	e.isSelected = true

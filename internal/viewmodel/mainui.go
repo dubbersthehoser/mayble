@@ -51,7 +51,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
-		cfg:        cfg.GetUI(),
+		cfg:        &cfg.UI,
 
 		store:     as,
 		genres:    NewUniqueGenres(b, as),

@@ -367,17 +367,11 @@ func (tc *TableControllersVM) Delete() {
 		msgNotSelected(tc.bus)
 		return
 	}
-	book, err := tc.selector.getBook()
+	err := tc.store.DeleteBook(tc.selector.getID())
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	err = tc.store.DeleteBook(book.ID)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	fmt.Println(book)
 	tc.bus.Notify(bus.Event{
 		Name: msgDataChanged,
 	})
