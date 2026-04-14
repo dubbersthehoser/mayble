@@ -34,6 +34,7 @@ type MainUI struct {
 	genres    *UniqueGenres
 	store     repo.BookStore
 	retriever repo.BookRetriever
+	dbOpener  DatabaseOpener
 
 	OpenedBody binding.Int
 	DBFile     binding.String
@@ -47,7 +48,7 @@ type MainUI struct {
 func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
 
 	b := &bus.Bus{}
-	as := app.NewService(b, cfg, db)
+	as := app.NewService(cfg, db)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
@@ -56,6 +57,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 		store:     as,
 		genres:    NewUniqueGenres(b, as),
 		retriever: as,
+		dbOpener: as,
 
 		errList: errs,
 
@@ -144,7 +146,7 @@ func (m *MainUI) Errors() []string {
 }
 
 func (m *MainUI) GetMenuVM() *MenuVM {
-	return NewMenuVM(m.bus, m.app, m.DBFile)
+	return NewMenuVM(m.bus, m.dbOpener, m.DBFile)
 }
 
 func (m *MainUI) GetTableVM() *TableVM {

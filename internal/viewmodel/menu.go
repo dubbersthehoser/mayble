@@ -2,33 +2,32 @@ package viewmodel
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
-	"github.com/dubbersthehoser/mayble/internal/csv"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
 type MenuVM struct {
 	DBFile binding.String
-	app    *appService
+	dbOpener    DatabaseOpener
+	fileHandler repo.CSVHandler
 	bus    *bus.Bus
 }
 
-func NewMenuVM(b *bus.Bus, app *appService, dbFile binding.String) *MenuVM {
+func NewMenuVM(b *bus.Bus, dbOpener DatabaseOpener, dbFile binding.String) *MenuVM {
 	m := &MenuVM{
 		DBFile: dbFile,
 		bus:    b,
-		app:    app,
+		dbOpener:    dbOpener,
 	}
 	return m
 }
 
-func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
+func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -36,18 +35,15 @@ func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
 	if r == nil {
 		return
 	}
-	defer r.Close()
-	books, err := csv.Import(r)
-	if err != nil {
-		displayError(c.bus, err)
-	}
 
-	for _, book := range books {
-		_, err = c.app.store.CreateBook(&book)
-		if err != nil {
-			displayError(c.bus, err)
-			return
-		}
+	if err := r.Close(); err != nil {
+		displayError(c.bus, err)
+		return
+	}
+	
+	if err := c.fileHandler.ImportFile(r.URI().Path()); err != nil {
+		displayError(c.bus, err)
+		return
 	}
 	c.bus.Notify(bus.Event{
 		Name: msgDataChanged,
@@ -59,7 +55,7 @@ func (c *MenuVM) ImportCSV(r io.ReadCloser, err error) {
 	})
 }
 
-func (c *MenuVM) ExportCSV(w io.WriteCloser, filepath string, err error) {
+func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -68,25 +64,18 @@ func (c *MenuVM) ExportCSV(w io.WriteCloser, filepath string, err error) {
 		return
 	}
 
-	if !strings.HasSuffix(filepath, ".csv") {
-		filepath += ".csv"
-		w.Close()
-		w, err = os.Create(filepath)
-		if err != nil {
-			displayError(c.bus, err)
-			return
-		}
-	}
-	defer w.Close()
+	filepath := w.URI().Path()
 
-	books, err := c.app.bookRetriever.GetAllBooks(repo.Book)
-	if err != nil {
+	if err := w.Close(); err != nil {
 		displayError(c.bus, err)
 		return
 	}
 
-	err = csv.Export(w, books)
-	if err != nil {
+	if !strings.HasSuffix(filepath, ".csv") {
+		filepath += ".csv"
+	}
+
+	if err := c.fileHandler.ExportFile(filepath); err != nil {
 		displayError(c.bus, err)
 		return
 	}
@@ -101,12 +90,13 @@ func (c *MenuVM) OpenDatabase(path string, err error) {
 	if path == "" {
 		return
 	}
+
 	if err != nil {
 		displayError(c.bus, err)
 		return
 	}
 
-	err = c.app.OpenDB(path)
+	err = c.dbOpener.OpenDB(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -140,7 +130,7 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 		path += ".db"
 	}
 
-	err = c.app.OpenDB(path)
+	err = c.dbOpener.OpenDB(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return

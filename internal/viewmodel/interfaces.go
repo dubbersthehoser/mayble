@@ -6,3 +6,7 @@ type UIConfig interface {
 	SetHiddenColumns(header []string)
 	GetHiddenColumns() []string
 }
+
+type DatabaseOpener interface {
+	OpenDB(string) error
+}

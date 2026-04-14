@@ -2,6 +2,7 @@ package repository
 
 import (
 	"time"
+	"io"
 )
 
 type Variant int
@@ -66,6 +67,12 @@ func BookEntryFields() []string {
 	}
 }
 
+type CSVHandler interface {
+	ImportFile(path string) error
+	ExportFile(path string) error
+}
+
+
 type BookRetriever interface {
 	GetAllBooks(Variant) ([]BookEntry, error)
 	GetBookByID(id int64) (BookEntry, error)
@@ -82,13 +89,21 @@ type GenreRetriever interface {
 }
 
 type BookCreator interface {
-	CreateBook(b *BookEntry) (int64, error)
+	CreateBook(*BookEntry) (int64, error)
 }
 
 type BookUpdator interface {
-	UpdateBook(b *BookEntry) error
+	UpdateBook(*BookEntry) error
 }
 
 type BookDeletor interface {
 	DeleteBook(id int64) error
+}
+
+type BookImporter interface {
+	BookImport(io.Reader) error
+}
+
+type BookExporter interface {
+	BookExport(io.Writer, []BookEntry) error
 }

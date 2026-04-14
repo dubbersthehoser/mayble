@@ -16,22 +16,14 @@ import (
 func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 
 	csvImportBtn := widget.NewButton("Import", func() {
-		d := dialog.NewFileOpen(func(r fyne.URIReadCloser, err error) {
-			vm.ImportCSV(r, err)
-		}, w)
+		d := dialog.NewFileOpen(vm.ImportCSV, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Import CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
 	csvExportBtn := widget.NewButton("Export", func() {
-		d := dialog.NewFileSave(func(w fyne.URIWriteCloser, err error) {
-			var path string
-			if w != nil {
-				path = w.URI().Path()
-			}
-			vm.ExportCSV(w, path, err)
-		}, w)
+		d := dialog.NewFileSave(vm.ExportCSV, w)
 		d.Resize(w.Canvas().Size())
 		d.SetTitleText("Export CSV")
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
