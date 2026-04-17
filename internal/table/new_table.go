@@ -10,10 +10,10 @@ type nTable struct {
 	headerOrder map[string]int // Keep original header locations.
 	rowCount    int            // Keep track of rows in table.
 	name        string
-	first *Header
+	first       *Header        // First header in table list.
 }
 
-func NewTable(name string, headers []string) *nTable {
+func NewnTable(name string, headers []string) *nTable {
 	t := &nTable{
 		name: name,
 		headerOrder: make(map[string]int),
@@ -23,15 +23,15 @@ func NewTable(name string, headers []string) *nTable {
 		t.headerOrder[h] = i
 	}
 
-	var prev *Header
 	for _, header := range headers {
 		h := newHeader(t, header)
-		if prev != nil {
-			prev.appendHeader(h)
+		if t.first != nil {
+			t.first.appendHeader(h)
+		} else {
+			t.first = h
 		}
-		prev = h
 	}
-	return nil
+	return t
 }
 
 type Header struct {
@@ -52,6 +52,11 @@ func newHeader(t *nTable, name string) *Header {
 	h.prev = h
 	return h
 }
+func stubHeader(t *nTable) *Header {
+	h := newHeader(t, "STUB")
+	h.appendValue(-1, "STUB")
+	return h
+}
 
 func (h *Header) IsHidden() bool {
 	return h.hidden
@@ -69,21 +74,18 @@ func (h *Header) appendHeader(n *Header) {
 }
 
 func (h *Header) appendValue(id int64, v string) {
-	c := &Cell{
-		header: h,
-		id: id,
-		value: v,
-	}
+	h.appendCell(newCell(h, id, v))
+}
+
+func (h *Header) appendCell(c *Cell) {
 	if h.value == nil {
-		c.next = c
-		c.prev = c
 		h.value = c
 		return
 	}
 	h.value.append(c)
 }
 
-func (h *Header) getValue(idx int) *Cell {
+func (h *Header) getCell(idx int) *Cell {
 	curr := h.value
 	i := 0
 	for {
@@ -105,12 +107,18 @@ type Cell struct {
 	next   *Cell
 	prev   *Cell
 }
-func stubCell(h *Header) *Cell {
-	return &Cell{
+func newCell(h *Header, id int64, v string) *Cell {
+	c := &Cell{
 		header: h,
-		id: -1,
-		value: "STUB",
+		id: id,
+		value: v,
 	}
+	c.next = c
+	c.prev = c
+	return c
+}
+func stubCell(h *Header) *Cell {
+	return newCell(h, -1, "STUB") 
 }
 
 // append add cell as if c is head of list, and v is added to the end of the list.
@@ -149,13 +157,16 @@ func (t *nTable) Headers() []string {
 }
 
 // AppendRow add a row to table with entry id and its values.
+// returns errors when the number of values don't match number of table headers.
 func (t *nTable) AppendRow(id int64, values []string) error {
 	if len(values) != len(t.headerOrder) {
 		return errors.New("table invalid value count")
 	}
 	curr := t.first
+	println("hello?", curr)
 	i := 0
 	for {
+		println("appendRow()?") //!
 		curr.appendValue(id, values[i])
 		i+=1
 		t.rowCount += 1
@@ -218,12 +229,26 @@ func (t *nTable) ClearValues() error {
 	}
 }
 
+// GetCell return cell from table at row and col.
+// returns stubbed values if not found
 func (t *nTable) GetCell(row, col int) *Cell {
-	
+	header := t.GetHeader(col)
+	return header.getCell(row)
 }
 
 func (t *nTable) GetHeader(col int) *Header {
-	return nil
+	curr := t.first
+	i :=  0
+	for {
+		if i == col {
+			return curr
+		}
+		i += 1
+		curr = curr.next
+		if curr == t.first {
+			return stubHeader(t)
+		}
+	}
 }
 
 func (t *nTable) Name() string {
@@ -267,4 +292,3 @@ func (t *nTable) SetHidden(headers []string) {
 func (t *nTable) Size() (row int, col int) {
 	return t.rowCount, len(t.headerOrder)
 }
-
