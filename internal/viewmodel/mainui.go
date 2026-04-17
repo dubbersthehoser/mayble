@@ -57,17 +57,20 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 		store:     as,
 		genres:    NewUniqueGenres(b, as),
 		retriever: as,
+
+		DBFile:   binding.NewString(),
 		dbOpener: as,
 
 		errList: errs,
 
-		DBFile: binding.NewString(),
 
 		Error:   binding.NewString(),
 		Success: binding.NewString(),
 		Info:    binding.NewString(),
 		Clear:   binding.NewBool(),
 	}
+
+	mu.DBFile.Set(cfg.DBFile)
 
 	// to clear info line
 	countDown := time.Duration(time.Minute / 10)

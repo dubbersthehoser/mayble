@@ -2,6 +2,7 @@ package table
 
 import (
 	"cmp"
+	"fmt"
 	"errors"
 	"slices"
 )
@@ -15,7 +16,7 @@ const NoneIndex CellIndex = 0
 type CellKind int
 
 const (
-	CellNone   CellKind = iota // A free, avaliable, or stub cell.
+	CellNone   CellKind = iota
 	cellFree                   // Set as a free list cell. (this is to prevent a bug)
 	cellTable                  // Root grand parent of all cells
 	CellHeader                 // Cell representing a table's header
@@ -295,6 +296,10 @@ func (t *Table) clearColumnValues(header CellIndex) {
 	first := t.cells.get(header).first
 	curr := first
 	for {
+		// TODO bug
+		// When the table is empty and there is a submission 
+		// added the following panic gets called.
+		fmt.Printf("PANIC: %#v\n", t.cells.get(curr)) //!
 		if t.cells.get(curr).kind != CellView {
 			panic("invalid cell kind")
 		}
@@ -322,6 +327,7 @@ func (t *Table) ClearValues() error {
 		}
 		t.clearColumnValues(curr)
 		curr = t.cells.get(curr).next
+		fmt.Printf("DEBUG: %#v\n", t.cells.get(curr))
 		if curr == first {
 			break
 		}

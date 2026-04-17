@@ -125,8 +125,8 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 	_ = c.DBFile.Set(path)
 
 	if !strings.HasSuffix(path, ".db") &&
-		!strings.HasSuffix(path, ".sqlite") &&
-		!strings.HasSuffix(path, ".sqlite3") {
+	   !strings.HasSuffix(path, ".sqlite") &&
+	   !strings.HasSuffix(path, ".sqlite3") {
 		path += ".db"
 	}
 
