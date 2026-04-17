@@ -149,15 +149,14 @@ func (t *TableVM) StoreColumnWidth(col int, width float32) {
 	if width < MinColWidth {
 		width = MinColWidth
 	}
-	cell := t.table.GetHeaderCell(col)
-	label := cell.Header()
+	header := t.table.GetHeader(col)
+	label := header.Name()
 	t.cfg.SetColumnWidth(label, width)
 }
 
 // GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
 func (t *TableVM) GetColumnWidth(col int) float32 {
-	cell := t.table.GetHeaderCell(col)
-	label := cell.Header()
+	label := t.table.GetHeader(col).Name()
 	width := t.cfg.GetColumnWidth(label)
 	if width < MinColWidth {
 		width = MinColWidth
@@ -314,14 +313,12 @@ func (t *TableVM) GetID(row, col int) (int64, error) {
 
 // IsItemHidden check whether cell item is hidden.
 func (t *TableVM) IsItemHidden(row, col int) bool {
-	cell := t.table.GetCell(row, col)
-	return t.table.IsHidden(cell)
+	return t.table.GetCell(row, col).IsHidden()
 }
 
 // IsHeaderHidden check whether header at col is hidden.
 func (t *TableVM) IsHeaderHidden(col int) bool {
-	cell := t.table.GetHeaderCell(col)
-	return t.table.IsHidden(cell)
+	return t.table.GetHeader(col).IsHidden()
 
 }
 

@@ -109,17 +109,17 @@ func Search(t *Table, search, header string) []SearchResult {
 		return []SearchResult{}
 	}
 	result := []SearchResult{}
-	WalkVisableValues(t, func(row, col int, c *DataCell) {
+	WalkVisableValues(t, func(row, col int, c *Cell) bool {
 
 		if search == "" {
-			return
+			return false
 		}
 		if header != "" && c.Header() != header {
-			return
+			return false
 		}
 		score := searchCompare(c.Value(), search)
 		if score == -1 {
-			return
+			return false
 		}
 		r := SearchResult{
 			Score: score,
@@ -128,6 +128,7 @@ func Search(t *Table, search, header string) []SearchResult {
 			ID:    c.ID(),
 		}
 		result = append(result, r)
+		return false
 	})
 	slices.SortFunc(result, func(a, b SearchResult) int {
 		return cmp.Compare(a.Score, b.Score) * -1
