@@ -22,6 +22,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 		d.Show()
 	})
+
 	csvExportBtn := widget.NewButton("Export", func() {
 		d := dialog.NewFileSave(vm.ExportCSV, w)
 		d.Resize(w.Canvas().Size())
@@ -63,7 +64,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 	dbFileLbl := widget.NewLabel("")
 	setDBLabel := func() {
 		label, _ := vm.DBFile.Get()
-		dbFileLbl.SetText(fmt.Sprintf("\"%s\"", label))
+		dbFileLbl.SetText(fmt.Sprintf("%s", label))
 	}
 
 	setDBLabel()

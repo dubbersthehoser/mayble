@@ -65,8 +65,7 @@ func (as *Service) GetBookByID(id int64) (repo.BookEntry, error) {
 	return as.db.GetBookByID(id)
 }
 
-func (as *Service) ImportFile(path string) error {
-	
+func (as *Service) ExportFile(path string) error {
 	books, err := as.db.GetAllBooks(repo.Book)
 	if err != nil {
 		return err
@@ -85,7 +84,7 @@ func (as *Service) ImportFile(path string) error {
 	return nil
 }
 
-func (as *Service) ExportFile(path string) error {
+func (as *Service) ImportFile(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
