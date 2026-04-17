@@ -18,11 +18,12 @@ type MenuVM struct {
 	bus    *bus.Bus
 }
 
-func NewMenuVM(b *bus.Bus, dbOpener DatabaseOpener, dbFile binding.String) *MenuVM {
+func NewMenuVM(b *bus.Bus, fh repo.CSVHandler, dbOpener DatabaseOpener, dbFile binding.String) *MenuVM {
 	m := &MenuVM{
 		DBFile: dbFile,
 		bus:    b,
 		dbOpener:    dbOpener,
+		fileHandler: fh,
 	}
 	return m
 }

@@ -164,6 +164,7 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 	return width
 }
 
+// SetHidden set named option headers to hidden.
 func (t *TableVM) SetHidden(options []string) {
 	hide := hiddenOptionsToHeaders(options)
 	t.cfg.SetHiddenColumns(hide)
@@ -171,6 +172,7 @@ func (t *TableVM) SetHidden(options []string) {
 	t.l.notify()
 }
 
+// Hidden return slice of hidden headers as named options.
 func (t *TableVM) Hidden() []string {
 	headers := t.table.HiddenHeaders()
 	return hiddenHeadersToOptions(headers)
@@ -263,7 +265,7 @@ func sortBooks(books []repo.BookEntry, header string, desending bool) error {
 	return nil
 }
 
-// load load entries form repostory sort then, and put them into table.
+// load load entries form repostory, sort them, and put them into table.
 func (t *TableVM) load() error {
 
 	items, err := t.repo.GetAllBooks(repo.Book)
@@ -405,13 +407,29 @@ func entryHeaders() []string {
 
 // entryValues get the values from e in its in order of entryHeaders.
 func entryValues(e *repo.BookEntry) []string {
-	return []string{
-		e.Title,
-		e.Author,
-		e.Genre,
-		formatRating(e.Rating),
-		formatDate(&e.Read),
-		e.Borrower,
-		formatDate(&e.Loaned),
+	
+	headers := repo.BookEntryFields()
+	values  := make([]string, len(headers))
+
+	for i, header := range headers {
+		switch header {
+		case "Title":
+			values[i] = e.Title
+		case "Author":
+			values[i] = e.Author
+		case "Genre":
+			values[i] = e.Genre
+		case "Rating":
+			values[i] = formatRating(e.Rating)
+		case "Read":
+			values[i] = formatDate(&e.Read)
+		case "Borrower":
+			values[i] = e.Borrower
+		case "Loaned":
+			values[i] = formatDate(&e.Loaned)
+		default:
+			panic("unknown field:" + header)
+		}
 	}
+	return values
 }

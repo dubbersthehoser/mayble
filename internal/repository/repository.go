@@ -60,10 +60,10 @@ func BookEntryFields() []string {
 		"Title",
 		"Author",
 		"Genre",
-		"Read",
 		"Rating",
-		"Loaned",
+		"Read",
 		"Borrower",
+		"Loaned",
 	}
 }
 

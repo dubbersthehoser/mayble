@@ -1,8 +1,8 @@
+// Package table 
 package table
 
 import (
 	"errors"
-	"fmt"
 	"cmp"
 	"slices"
 )
@@ -165,7 +165,6 @@ func (t *Table) Headers() []string {
 		headers = append(headers, curr.name)
 		curr = curr.next
 		if t.first == curr {
-			fmt.Printf("%#v\n", headers) //!
 			return headers
 		}
 	}
@@ -298,9 +297,7 @@ func (t *Table) SetHidden(headers []string) {
 	t.first = final[0]
 	t.first.next = t.first
 	t.first.prev = t.first
-	println(t.first.name)
 	for _, h := range final[1:] {
-		println(h.name)
 		t.first.appendHeader(h)
 	}
 }

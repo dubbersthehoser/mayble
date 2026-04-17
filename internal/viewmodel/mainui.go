@@ -31,10 +31,11 @@ type MainUI struct {
 	cfg     UIConfig
 	errList []error
 
-	genres    *UniqueGenres
-	store     repo.BookStore
-	retriever repo.BookRetriever
-	dbOpener  DatabaseOpener
+	genres      *UniqueGenres
+	store       repo.BookStore
+	retriever   repo.BookRetriever
+	dbOpener    DatabaseOpener
+	fileHandler repo.CSVHandler
 
 	OpenedBody binding.Int
 	DBFile     binding.String
@@ -60,6 +61,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 
 		DBFile:   binding.NewString(),
 		dbOpener: as,
+		fileHandler: as,
 
 		errList: errs,
 
@@ -149,7 +151,7 @@ func (m *MainUI) Errors() []string {
 }
 
 func (m *MainUI) GetMenuVM() *MenuVM {
-	return NewMenuVM(m.bus, m.dbOpener, m.DBFile)
+	return NewMenuVM(m.bus, m.fileHandler, m.dbOpener, m.DBFile)
 }
 
 func (m *MainUI) GetTableVM() *TableVM {
