@@ -12,6 +12,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	myApp "github.com/dubbersthehoser/mayble/internal/app"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
@@ -455,13 +456,13 @@ func TestCreateBookForm(t *testing.T) {
 	}
 	defer db.Conn.Close()
 	cfg := &config.Config{}
-	as := newAppService(b, cfg, db)
+	as := myApp.NewService(cfg, db)
 	err = db.Conn.Ping()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	cForm := NewCreateBookForm(b, as)
+	cForm := NewCreateBookForm(b, as, NewUniqueGenres(b, db))
 	_ = cForm
 
 	t.Run("AddSubmission", func(t *testing.T) {

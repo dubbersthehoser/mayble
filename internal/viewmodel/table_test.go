@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
@@ -23,12 +24,12 @@ func TestTableVM(t *testing.T) {
 	}
 	defer db.Conn.Close()
 	cfg := &config.Config{}
-	as := newAppService(b, cfg, db)
+	as := app.NewService(cfg, db)
 	err = db.Conn.Ping()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	table := NewTableVM(b, as)
+	table := NewTableVM(b, cfg, as)
 
 	books := []repo.BookEntry{
 		{
@@ -394,12 +395,12 @@ func TestTableControllerVM(t *testing.T) {
 	}
 	defer db.Conn.Close()
 	cfg := &config.Config{}
-	as := newAppService(b, cfg, db)
+	as := app.NewService(cfg, db)
 	err = db.Conn.Ping()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	controllers := NewTableControllersVM(b, as)
+	controllers := NewTableControllersVM(b, as, as, NewUniqueGenres(b, as))
 	_ = controllers
 
 	var bookID int64 = 1
