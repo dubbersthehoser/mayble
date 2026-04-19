@@ -5,7 +5,7 @@ A book management application.
 
 ## Reason 
 
-I wrote this software for a family member who has a collection of books and needed a way to keep track of them. What have been read, and been loaned out.
+I wrote this software for a family member who has a collection of books and needed a way to keep track of them. What books have been loaned out and have been read.
 
 ## Futures
 
@@ -21,7 +21,7 @@ I wrote this software for a family member who has a collection of books and need
 
 ## Build
 
-You can run `go run .` to build and run the program and try it out.
+Once the requirements have been installed, you can run `go run .` to build and run the program and try it out.
 
 ## Notice on Releases
 
