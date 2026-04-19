@@ -21,20 +21,18 @@ type UI struct {
 
 // SetColumnWidth for column lable for size s.
 func (u *UI) SetColumnWidth(label string, s float32) {
-	w := u.Table.ColumnWidths
-	if w == nil {
-		w = make(map[string]float32)
+	if u.Table.ColumnWidths == nil {
+		u.Table.ColumnWidths = make(map[string]float32)
 	}
-	w[label] = s
+	u.Table.ColumnWidths[label] = s
 }
 
 // GetColumnWidth from named label.
 func (u *UI) GetColumnWidth(label string) float32 {
-	w := u.Table.ColumnWidths
-	if w == nil {
+	if nil == u.Table.ColumnWidths {
 		return 0.0
 	}
-	v, ok := w[label]
+	v, ok := u.Table.ColumnWidths[label]
 	if !ok {
 		return 0.0
 	}
