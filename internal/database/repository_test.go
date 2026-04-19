@@ -225,7 +225,7 @@ func testDatabaseDeleteBook(db *Database, t *testing.T) {
 	}
 
 	for _, book := range books {
-		err := db.DeleteBook(&book)
+		err := db.DeleteBook(book.ID)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
