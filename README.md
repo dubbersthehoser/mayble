@@ -8,11 +8,12 @@ A book management application.
 I wrote this software for a family member who has a collection of books and needed a way to keep track of them. What books have been loaned out and have been read.
 
 ## Futures
-
-    - Searching, and Sorting
-    - Track read, and borrowed books
-    - Rate books
-    - CSV import / export 
+    - Searching, and Sorting.
+    - Track read, and borrowed books.
+    - Rate books.
+    - CSV import / export.
+    - Muti-form submission.
+    - Column resizing.
 
 ## Requirements
 
@@ -23,7 +24,6 @@ I wrote this software for a family member who has a collection of books and need
 
 Once the requirements have been installed, you can run `go run .` to build and run the program and try it out.
 
-## Notice on Releases
+## Notice On Releases
 
-The releases for this project are primarily for personal use and will not have any more then what is needed for the goal of this project.
-
+The releases for this project are primarily for personal use and only have what is needed for the goal of this project.

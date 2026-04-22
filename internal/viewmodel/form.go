@@ -169,15 +169,25 @@ type SubmissionList struct {
 	bus         *bus.Bus
 	l           *listener
 	submissions []repo.BookEntry
+	limit       int
+	Limit       binding.String
+}
+
+func fmtFormLimit(count, max int) string {
+	return fmt.Sprintf("Form Limit %d/%d", count, max)
 }
 
 func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
-	return &SubmissionList{
+	sl := &SubmissionList{
 		l:           &listener{},
 		bus:         bus,
 		submissions: make([]repo.BookEntry, 0),
 		form:        form,
+		limit:       25,
+		Limit:       binding.NewString(),
 	}
+	_ = sl.Limit.Set(fmtFormLimit(len(sl.submissions), sl.limit))
+	return sl
 }
 
 func (s *SubmissionList) Clear() {
