@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/submissions"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
@@ -168,8 +169,7 @@ type SubmissionList struct {
 	form        *BookForm
 	bus         *bus.Bus
 	l           *listener
-	submissions []repo.BookEntry
-	limit       int
+	sub         *submissions.List
 	Limit       binding.String
 }
 
@@ -181,31 +181,28 @@ func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
 	sl := &SubmissionList{
 		l:           &listener{},
 		bus:         bus,
-		submissions: make([]repo.BookEntry, 0),
+		sub:         submissions.NewList(25),
 		form:        form,
-		limit:       25,
 		Limit:       binding.NewString(),
 	}
-	_ = sl.Limit.Set(fmtFormLimit(len(sl.submissions), sl.limit))
 	return sl
 }
 
 func (s *SubmissionList) Clear() {
-	s.submissions = s.submissions[:0]
+	s.sub.Clear()
 }
 
 func (s *SubmissionList) pop() (*repo.BookEntry, error) {
-	if len(s.submissions) == 0 {
-		return nil, errors.New("empty list")
+	top := s.sub.Pop()
+	if top == nil {
+		return top, errors.New("empty submission list")
 	}
-	top := s.submissions[s.Length()-1]
-	s.Remove(s.Length() - 1)
 	s.l.notify()
-	return &top, nil
+	return top, nil
 }
 
 func (s *SubmissionList) append(book *repo.BookEntry) {
-	s.submissions = append(s.submissions, *book)
+	s.sub.Append(*book)
 	s.l.notify()
 }
 
@@ -216,14 +213,14 @@ func (s *SubmissionList) add(bf *BookForm) error {
 }
 
 func (s *SubmissionList) Length() int {
-	return len(s.submissions)
+	return s.sub.Length()
 }
 
 func (s *SubmissionList) GetView(idx int) string {
-	if idx >= s.Length() || idx < 0 {
+	book, err := s.sub.Get(idx)
+	if err != nil {
 		return "STUB: out of range"
 	}
-	book := s.submissions[idx]
 	prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
 	switch book.Variant {
 	case repo.Read | repo.Loaned:
@@ -239,21 +236,15 @@ func (s *SubmissionList) GetView(idx int) string {
 	}
 }
 
-func (s *SubmissionList) remove(idx int) {
-	if idx >= s.Length() || idx < 0 {
-		return
-	}
-
-	s.submissions = append(s.submissions[:idx], s.submissions[idx+1:]...)
-	s.l.notify()
-}
-
 func (s *SubmissionList) Remove(idx int) {
 	s.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: "Submission removed",
 	})
-	s.remove(idx)
+	err := s.sub.Remove(idx)
+	if err == nil {
+		s.l.notify()
+	}
 }
 
 func (s *SubmissionList) Edit(idx int) {
@@ -261,18 +252,19 @@ func (s *SubmissionList) Edit(idx int) {
 		log.Println("submission_list.edit: nil form")
 		return
 	}
-	if idx >= s.Length() || idx < 0 {
+	book, err := s.sub.Get(idx)
+	if err != nil {
 		log.Println("submission_list.edit: index out of range")
 		return
 	}
-	book := s.submissions[idx]
-	s.form.Set(&book)
+	s.form.Set(book)
 	s.Remove(idx)
 }
 
 func (s *SubmissionList) AddListener(l binding.DataListener) {
 	s.l.AddListener(l)
 }
+
 
 type CreateBookForm struct {
 	bus    *bus.Bus
