@@ -2,6 +2,8 @@ package csv
 
 import (
 	"encoding/csv"
+	"slices"
+	"strings"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +16,55 @@ import (
 var (
 	ErrInvalidFormat error = errors.New("invalid format")
 )
+
+func Import(r io.Reader) ([]repo.BookEntry, error) {
+	
+	reader := csv.NewReader(r)
+	reader.FieldsPerRecord = 7
+
+	entries, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	books := make([]repo.BookEntry, len(entries))
+
+	if len(entries) == 0 {
+		return books, nil
+	}
+
+	mapping, ok := mapSchema(entries[0])
+	if !ok {
+		mapping = make([]int, fieldLength())
+		for i := range mapping {
+			mapping[i] = i
+		}
+	} else {
+		entries = entries[1:]
+	}
+
+	for i := range entries {
+		book, err := fieldsToEntry(entries[i], mapping)
+		if err != nil {
+			return nil, err
+		}
+		books[i] = *book
+	}
+	return books, nil
+}
+
+func Export(w io.Writer, entries []repo.BookEntry) error {
+
+	writer := csv.NewWriter(w)
+
+	fields := make([][]string, len(entries)+1)
+
+	fields[0] = schemaHeaders()
+
+	for i := range entries {
+		fields[i+1] = entryToFields(&entries[i])
+	}
+	return writer.WriteAll(fields)
+}
 
 func fieldLength() int {
 	return len(repo.BookEntryFields())
@@ -40,7 +91,7 @@ func entryToFields(book *repo.BookEntry) []string {
 
 }
 
-func fieldsToEntry(f []string) (*repo.BookEntry, error) {
+func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
 
 	if len(f) != fieldLength() {
 		return nil, fmt.Errorf("invalid length of slice: %d != %d", fieldLength(), len(f))
@@ -48,12 +99,12 @@ func fieldsToEntry(f []string) (*repo.BookEntry, error) {
 
 	book := &repo.BookEntry{}
 
-	book.Title = f[repo.IdxTitle]
-	book.Author = f[repo.IdxAuthor]
-	book.Genre = f[repo.IdxGenre]
+	book.Title = f[m[repo.IdxTitle]]
+	book.Author = f[m[repo.IdxAuthor]]
+	book.Genre = f[m[repo.IdxGenre]]
 
-	loaned := f[repo.IdxLoaned]
-	borrower := f[repo.IdxBorrower]
+	loaned := f[m[repo.IdxLoaned]]
+	borrower := f[m[repo.IdxBorrower]]
 
 	if loaned != "" && borrower != "" {
 		book.Variant |= repo.Loaned
@@ -65,8 +116,8 @@ func fieldsToEntry(f []string) (*repo.BookEntry, error) {
 		book.Loaned = date
 	}
 
-	read := f[repo.IdxRead]
-	rating := f[repo.IdxRating]
+	read := f[m[repo.IdxRead]]
+	rating := f[m[repo.IdxRating]]
 
 	if read != "" && rating != "" {
 		book.Variant |= repo.Read
@@ -85,34 +136,24 @@ func fieldsToEntry(f []string) (*repo.BookEntry, error) {
 	return book, nil
 }
 
-func Import(r io.Reader) ([]repo.BookEntry, error) {
-	reader := csv.NewReader(r)
-	reader.FieldsPerRecord = 7
 
-	entries, err := reader.ReadAll()
-	if err != nil {
-		return nil, err
+func schemaHeaders() []string {
+	headers := repo.BookEntryFields()
+	for i := range headers {
+		headers[i] = strings.ToUpper(headers[i])
 	}
-	books := make([]repo.BookEntry, len(entries))
-
-	for i := range entries {
-		book, err := fieldsToEntry(entries[i])
-		if err != nil {
-			return nil, err
-		}
-		books[i] = *book
-	}
-	return books, nil
+	return headers
 }
 
-func Export(w io.Writer, entries []repo.BookEntry) error {
-
-	writer := csv.NewWriter(w)
-
-	fields := make([][]string, len(entries))
-
-	for i := range entries {
-		fields[i] = entryToFields(&entries[i])
+func mapSchema(f []string) ([]int, bool) {
+	mapping := make([]int, fieldLength())
+	headers := schemaHeaders()
+	for i, field := range f {
+		idx := slices.Index(headers, field)
+		if idx == -1 {
+			return nil, false
+		}
+		mapping[i] = idx
 	}
-	return writer.WriteAll(fields)
+	return mapping, true
 }

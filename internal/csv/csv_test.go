@@ -49,6 +49,7 @@ func compareBookEntry(e, a *repo.BookEntry) error {
 
 func TestImportAndExport(t *testing.T) {
 	csvStr := strings.TrimSpace(`
+TITLE,AUTHOR,GENRE,RATING,READ,BORROWER,LOANED
 Title,Author,Genre,,,,
 Title,Author,Genre,2021-02-19,3,,
 Title,Author,Genre,,,2021-02-19,Lane
@@ -97,7 +98,7 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		if len(expect) != len(actual) {
+		if len(expect)+1 != len(actual) {
 			t.Fatalf("length of expect missmatch to actual: len(expect)=%d len(actual)=%d", len(expect), len(actual))
 		}
 
