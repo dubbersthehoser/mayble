@@ -266,7 +266,7 @@ func (s *SubmissionList) AddListener(l binding.DataListener) {
 }
 
 
-type CreateBookForm struct {
+type BookSubmissionForm struct {
 	bus    *bus.Bus
 	sl     *SubmissionList
 	repo   repo.BookCreator
@@ -274,8 +274,8 @@ type CreateBookForm struct {
 	BookForm
 }
 
-func NewCreateBookForm(b *bus.Bus, c repo.BookCreator, g *UniqueGenres) *CreateBookForm {
-	bf := &CreateBookForm{
+func NewBookSubmissionForm(b *bus.Bus, c repo.BookCreator, g *UniqueGenres) *BookSubmissionForm {
+	bf := &BookSubmissionForm{
 		bus:      b,
 		Genres:   g,
 		repo:     c,
@@ -285,7 +285,7 @@ func NewCreateBookForm(b *bus.Bus, c repo.BookCreator, g *UniqueGenres) *CreateB
 	return bf
 }
 
-func (bf *CreateBookForm) AddSubmission() {
+func (bf *BookSubmissionForm) AddSubmission() {
 	err := bf.BookForm.validate()
 	if err != nil {
 		bf.bus.Notify(bus.Event{
@@ -303,11 +303,11 @@ func (bf *CreateBookForm) AddSubmission() {
 	bf.reset()
 }
 
-func (bf *CreateBookForm) SubmissionList() *SubmissionList {
+func (bf *BookSubmissionForm) SubmissionList() *SubmissionList {
 	return bf.sl
 }
 
-func (bf *CreateBookForm) Submit() {
+func (bf *BookSubmissionForm) Submit() {
 
 	if bf.repo == nil {
 		bf.bus.Notify(bus.Event{
@@ -351,6 +351,7 @@ func (bf *CreateBookForm) Submit() {
 	})
 }
 
+// A EditBookVM is a entry edit form view model.
 type EditBookVM struct {
 	BookForm
 	bus     *bus.Bus
