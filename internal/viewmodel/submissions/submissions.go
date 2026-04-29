@@ -35,10 +35,11 @@ func (l *List) Get(idx int) (*repo.BookEntry, error) {
 }
 
 func (l *List) Append(b repo.BookEntry) error {
-	if l.m == len(l.items) {
+	if l.m == l.Length() {
 		return errors.New("out of space")
 	}
 	l.items = append(l.items, b)
+	return nil
 }
 
 func (l *List) Clear() {

@@ -17,6 +17,15 @@ type Table struct {
 // UI contains ui settings.
 type UI struct {
 	Table Table `json:"table"`
+	WindowBody int
+}
+
+func (u *UI) SetWindowBody(w int) {
+	u.WindowBody = w
+}
+
+func (u *UI) GetWindowBody() int {
+	return u.WindowBody
 }
 
 // SetColumnWidth for column lable for size s.

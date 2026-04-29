@@ -27,19 +27,19 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		widget.NewToolbarAction(
 			theme.SettingsIcon(),
 			func() {
-				_ = uiVM.OpenedBody.Set(viewmodel.BodyMenu)
+				uiVM.SetBody(viewmodel.BodyMenu)
 			},
 		),
 		widget.NewToolbarAction(
 			theme.ListIcon(),
 			func() {
-				_ = uiVM.OpenedBody.Set(viewmodel.BodyData)
+				uiVM.SetBody(viewmodel.BodyData)
 			},
 		),
 		widget.NewToolbarAction(
 			theme.DocumentIcon(),
 			func() {
-				_ = uiVM.OpenedBody.Set(viewmodel.BodyForm)
+				uiVM.SetBody(viewmodel.BodyForm)
 			},
 		),
 	)

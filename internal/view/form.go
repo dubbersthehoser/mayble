@@ -35,7 +35,6 @@ func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
 		container.NewBorder(nil, nil, add, limitSubmit, add, limitSubmit),
 	)
 
-	//return container.New(layout.NewVBoxLayout(),
 	return container.NewBorder(top, nil, nil, nil,
 		top,
 		newSubmitionList(vm.SubmissionList()),
@@ -111,7 +110,7 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 	completedEntry.Bind(completed)
 
 	ratingEntry.PlaceHolder = viewmodel.Ratings()[0]
-	completedEntry.SetPlaceHolder("Completed DD/MM/YYYY")
+	completedEntry.SetPlaceHolder("DD/MM/YYYY")
 
 	c := container.NewVBox(
 		completedEntry,
@@ -163,8 +162,8 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 				}(i),
 			)
 
-			del.Importance = widget.DangerImportance
-			edt.Importance = widget.SuccessImportance
+			//del.Importance = widget.DangerImportance
+			//edt.Importance = widget.SuccessImportance
 
 			btns := container.NewHBox(edt, del)
 

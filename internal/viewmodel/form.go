@@ -13,6 +13,7 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
+// A BookForm the view model for book editing and creation.
 type BookForm struct {
 	id     int64
 	Title  binding.String
@@ -165,6 +166,7 @@ func (bf *BookForm) ToBookEntry() *repo.BookEntry {
 	return book
 }
 
+// A SubmissionList view model of list of form submissions.
 type SubmissionList struct {
 	form        *BookForm
 	bus         *bus.Bus
@@ -178,10 +180,13 @@ func fmtFormLimit(count, max int) string {
 }
 
 func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
+
+	FormLimit := 12
+
 	sl := &SubmissionList{
 		l:           &listener{},
 		bus:         bus,
-		sub:         submissions.NewList(25),
+		sub:         submissions.NewList(FormLimit),
 		form:        form,
 		Limit:       binding.NewString(),
 	}
@@ -208,22 +213,14 @@ func (s *SubmissionList) pop() (*repo.BookEntry, error) {
 	return top, nil
 }
 
-func (s *SubmissionList) append(book *repo.BookEntry) {
+func (s *SubmissionList) add(bf *BookForm) error {
+	book := bf.ToBookEntry()
 	err := s.sub.Append(*book)
 	if err != nil {
-		s.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Over Limit",
-		})
-		return 
+		return err
 	}
 	s.updateLimit()
 	s.l.notify()
-}
-
-func (s *SubmissionList) add(bf *BookForm) error {
-	book := bf.ToBookEntry()
-	s.append(book)
 	return nil
 }
 
@@ -236,7 +233,7 @@ func (s *SubmissionList) GetView(idx int) string {
 	if err != nil {
 		return "STUB: out of range"
 	}
-	prefix := fmt.Sprintf("\"%s\" \"%s\" \"%s\"", book.Title, book.Author, book.Genre)
+	prefix := fmt.Sprintf("%s, %s, %s", book.Title, book.Author, book.Genre)
 	switch book.Variant {
 	case repo.Read | repo.Loaned:
 		return fmt.Sprintf("%s (loaned) (read)", prefix)
@@ -254,7 +251,7 @@ func (s *SubmissionList) GetView(idx int) string {
 func (s *SubmissionList) Remove(idx int) {
 	s.bus.Notify(bus.Event{
 		Name: msgUserInfo,
-		Data: "Submission removed",
+		Data: "Form removed",
 	})
 	err := s.sub.Remove(idx)
 	if err == nil {
@@ -281,6 +278,7 @@ func (s *SubmissionList) AddListener(l binding.DataListener) {
 }
 
 
+// A BookSubmissionForm is the view model of submission page.
 type BookSubmissionForm struct {
 	bus    *bus.Bus
 	sl     *SubmissionList
@@ -310,11 +308,20 @@ func (bf *BookSubmissionForm) AddSubmission() {
 		return
 	}
 
+	err = bf.sl.add(&bf.BookForm)
+	if err != nil {
+		bf.bus.Notify(bus.Event{
+			Name: msgUserError,
+			Data: "At form limit. Please submit",
+		})
+		return 
+	}
+	
+
 	bf.bus.Notify(bus.Event{
 		Name: msgUserInfo,
-		Data: "Added submission",
+		Data: "Added Form",
 	})
-	bf.sl.add(&bf.BookForm)
 	bf.reset()
 }
 
