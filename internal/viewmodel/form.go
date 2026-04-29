@@ -185,11 +185,17 @@ func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
 		form:        form,
 		Limit:       binding.NewString(),
 	}
+	sl.updateLimit()
 	return sl
+}
+
+func (s *SubmissionList) updateLimit() {
+	_ = s.Limit.Set(fmtFormLimit(s.sub.Length(), s.sub.Cap()))
 }
 
 func (s *SubmissionList) Clear() {
 	s.sub.Clear()
+	s.updateLimit()
 }
 
 func (s *SubmissionList) pop() (*repo.BookEntry, error) {
@@ -197,12 +203,21 @@ func (s *SubmissionList) pop() (*repo.BookEntry, error) {
 	if top == nil {
 		return top, errors.New("empty submission list")
 	}
+	s.updateLimit()
 	s.l.notify()
 	return top, nil
 }
 
 func (s *SubmissionList) append(book *repo.BookEntry) {
-	s.sub.Append(*book)
+	err := s.sub.Append(*book)
+	if err != nil {
+		s.bus.Notify(bus.Event{
+			Name: msgUserInfo,
+			Data: "Over Limit",
+		})
+		return 
+	}
+	s.updateLimit()
 	s.l.notify()
 }
 

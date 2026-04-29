@@ -162,8 +162,8 @@ func (m *MainUI) GetTableControllersVM() *TableControllersVM {
 	return NewTableControllersVM(m.bus, m.retriever, m.store, m.genres)
 }
 
-func (m *MainUI) GetCreateBookFormVM() *CreateBookForm {
-	return NewCreateBookForm(m.bus, m.store, m.genres)
+func (m *MainUI) GetBookSubmissionForm() *BookSubmissionForm {
+	return NewBookSubmissionForm(m.bus, m.store, m.genres)
 }
 
 const dateFormat = "02/01/2006"

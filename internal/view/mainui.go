@@ -85,7 +85,7 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	)
 
 	menu := NewMenu(w, uiVM.GetMenuVM())
-	form := NewCreateBookForm(uiVM.GetCreateBookFormVM())
+	form := NewBookSubmissionForm(uiVM.GetBookSubmissionForm())
 
 	table := fullBookTable(
 		uiVM.GetTableControllersVM(),

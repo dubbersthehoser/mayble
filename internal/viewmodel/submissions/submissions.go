@@ -19,6 +19,10 @@ func NewList(max int) *List {
 	}
 }
 
+func (l *List) Cap() int {
+	return l.m
+}
+
 func (l *List) Length() int {
 	return len(l.items)
 }
@@ -30,7 +34,10 @@ func (l *List) Get(idx int) (*repo.BookEntry, error) {
 	return &l.items[idx], nil
 }
 
-func (l *List) Append(b repo.BookEntry) {
+func (l *List) Append(b repo.BookEntry) error {
+	if l.m == len(l.items) {
+		return errors.New("out of space")
+	}
 	l.items = append(l.items, b)
 }
 

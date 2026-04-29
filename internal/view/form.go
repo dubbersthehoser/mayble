@@ -10,16 +10,21 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
+func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
 
 	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)
 	submit := widget.NewButton("Submit", vm.Submit)
-	add := widget.NewButton("Add Submission", vm.AddSubmission)
+	add := widget.NewButton("Add Form", vm.AddSubmission)
 	submit.Alignment = widget.ButtonAlignLeading
 	add.Alignment = widget.ButtonAlignLeading
 
+	limit := widget.NewLabel("PLACEHOLDER")
+	limit.Bind(vm.SubmissionList().Limit)
+
 	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
+
+	limitSubmit := container.NewHBox(limit, submit)
 
 	top := container.NewVBox(
 		bookEntry,
@@ -27,7 +32,7 @@ func NewCreateBookForm(vm *viewmodel.CreateBookForm) fyne.CanvasObject {
 		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
 		readCheck,
 		newReadEntry(vm.IsRead, vm.Completed, vm.Rating),
-		container.NewBorder(nil, nil, add, submit, add, submit),
+		container.NewBorder(nil, nil, add, limitSubmit, add, limitSubmit),
 	)
 
 	//return container.New(layout.NewVBoxLayout(),
@@ -133,6 +138,7 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 }
 
 func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
+	
 	content := container.NewVBox()
 	update := func() {
 		content.RemoveAll()
