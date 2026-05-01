@@ -366,7 +366,9 @@ func TestSubmissionList(t *testing.T) {
 
 	t.Run("Edit", func(t *testing.T) {
 		for _, book := range books {
-			list.append(&book)
+			b := NewBookForm()
+			b.Set(&book)
+			list.add(b)
 		}
 		testSubmissionListEdit(t, list, books)
 	})
@@ -444,7 +446,7 @@ func testSubmissionList_add(t *testing.T, list *SubmissionList, books []repo.Boo
 	}
 
 	if len(books) != list.Length() {
-		t.Fatalf("expect length %d, got %d", len(books), len(list.submissions))
+		t.Fatalf("expect length %d, got %d", len(books), list.sub.Length())
 	}
 }
 
@@ -462,7 +464,7 @@ func TestCreateBookForm(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	cForm := NewCreateBookForm(b, as, NewUniqueGenres(b, db))
+	cForm := NewBookSubmissionForm(b, as, NewUniqueGenres(b, db))
 	_ = cForm
 
 	t.Run("AddSubmission", func(t *testing.T) {
@@ -474,7 +476,7 @@ func TestCreateBookForm(t *testing.T) {
 	})
 }
 
-func testCreateBookFormSubmit(t *testing.T, form *CreateBookForm) {
+func testCreateBookFormSubmit(t *testing.T, form *BookSubmissionForm) {
 	var ok bool
 	id := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 		ok = true
@@ -531,7 +533,7 @@ func testCreateBookFormSubmit(t *testing.T, form *CreateBookForm) {
 	form.bus.Unsubscribe(id)
 }
 
-func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
+func testCreateBookFormAddsubmission(t *testing.T, form *BookSubmissionForm) {
 
 	var ok bool
 	id := form.bus.Subscribe(busMsgTestHelper(t, msgUserError, func(s string) {
@@ -550,7 +552,7 @@ func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
 	ok = false
 	sid := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 		ok = true
-		expect := "Added submission"
+		expect := "Added Form"
 		if s != expect {
 			t.Fatalf("expect message '%s', got '%s'", expect, s)
 		}
@@ -565,5 +567,5 @@ func testCreateBookFormAddsubmission(t *testing.T, form *CreateBookForm) {
 	}
 	form.bus.Unsubscribe(sid)
 	form.bus.Unsubscribe(fid)
-	form.sl.remove(0)
+	form.sl.Remove(0)
 }
