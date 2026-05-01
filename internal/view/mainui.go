@@ -4,7 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/theme"
+	//"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
@@ -23,31 +23,44 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		return o
 	}
 
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(
-			theme.SettingsIcon(),
-			func() {
-				uiVM.SetBody(viewmodel.BodyMenu)
-			},
-		),
-		widget.NewToolbarAction(
-			theme.ListIcon(),
-			func() {
-				uiVM.SetBody(viewmodel.BodyData)
-			},
-		),
-		widget.NewToolbarAction(
-			theme.DocumentIcon(),
-			func() {
-				uiVM.SetBody(viewmodel.BodyForm)
-			},
-		),
+	menuButton := widget.NewButton("Menu", func() {
+		uiVM.SetBody(viewmodel.BodyMenu)
+	})
+	tableButton := widget.NewButton("Table", func() {
+		uiVM.SetBody(viewmodel.BodyData)
+	})
+	createButton := widget.NewButton("Submit", func() {
+		uiVM.SetBody(viewmodel.BodyForm)
+	})
+
+	bodySelect := container.NewHBox(
+		menuButton,
+		tableButton,
+		createButton,
 	)
 
-	toolbar.Items[0].ToolbarObject().(*widget.Button).Enable()
-	menuButton := toolbar.Items[0].ToolbarObject().(*widget.Button)
-	tablesButton := toolbar.Items[1].ToolbarObject().(*widget.Button)
-	addButton := toolbar.Items[2].ToolbarObject().(*widget.Button)
+	//toolbar := widget.NewToolbar(
+	//	widget.NewToolbarAction(
+	//		theme.SettingsIcon(),
+	//		func() {
+	//			uiVM.SetBody(viewmodel.BodyMenu)
+	//		},
+	//	),
+	//	widget.NewToolbarAction(
+	//		theme.ListIcon(),
+	//		func() {
+	//			uiVM.SetBody(viewmodel.BodyData)
+	//		},
+	//	),
+	//	widget.NewToolbarAction(
+	//		theme.DocumentIcon(),
+	//		func() {
+	//			uiVM.SetBody(viewmodel.BodyForm)
+	//		},
+	//	),
+	//)
+
+	//toolbar.Items[0].ToolbarObject().(*widget.Button).Enable()
 
 	// Status Line
 	// Displays input form .Error, .Info, .Success string bindings with proper colors.
@@ -80,7 +93,7 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	}))
 
 	header := container.NewHBox(
-		toolbar,
+		bodySelect,
 		statusLabel,
 	)
 
@@ -100,12 +113,12 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 
 	uiVM.OpenedBody.AddListener(binding.NewDataListener(func() {
 		open, _ := uiVM.OpenedBody.Get()
-		addButton.Enable()
+		createButton.Enable()
 		menuButton.Enable()
-		tablesButton.Enable()
+		tableButton.Enable()
 		switch open {
 		case viewmodel.BodyForm:
-			addButton.Disable()
+			createButton.Disable()
 			menu.Hide()
 			table.Hide()
 			form.Show()
@@ -119,7 +132,7 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 			statusLabel.SetText("")
 			body.Refresh()
 		case viewmodel.BodyData:
-			tablesButton.Disable()
+			tableButton.Disable()
 			menu.Hide()
 			table.Show()
 			form.Hide()

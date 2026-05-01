@@ -12,8 +12,8 @@ import (
 
 func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
 
-	loanCheck := widget.NewCheckWithData("On Loan", vm.IsLoaned)
-	readCheck := widget.NewCheckWithData("Is Read", vm.IsRead)
+	loanCheck := widget.NewCheckWithData("Is on loan.", vm.IsLoaned)
+	readCheck := widget.NewCheckWithData("Has been completed.", vm.IsRead)
 	submit := widget.NewButton("Submit", vm.Submit)
 	add := widget.NewButton("Add Form", vm.AddSubmission)
 	submit.Alignment = widget.ButtonAlignLeading
@@ -109,7 +109,8 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 	ratingEntry.Bind(rating)
 	completedEntry.Bind(completed)
 
-	ratingEntry.PlaceHolder = viewmodel.Ratings()[0]
+	rattingStrings := viewmodel.Ratings()
+	ratingEntry.PlaceHolder = rattingStrings[0]
 	completedEntry.SetPlaceHolder("DD/MM/YYYY")
 
 	c := container.NewVBox(

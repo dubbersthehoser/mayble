@@ -105,7 +105,10 @@ func (bf *BookForm) validate() error {
 			return errors.New("invalid completion date")
 		}
 		ratings := Ratings()
-		rank := slices.Index(ratings[1:], rating)
+		rank := slices.Index(ratings, rating)
+		if rank == 0 {
+			return errors.New("ratting not selected")
+		}
 		if rank == -1 {
 			return errors.New("invalid rating")
 
@@ -176,12 +179,12 @@ type SubmissionList struct {
 }
 
 func fmtFormLimit(count, max int) string {
-	return fmt.Sprintf("Form Limit %d/%d", count, max)
+	return fmt.Sprintf("Limit %d/%d", count, max)
 }
 
 func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
 
-	FormLimit := 12
+	FormLimit := 16
 
 	sl := &SubmissionList{
 		l:           &listener{},
