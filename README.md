@@ -8,12 +8,12 @@ A book management application.
 I wrote this software for a family member who has a collection of books and needed a way to keep track of them. What books have been loaned out and have been read.
 
 ## Futures
-    - Searching, and Sorting.
-    - Track read, and borrowed books.
-    - Rate books.
-    - CSV import / export.
-    - Muti-form submission.
-    - Column resizing.
+- Searching, and Sorting.
+- Track read, and borrowed books.
+- Rate books.
+- CSV import / export.
+- Muti-form submission.
+- Column resizing.
 
 ## Requirements
 
