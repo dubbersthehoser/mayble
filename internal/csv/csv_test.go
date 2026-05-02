@@ -2,6 +2,7 @@ package csv
 
 import (
 	"bytes"
+	"slices"
 	"fmt"
 	"strings"
 	"testing"
@@ -126,4 +127,51 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 			t.Fatalf("expect\n'%s'\ngot\n'%s'", expect, actual)
 		}
 	})
+}
+
+
+
+func Test_mapSchema(t *testing.T) {
+	
+	tests := []struct{
+		name   string
+		input  []string
+		expect []int
+		ok     bool
+	}{
+		{
+			name: "base case",
+			input: []string{
+				"TITLE", "AUTHOR", "GENRE", "RATING", "READ", "BORROWER", "LOANED",
+			},
+			expect: []int{
+				0,1,2,3,4,5,6,
+			},
+			ok: true, 
+		},
+		{
+			name: "base case",
+			input: []string{
+				"TITLE", "AUTHOR", "GENRE", "RATING", "READ", "BORROWER", "LOANED",
+			},
+			expect: []int{
+				0,1,2,3,4,5,6,
+			},
+			ok: true, 
+		},
+	}
+
+
+	for _, c := range tests {
+		t.Run(c.name, func(t *testing.T) {
+			actual, ok := mapSchema(c.input)
+			if c.ok != ok {
+				t.Fatalf("expect %t, got %t", c.ok, ok)
+			}
+
+			if !slices.Equal(c.expect, actual) {
+				t.Fatalf("expect\n  %#v\ngot\n  %#v", c.expect, actual)
+			}
+		})
+	}
 }

@@ -552,7 +552,7 @@ func testCreateBookFormAddsubmission(t *testing.T, form *BookSubmissionForm) {
 	ok = false
 	sid := form.bus.Subscribe(busMsgTestHelper(t, msgUserInfo, func(s string) {
 		ok = true
-		expect := "Added Form"
+		expect := "Added submission"
 		if s != expect {
 			t.Fatalf("expect message '%s', got '%s'", expect, s)
 		}

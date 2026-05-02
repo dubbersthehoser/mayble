@@ -143,7 +143,7 @@ func (t *TableVM) Sort() error {
 	return nil
 }
 
-// StoreColumnWidth to the config file if it exists, else nop.
+// StoreColumnWidth to the config file if it exists else it will be an nop.
 // When width is smaller then MinColWidth, MinColWidth will be used.
 func (t *TableVM) StoreColumnWidth(col int, width float32) {
 	if width < MinColWidth {
@@ -180,10 +180,17 @@ func (t *TableVM) Hidden() []string {
 
 // hiddenHeadersToOptions returns hidden options from headers.
 func hiddenHeadersToOptions(headers []string) []string {
-	options := slices.Clone(headers)
-	options = slices.DeleteFunc(options, func(s string) bool {
-		return s == "Rating" || s == "Borrower"
-	})
+	options := make([]string, 0)
+	for _, o := range headers {
+		switch o {
+		case "Read":
+			options = append(options, "Completed")
+		case "Rating", "Borrower":
+			continue
+		default:
+			options = append(options, o)
+		}
+	}
 	return options
 }
 
@@ -194,7 +201,7 @@ func hiddenOptionsToHeaders(options []string) []string {
 		switch o {
 		case "Loaned":
 			hide = append(hide, "Loaned", "Borrower")
-		case "Read":
+		case "Completed":
 			hide = append(hide, "Read", "Rating")
 		default:
 			hide = append(hide, o)
