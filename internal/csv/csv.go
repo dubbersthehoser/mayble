@@ -136,7 +136,6 @@ func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
 	return book, nil
 }
 
-
 func schemaHeaders() []string {
 	headers := repo.BookEntryFields()
 	for i := range headers {
@@ -148,6 +147,9 @@ func schemaHeaders() []string {
 func mapSchema(f []string) ([]int, bool) {
 	mapping := make([]int, fieldLength())
 	headers := schemaHeaders()
+	if len(headers) != len(f) {
+		return nil, false
+	}
 	for i, field := range f {
 		idx := slices.Index(headers, field)
 		if idx == -1 {

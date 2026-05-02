@@ -130,6 +130,17 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 }
 
 
+func Test_schemaHeaders(t *testing.T) {
+	expect := []string{
+		"TITLE", "AUTHOR", "GENRE", "RATING", "READ", "BORROWER", "LOANED",
+	}
+	actual := schemaHeaders()
+
+	if !slices.Equal(expect, actual) {
+		t.Fatalf("expect\n  %#v\ngot  %#v", expect, actual)
+	}
+}
+
 
 func Test_mapSchema(t *testing.T) {
 	
@@ -150,14 +161,30 @@ func Test_mapSchema(t *testing.T) {
 			ok: true, 
 		},
 		{
-			name: "base case",
+			name: "swaped READ and RATING",
 			input: []string{
-				"TITLE", "AUTHOR", "GENRE", "RATING", "READ", "BORROWER", "LOANED",
+				"TITLE", "AUTHOR", "GENRE", "READ", "RATING", "BORROWER", "LOANED",
 			},
 			expect: []int{
-				0,1,2,3,4,5,6,
+				0,1,2,4,3,5,6,
 			},
 			ok: true, 
+		},
+		{
+			name: "lower case header",
+			input: []string{
+				"title", "AUTHOR", "GENRE", "READ", "RATING", "BORROWER", "LOANED",
+			},
+			expect: nil,
+			ok: false, 
+		},
+		{
+			name: "missing header",
+			input: []string{
+				"AUTHOR", "GENRE", "READ", "RATING", "BORROWER", "LOANED",
+			},
+			expect: nil,
+			ok: false, 
 		},
 	}
 
