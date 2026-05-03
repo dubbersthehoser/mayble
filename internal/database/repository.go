@@ -21,6 +21,7 @@ func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
 		Author: b.Author,
 		Genre:  b.Genre,
 	}
+
 	row, err := db.Queries.CreateBook(context.Background(), params)
 	if err != nil {
 		return -1, status.E(op, status.LevelWarn, err)

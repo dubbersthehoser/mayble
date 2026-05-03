@@ -26,7 +26,8 @@ func Import(r io.Reader) ([]repo.BookEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	books := make([]repo.BookEntry, len(entries))
+
+	books := make([]repo.BookEntry, 0)
 
 	if len(entries) == 0 {
 		return books, nil
@@ -47,7 +48,7 @@ func Import(r io.Reader) ([]repo.BookEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		books[i] = *book
+		books = append(books, *book)
 	}
 	return books, nil
 }
@@ -108,7 +109,11 @@ func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
 		SetRating(f[m[repo.IdxRating]]).
 		SetID(0)
 
-	return builder.Build()
+	book, err := builder.Build()
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
 }
 
 func schemaHeaders() []string {

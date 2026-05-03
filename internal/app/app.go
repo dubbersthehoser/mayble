@@ -3,6 +3,7 @@ package app
 
 import (
 	"os"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
@@ -94,6 +95,7 @@ func (as *Service) ImportFile(path string) error {
 		return err
 	}
 	for _, book := range books {
+		fmt.Printf("%#v\n", book)
 		_, err = as.db.CreateBook(&book)
 		if err != nil {
 			return err
