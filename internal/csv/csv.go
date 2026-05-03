@@ -97,43 +97,18 @@ func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
 		return nil, fmt.Errorf("invalid length of slice: %d != %d", fieldLength(), len(f))
 	}
 
-	book := &repo.BookEntry{}
+	builder := repo.NewBookEntryBuilder()
 
-	book.Title = f[m[repo.IdxTitle]]
-	book.Author = f[m[repo.IdxAuthor]]
-	book.Genre = f[m[repo.IdxGenre]]
+	builder.SetTitle(f[m[repo.IdxTitle]]).
+		SetAuthor(f[m[repo.IdxAuthor]]).
+		SetGenre(f[m[repo.IdxGenre]]).
+		SetBorrower(f[m[repo.IdxBorrower]]).
+		SetLoaned(f[m[repo.IdxLoaned]]).
+		SetCompleted(f[m[repo.IdxRead]]).
+		SetRating(f[m[repo.IdxRating]]).
+		SetID(0)
 
-	loaned := f[m[repo.IdxLoaned]]
-	borrower := f[m[repo.IdxBorrower]]
-
-	if loaned != "" && borrower != "" {
-		book.Variant |= repo.Loaned
-		book.Borrower = borrower
-		date, err := time.Parse(time.DateOnly, loaned)
-		if err != nil {
-			return nil, fmt.Errorf("%w: invalid loaned date '%s'", ErrInvalidFormat, loaned)
-		}
-		book.Loaned = date
-	}
-
-	read := f[m[repo.IdxRead]]
-	rating := f[m[repo.IdxRating]]
-
-	if read != "" && rating != "" {
-		book.Variant |= repo.Read
-
-		var err error
-		book.Rating, err = strconv.Atoi(rating)
-		if err != nil {
-			return nil, fmt.Errorf("%w: invalid rating '%s'", ErrInvalidFormat, rating)
-		}
-		book.Read, err = time.Parse(time.DateOnly, read)
-		if err != nil {
-			return nil, fmt.Errorf("%w: invalid read date '%s'", ErrInvalidFormat, read)
-		}
-	}
-
-	return book, nil
+	return builder.Build()
 }
 
 func schemaHeaders() []string {

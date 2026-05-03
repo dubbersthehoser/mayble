@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"strconv"
 	"errors"
 	"time"
 
@@ -10,113 +11,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
 	"github.com/dubbersthehoser/mayble/internal/status"
 )
-
-// A BookBuilder for converting database book to a repository book.
-type bookBuilder struct {
-	id int64
-	title,
-	author,
-	genre,
-	loanedDate,
-	readDate,
-	borrowerName string
-	rating int64
-}
-
-// newBookBuilder returns a builder with a id error value to ensure id was set.
-func newBookBuilder() *bookBuilder {
-	return &bookBuilder{
-		id: -127,
-	}
-}
-
-func (b *bookBuilder) Build() (*repo.BookEntry, error) {
-
-	if b.id == -127 {
-		return nil, errors.New("book_builder.build: id was not set")
-	}
-
-	if b.title == "" {
-		return nil, errors.New("book_builder.build: title was not set")
-	}
-	if b.author == "" {
-		return nil, errors.New("book_builder.build: author was not set")
-	}
-	if b.genre == "" {
-		return nil, errors.New("book_builder.build: genre was not set")
-	}
-
-	book := &repo.BookEntry{
-		ID:     b.id,
-		Title:  b.title,
-		Author: b.author,
-		Genre:  b.genre,
-	}
-
-	if b.loanedDate != "" && b.borrowerName != "" {
-		book.Variant |= repo.Loaned
-		date, err := time.Parse(time.DateOnly, b.loanedDate)
-		if err != nil {
-			return nil, err
-		}
-		book.Loaned = date
-		book.Borrower = b.borrowerName
-	}
-
-	if b.readDate != "" {
-		book.Variant |= repo.Read
-		date, err := time.Parse(time.DateOnly, b.readDate)
-		if err != nil {
-			return nil, err
-		}
-
-		book.Read = date
-		book.Rating = int(b.rating)
-	}
-
-	return book, nil
-
-}
-
-func (b *bookBuilder) SetID(id int64) *bookBuilder {
-	b.id = id
-	return b
-}
-
-func (b *bookBuilder) SetTitle(t string) *bookBuilder {
-	b.title = t
-	return b
-}
-
-func (b *bookBuilder) SetAuthor(a string) *bookBuilder {
-	b.author = a
-	return b
-}
-
-func (b *bookBuilder) SetGenre(g string) *bookBuilder {
-	b.genre = g
-	return b
-}
-
-func (b *bookBuilder) SetLoanedDate(d string) *bookBuilder {
-	b.loanedDate = d
-	return b
-}
-
-func (b *bookBuilder) SetReadDate(d string) *bookBuilder {
-	b.readDate = d
-	return b
-}
-
-func (b *bookBuilder) SetBorrower(n string) *bookBuilder {
-	b.borrowerName = n
-	return b
-}
-
-func (b *bookBuilder) SetRating(r int64) *bookBuilder {
-	b.rating = r
-	return b
-}
 
 // CreateBook insert b into database.
 func (db *Database) CreateBook(b *repo.BookEntry) (int64, error) {
@@ -319,20 +213,21 @@ func (db *Database) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
 			hasRead = false
 		}
 
-		builder := newBookBuilder()
+		builder := repo.NewBookEntryBuilder()
+
 		builder.SetID(book.ID).
 			SetTitle(book.Title).
 			SetAuthor(book.Author).
 			SetGenre(book.Genre)
 
 		if hasLoaned {
-			builder.SetLoanedDate(loan.Date).
+			builder.SetLoaned(loan.Date).
 				SetBorrower(loan.Name)
 		}
 
 		if hasRead {
-			builder.SetReadDate(read.DateCompleted).
-				SetRating(read.Rating)
+			builder.SetCompleted(read.DateCompleted).
+				SetRating(strconv.Itoa(int(read.Rating)))
 		}
 		book, err := builder.Build()
 		if err != nil {
@@ -372,7 +267,7 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 		hasRead = false
 	}
 
-	builder := newBookBuilder()
+	builder := repo.NewBookEntryBuilder()
 
 	builder.SetID(id).
 		SetTitle(bookRow.Title).
@@ -380,13 +275,13 @@ func (db *Database) GetBookByID(id int64) (repo.BookEntry, error) {
 		SetGenre(bookRow.Genre)
 
 	if hasLoan {
-		builder.SetLoanedDate(loanRow.Date).
+		builder.SetLoaned(loanRow.Date).
 			SetBorrower(loanRow.Name)
 	}
 
 	if hasRead {
-		builder.SetReadDate(readRow.DateCompleted).
-			SetRating(readRow.Rating)
+		builder.SetCompleted(readRow.DateCompleted).
+			SetRating(strconv.Itoa(int(readRow.Rating)))
 	}
 
 	book, err := builder.Build()
