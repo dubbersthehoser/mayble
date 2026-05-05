@@ -79,12 +79,17 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	vmt.SetSelector(vmc.Selector())
 	table := bookTable(vmt)
 
-	hide := widget.NewCheckGroup(vmt.HiddenOptions(), func(list []string) {
+	hideOptions := widget.NewCheckGroup(vmt.HiddenOptions(), func(list []string) {
 		vmt.SetHidden(list)
 	})
-	hide.Horizontal = true
+	hideOptions.Horizontal = true
 
-	hide.SetSelected(vmt.Hidden())
+	hideOptions.SetSelected(vmt.Hidden())
+
+	hideLabel := widget.NewLabel("Hidden:")
+
+	hidden := container.NewBorder(nil, nil, hideLabel, nil, hideLabel, hideOptions)
+	
 
 	controllers := container.NewVBox(
 		container.NewBorder(
@@ -95,7 +100,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		),
 		container.NewBorder(
 			nil, nil,
-			hide,
+			hidden,
 			container.NewHBox(
 				editBtn,
 				deleteBtn,

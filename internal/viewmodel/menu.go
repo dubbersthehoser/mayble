@@ -2,6 +2,7 @@ package viewmodel
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"fyne.io/fyne/v2/data/binding"
@@ -72,9 +73,19 @@ func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
 		return
 	}
 
+	err = os.Remove(filepath)
+	if err != nil {
+		c.bus.Notify(bus.Event{
+			Name: msgUserError,
+			Data: err.Error(),
+		})
+		return 
+	}
+
 	if !strings.HasSuffix(filepath, ".csv") {
 		filepath += ".csv"
 	}
+
 
 	if err := c.fileHandler.ExportFile(filepath); err != nil {
 		displayError(c.bus, err)
