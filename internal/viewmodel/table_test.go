@@ -13,6 +13,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
@@ -31,42 +32,61 @@ func TestTableVM(t *testing.T) {
 	}
 	table := NewTableVM(b, cfg, as)
 
-	books := []repo.BookEntry{
+	books := []models.BookEntry{
 		{
 			ID:      1,
-			Variant: repo.Book,
-			Title:   "Title",
-			Author:  "Author",
-			Genre:   "Genre",
+			Book: models.Book{
+				Title:   "Title",
+				Author:  "Author",
+				Genre:   "Genre",
+			},
 		},
 		{
 			ID:      2,
-			Variant: repo.Book | repo.Read,
-			Title:   "Title",
-			Author:  "Author",
-			Genre:   "Genre",
-			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating:  3,
+			Book: models.Book{
+				Title:   "Title",
+				Author:  "Author",
+				Genre:   "Genre",
+			},
+			IsCompleted: true,
+			Completed: models.Completed{
+				Completed:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:  3,
+			},
 		},
 		{
 			ID:       3,
-			Variant:  repo.Book | repo.Loaned,
-			Title:    "Title",
-			Author:   "Author",
-			Genre:    "Genre",
-			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Borrower: "Lane",
+			Book: models.Book{
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+			},
+
+			IsLoaned: true,
+			Loaned: models.Loaned{
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Borrower: "Lane",
+			},
 		},
 		{
 			ID:       4,
-			Variant:  repo.Book | repo.Loaned | repo.Read,
-			Title:    "Title",
-			Author:   "Author",
-			Genre:    "Genre",
-			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Borrower: "Lane",
-			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating:   3,
+			IsCompleted: true,
+			IsLoaned: true,
+			Book: models.Book{
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+			},
+
+			Loaned: models.Loaned{
+				Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Borrower: "Lane",
+			},
+
+			Completed: models.Completed{
+				Completed:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
+			},
 		},
 	}
 	for _, book := range books {
@@ -200,7 +220,7 @@ func TestTableVM(t *testing.T) {
 	})
 }
 
-func testTableVMGet(t *testing.T, table *TableVM, books []repo.BookEntry) {
+func testTableVMGet(t *testing.T, table *TableVM, books []models.BookEntry) {
 	row, col := table.Size()
 	if row != len(books) {
 		t.Fatalf("expect %d, got %d", len(books), row)
@@ -239,42 +259,78 @@ func testTableVMGet(t *testing.T, table *TableVM, books []repo.BookEntry) {
 }
 
 func Test_sortBooks(t *testing.T) {
-	expect := []repo.BookEntry{
+	expect := []models.BookEntry{
 		{
-			Title:    "A",
-			Author:   "A",
-			Genre:    "A",
-			Read:     time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
-			Rating:   1,
-			Loaned:   time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
-			Borrower: "A",
+			Book: models.Book{
+				Title:    "A",
+				Author:   "A",
+				Genre:    "A",
+			},
+			IsCompleted: true,
+			IsLoaned:true,
+
+			Completed: models.Completed{
+				Completed:     time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+				Rating:   1,
+			},
+			Loaned: models.Loaned{
+				Loaned:   time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+				Borrower: "A",
+			},
 		},
 		{
-			Title:    "B",
-			Author:   "B",
-			Genre:    "B",
-			Read:     time.Date(2, 2, 2, 0, 0, 0, 0, time.UTC),
-			Rating:   2,
-			Loaned:   time.Date(2, 2, 2, 0, 0, 0, 0, time.UTC),
-			Borrower: "B",
+			Book: models.Book{
+				Title:    "B",
+				Author:   "B",
+				Genre:    "B",
+			},
+			IsCompleted: true,
+			IsLoaned:true,
+
+			Completed: models.Completed{
+				Completed:     time.Date(2, 2, 2, 0, 0, 0, 0, time.UTC),
+				Rating:   2,
+			},
+			Loaned: models.Loaned{
+				Loaned:   time.Date(2, 2, 2, 0, 0, 0, 0, time.UTC),
+				Borrower: "B",
+			},
 		},
 		{
-			Title:    "C",
-			Author:   "C",
-			Genre:    "C",
-			Loaned:   time.Date(3, 3, 3, 0, 0, 0, 0, time.UTC),
-			Borrower: "C",
-			Read:     time.Date(3, 3, 3, 0, 0, 0, 0, time.UTC),
-			Rating:   3,
+			Book: models.Book{
+				Title:    "C",
+				Author:   "C",
+				Genre:    "C",
+			},
+			IsCompleted: true,
+			IsLoaned:true,
+
+			Completed: models.Completed{
+				Completed:     time.Date(3, 3, 3, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
+			},
+			Loaned: models.Loaned{
+				Loaned:   time.Date(3, 3, 3, 0, 0, 0, 0, time.UTC),
+				Borrower: "C",
+			},
 		},
 		{
-			Title:    "D",
-			Author:   "D",
-			Genre:    "D",
-			Loaned:   time.Date(4, 4, 4, 0, 0, 0, 0, time.UTC),
-			Borrower: "D",
-			Read:     time.Date(4, 4, 4, 0, 0, 0, 0, time.UTC),
-			Rating:   4,
+			Book: models.Book{
+				Title:    "D",
+				Author:   "D",
+				Genre:    "D",
+			},
+			IsCompleted: true,
+			IsLoaned:true,
+
+			Completed: models.Completed{
+				Completed:     time.Date(4, 4, 4, 0, 0, 0, 0, time.UTC),
+				Rating:   4,
+			},
+			Loaned: models.Loaned{
+				Loaned:   time.Date(4, 4, 4, 0, 0, 0, 0, time.UTC),
+				Borrower: "D",
+			},
 		},
 	}
 
@@ -405,11 +461,13 @@ func TestTableControllerVM(t *testing.T) {
 
 	var bookID int64 = 1
 
-	_, err = db.CreateBook(&repo.BookEntry{
+	_, err = db.CreateBook(&models.BookEntry{
 		ID:     bookID,
-		Title:  "title",
-		Author: "author",
-		Genre:  "genre",
+		Book: models.Book{
+			Title:  "title",
+			Author: "author",
+			Genre:  "genre",
+		},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)

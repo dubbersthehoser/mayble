@@ -14,7 +14,7 @@ type CSVHandler interface {
 
 
 type BookRetriever interface {
-	GetAllBooks(Variant) ([]models.BookEntry, error)
+	GetAllBooks() ([]models.BookEntry, error)
 	GetBookByID(id int64) (models.BookEntry, error)
 }
 
@@ -45,5 +45,5 @@ type BookImporter interface {
 }
 
 type BookExporter interface {
-	BookExport(io.Writer, []BookEntry) error
+	BookExport(io.Writer, []models.BookEntry) error
 }

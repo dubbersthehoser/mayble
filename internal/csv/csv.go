@@ -10,14 +10,14 @@ import (
 	"strconv"
 	"time"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	models "github.com/dubbersthehoser/mayble/internal/models"
 )
 
 var (
 	ErrInvalidFormat error = errors.New("invalid format")
 )
 
-func Import(r io.Reader) ([]repo.BookEntry, error) {
+func Import(r io.Reader) ([]models.BookEntry, error) {
 	
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = 7
@@ -27,7 +27,7 @@ func Import(r io.Reader) ([]repo.BookEntry, error) {
 		return nil, err
 	}
 
-	books := make([]repo.BookEntry, 0)
+	books := make([]models.BookEntry, 0)
 
 	if len(entries) == 0 {
 		return books, nil
@@ -53,7 +53,7 @@ func Import(r io.Reader) ([]repo.BookEntry, error) {
 	return books, nil
 }
 
-func Export(w io.Writer, entries []repo.BookEntry) error {
+func Export(w io.Writer, entries []models.BookEntry) error {
 
 	writer := csv.NewWriter(w)
 
@@ -68,45 +68,45 @@ func Export(w io.Writer, entries []repo.BookEntry) error {
 }
 
 func fieldLength() int {
-	return len(repo.BookEntryFields())
+	return len(models.BookEntryFields())
 }
 
-func entryToFields(book *repo.BookEntry) []string {
+func entryToFields(book *models.BookEntry) []string {
 	f := make([]string, fieldLength())
 
-	f[repo.IdxTitle] = book.Title
-	f[repo.IdxAuthor] = book.Author
-	f[repo.IdxGenre] = book.Genre
+	f[models.IdxTitle] = book.Title
+	f[models.IdxAuthor] = book.Author
+	f[models.IdxGenre] = book.Genre
 
-	if book.Variant&repo.Read != 0 {
-		f[repo.IdxRead] = book.Read.Format(time.DateOnly)
+	if book.IsCompleted {
+		f[models.IdxCompletedAt] = book.CompletedAt.Format(time.DateOnly)
 		rating := strconv.Itoa(book.Rating)
-		f[repo.IdxRating] = rating
+		f[models.IdxRating] = rating
 	}
 
-	if book.Variant&repo.Loaned != 0 {
-		f[repo.IdxLoaned] = book.Loaned.Format(time.DateOnly)
-		f[repo.IdxBorrower] = book.Borrower
+	if book.IsLoaned {
+		f[models.IdxLoanedAt] = book.LoanedAt.Format(time.DateOnly)
+		f[models.IdxBorrower] = book.Borrower
 	}
 	return f
 
 }
 
-func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
+func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
 
 	if len(f) != fieldLength() {
 		return nil, fmt.Errorf("invalid length of slice: %d != %d", fieldLength(), len(f))
 	}
 
-	builder := repo.NewBookEntryBuilder()
+	builder := models.NewBookEntryBuilder()
 
-	builder.SetTitle(f[m[repo.IdxTitle]]).
-		SetAuthor(f[m[repo.IdxAuthor]]).
-		SetGenre(f[m[repo.IdxGenre]]).
-		SetBorrower(f[m[repo.IdxBorrower]]).
-		SetLoaned(f[m[repo.IdxLoaned]]).
-		SetCompleted(f[m[repo.IdxRead]]).
-		SetRating(f[m[repo.IdxRating]]).
+	builder.SetTitle(f[m[models.IdxTitle]]).
+		SetAuthor(f[m[models.IdxAuthor]]).
+		SetGenre(f[m[models.IdxGenre]]).
+		SetBorrower(f[m[models.IdxBorrower]]).
+		SetLoaned(f[m[models.IdxLoanedAt]]).
+		SetCompleted(f[m[models.IdxCompletedAt]]).
+		SetRating(f[m[models.IdxRating]]).
 		SetID(0)
 
 	book, err := builder.Build()
@@ -117,7 +117,7 @@ func fieldsToEntry(f []string, m []int) (*repo.BookEntry, error) {
 }
 
 func schemaHeaders() []string {
-	headers := repo.BookEntryFields()
+	headers := models.BookEntryFields()
 	for i := range headers {
 		headers[i] = strings.ToUpper(headers[i])
 	}

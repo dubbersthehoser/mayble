@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/csv"
 )
 
@@ -41,11 +41,11 @@ func (as *Service) CloseDB() error {
 	return as.db.Conn.Close()
 }
 
-func (as *Service) CreateBook(b *repo.BookEntry) (int64, error) {
+func (as *Service) CreateBook(b *models.BookEntry) (int64, error) {
 	return as.db.CreateBook(b)
 }
 
-func (as *Service) UpdateBook(b *repo.BookEntry) error {
+func (as *Service) UpdateBook(b *models.BookEntry) error {
 	return as.db.UpdateBook(b)
 }
 
@@ -57,16 +57,16 @@ func (as *Service) GetUniqueGenres() ([]string, error) {
 	return as.db.GetUniqueGenres()
 }
 
-func (as *Service) GetAllBooks(v repo.Variant) ([]repo.BookEntry, error) {
-	return as.db.GetAllBooks(v)
+func (as *Service) GetAllBooks() ([]models.BookEntry, error) {
+	return as.db.GetAllBooks()
 }
 
-func (as *Service) GetBookByID(id int64) (repo.BookEntry, error) {
+func (as *Service) GetBookByID(id int64) (models.BookEntry, error) {
 	return as.db.GetBookByID(id)
 }
 
 func (as *Service) ExportFile(path string) error {
-	books, err := as.db.GetAllBooks(repo.Book)
+	books, err := as.db.GetAllBooks()
 	if err != nil {
 		return err
 	}

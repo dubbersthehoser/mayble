@@ -4,18 +4,18 @@ import (
 	"errors"
 	"slices"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 type List struct {
-	items []repo.BookEntry
+	items []models.BookEntry
 	m     int
 }
 
 func NewList(max int) *List {
 	return &List{
 		m: max,
-		items: make([]repo.BookEntry, 0),
+		items: make([]models.BookEntry, 0),
 	}
 }
 
@@ -27,14 +27,14 @@ func (l *List) Length() int {
 	return len(l.items)
 }
 
-func (l *List) Get(idx int) (*repo.BookEntry, error) {
+func (l *List) Get(idx int) (*models.BookEntry, error) {
 	if len(l.items) <= idx || idx < 0 {
 		return nil, errors.New("index out of range")
 	}
 	return &l.items[idx], nil
 }
 
-func (l *List) Append(b repo.BookEntry) error {
+func (l *List) Append(b models.BookEntry) error {
 	if l.m == l.Length() {
 		return errors.New("out of space")
 	}
@@ -46,7 +46,7 @@ func (l *List) Clear() {
 	l.items = l.items[:0]
 }
 
-func (l *List) Pop() *repo.BookEntry {
+func (l *List) Pop() *models.BookEntry {
 	if l.Length() == 0 {
 		return nil
 	}

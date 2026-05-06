@@ -12,6 +12,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/table"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 const (
@@ -21,6 +22,19 @@ const (
 
 // The smallest width a column can be.
 const MinColWidth float32 = 100.0
+
+type hiddenHeaders struct {
+	hidden []string
+}
+
+func (hh *hiddenHeaders) SetHidden(h []string) *hiddenHeaders {
+	hh.hidden = h
+	return hh
+}
+func (hh *hiddenHeaders) GetOptions() []string {
+	
+}
+
 
 type TableVM struct {
 	repo   repo.BookRetriever
@@ -183,8 +197,6 @@ func hiddenHeadersToOptions(headers []string) []string {
 	options := make([]string, 0)
 	for _, o := range headers {
 		switch o {
-		case "Read":
-			options = append(options, "Completed")
 		case "Rating", "Borrower":
 			continue
 		default:
@@ -212,7 +224,7 @@ func hiddenOptionsToHeaders(options []string) []string {
 
 // HiddenOptions returns the list of options for hiding columns.
 func (t *TableVM) HiddenOptions() []string {
-	headers := repo.BookEntryFields()
+	headers := models.BookEntryFields()
 	return hiddenHeadersToOptions(headers)
 }
 
@@ -237,7 +249,7 @@ func (t *TableVM) reload() error {
 }
 
 // sortbooks sort slice of books.
-func sortBooks(books []repo.BookEntry, header string, desending bool) error {
+func sortBooks(books []models.BookEntry, header string, desending bool) error {
 
 	index := slices.Index(entryHeaders(), header)
 
@@ -245,23 +257,23 @@ func sortBooks(books []repo.BookEntry, header string, desending bool) error {
 		return fmt.Errorf("sort_books: invalid header '%s'", header)
 	}
 
-	slices.SortFunc(books, func(a, b repo.BookEntry) int {
+	slices.SortFunc(books, func(a, b models.BookEntry) int {
 		r := -1
 		switch index {
-		case repo.IdxTitle:
+		case models.IdxTitle:
 			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
-		case repo.IdxAuthor:
+		case models.IdxAuthor:
 			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
-		case repo.IdxGenre:
+		case models.IdxGenre:
 			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
-		case repo.IdxBorrower:
+		case models.IdxBorrower:
 			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
-		case repo.IdxLoaned:
-			r = a.Loaned.Compare(b.Loaned)
-		case repo.IdxRating:
+		case models.IdxLoanedAt:
+			r = a.Loaned.LoanedAt.Compare(b.LoanedAt)
+		case models.IdxRating:
 			r = cmp.Compare(a.Rating, b.Rating)
-		case repo.IdxRead:
-			r = a.Read.Compare(b.Read)
+		case models.IdxCompletedAt:
+			r = a.CompletedAt.Compare(b.CompletedAt)
 		}
 		if desending {
 			return r * -1
@@ -275,7 +287,7 @@ func sortBooks(books []repo.BookEntry, header string, desending bool) error {
 // load load entries form repostory, sort them, and put them into table.
 func (t *TableVM) load() error {
 
-	items, err := t.repo.GetAllBooks(repo.Book)
+	items, err := t.repo.GetAllBooks()
 	if err != nil {
 		return err
 	}
@@ -409,31 +421,31 @@ func (tc *TableControllersVM) GetEditBook() *EditBookVM {
 
 // entryHeaders lists the headers labels for book entry.
 func entryHeaders() []string {
-	return repo.BookEntryFields()
+	return models.BookEntryFields()
 }
 
 // entryValues get the values from e in its in order of entryHeaders.
-func entryValues(e *repo.BookEntry) []string {
+func entryValues(e *models.BookEntry) []string {
 	
-	headers := repo.BookEntryFields()
+	headers := models.BookEntryFields()
 	values  := make([]string, len(headers))
 
 	for i, header := range headers {
-		switch header {
-		case "Title":
+		switch i {
+		case models.IdxTitle:
 			values[i] = e.Title
-		case "Author":
+		case models.IdxAuthor:
 			values[i] = e.Author
-		case "Genre":
+		case models.IdxGenre:
 			values[i] = e.Genre
-		case "Rating":
+		case models.IdxRating:
 			values[i] = formatRating(e.Rating)
-		case "Read":
-			values[i] = formatDate(&e.Read)
-		case "Borrower":
+		case models.IdxCompletedAt:
+			values[i] = formatDate(&e.CompletedAt)
+		case models.IdxBorrower:
 			values[i] = e.Borrower
-		case "Loaned":
-			values[i] = formatDate(&e.Loaned)
+		case models.IdxLoanedAt:
+			values[i] = formatDate(&e.LoanedAt)
 		default:
 			panic("unknown field:" + header)
 		}

@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"time"
@@ -15,12 +15,12 @@ type Book struct {
 
 type Loaned struct {
 	Borrower string
-	Loaned   time.Time
+	LoanedAt   time.Time
 }
 
 type Completed struct {
 	Rating    int
-	Completed time.Time
+	CompletedAt time.Time
 }
 
 
@@ -81,7 +81,7 @@ func (b *BookEntryBuilder) Build() (*BookEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		book.Loaned.Loaned = date
+		book.Loaned.LoanedAt = date
 		book.Loaned.Borrower = b.borrower
 	}
 
@@ -92,7 +92,7 @@ func (b *BookEntryBuilder) Build() (*BookEntry, error) {
 			return nil, err
 		}
 
-		book.Completed.Completed = date
+		book.Completed.CompletedAt = date
 		book.Completed.Rating, err = strconv.Atoi(b.rating)
 		if err != nil {
 			return nil, fmt.Errorf("invalid rating '%s'", b.rating)
@@ -147,8 +147,8 @@ const (
 	IdxAuthor
 	IdxGenre
 	IdxRating
-	IdxRead
-	IdxLoaned
+	IdxCompletedAt
+	IdxLoanedAt
 	IdxBorrower
 )
 
@@ -158,8 +158,8 @@ func BookEntryFields() []string {
 		"Title",
 		"Author",
 		"Genre",
+		"Completed",
 		"Rating",
-		"Read",
 		"Loaned",
 		"Borrower",
 	}

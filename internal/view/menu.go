@@ -72,7 +72,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 		setDBLabel()
 	}))
 
-	// create title headers for menu
+	// create headers for menu options
 	newHeaderLabel := func(text string) *widget.Label {
 		lbl := widget.NewLabel(text)
 		lbl.TextStyle = fyne.TextStyle{
@@ -90,13 +90,11 @@ func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
 			openDBBtn,
 			saveDBBtn,
 		),
-		//widget.NewSeparator(),
 		newHeaderLabel("Import / Export CSV"),
 		container.NewGridWithColumns(2,
 			csvImportBtn,
 			csvExportBtn,
 		),
-		newHeaderLabel("Logs"),
 	)
 	return menu
 }

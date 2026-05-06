@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 type EntrySelect struct {
@@ -27,7 +28,7 @@ func newEntrySelect(r repo.BookRetriever) *EntrySelect {
 	return e
 }
 
-func (e *EntrySelect) getBook() (*repo.BookEntry, error) {
+func (e *EntrySelect) getBook() (*models.BookEntry, error) {
 	b, err := e.retriever.GetBookByID(e.selected)
 	return &b, err
 }

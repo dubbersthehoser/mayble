@@ -10,6 +10,7 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/submissions"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
@@ -117,49 +118,49 @@ func (bf *BookForm) validate() error {
 	return nil
 }
 
-func (bf *BookForm) Set(book *repo.BookEntry) {
+func (bf *BookForm) Set(book *models.BookEntry) {
 	bf.reset()
 	bf.id = book.ID
 	_ = bf.Title.Set(book.Title)
 	_ = bf.Author.Set(book.Author)
 	_ = bf.Genre.Set(book.Genre)
 
-	if repo.Loaned&book.Variant != 0 {
+	if book.IsLoaned {
 		_ = bf.IsLoaned.Set(true)
-		_ = bf.Date.Set(formatDate(&book.Loaned))
+		_ = bf.Date.Set(formatDate(&book.LoanedAt))
 		_ = bf.Borrower.Set(book.Borrower)
 	}
 
-	if repo.Read&book.Variant != 0 {
+	if book.IsCompleted {
 		_ = bf.IsRead.Set(true)
 		_ = bf.Rating.Set(formatRating(book.Rating))
-		_ = bf.Completed.Set(formatDate(&book.Read))
+		_ = bf.Completed.Set(formatDate(&book.CompletedAt))
 	}
 }
 
-func (bf *BookForm) ToBookEntry() *repo.BookEntry {
-	book := &repo.BookEntry{ID: bf.id}
+func (bf *BookForm) ToBookEntry() *models.BookEntry {
+	book := &models.BookEntry{ID: bf.id}
 
 	isOnLoan, _ := bf.IsLoaned.Get()
 	isRead, _ := bf.IsRead.Get()
 
 	if isOnLoan {
-		book.Variant |= repo.Loaned
+		book.IsLoaned = true
 		date, _ := bf.Date.Get()
 		timeDate, _ := parseDate(date)
-		book.Loaned = *timeDate
+		book.LoanedAt = *timeDate
 		book.Borrower, _ = bf.Borrower.Get()
 	}
 
 	if isRead {
-		book.Variant |= repo.Read
+		book.IsCompleted = true
 		sdate, _ := bf.Completed.Get()
 		srating, _ := bf.Rating.Get()
 
 		date, _ := parseDate(sdate)
 		rating := slices.Index(Ratings(), srating)
 
-		book.Read = *date
+		book.CompletedAt = *date
 		book.Rating = rating
 	}
 
@@ -206,7 +207,7 @@ func (s *SubmissionList) Clear() {
 	s.updateLimit()
 }
 
-func (s *SubmissionList) pop() (*repo.BookEntry, error) {
+func (s *SubmissionList) pop() (*models.BookEntry, error) {
 	top := s.sub.Pop()
 	if top == nil {
 		return top, errors.New("empty submission list")
@@ -237,17 +238,15 @@ func (s *SubmissionList) GetView(idx int) string {
 		return "STUB: out of range"
 	}
 	prefix := fmt.Sprintf("%s, %s, %s", book.Title, book.Author, book.Genre)
-	switch book.Variant {
-	case repo.Read | repo.Loaned:
-		return fmt.Sprintf("%s (loaned) (read)", prefix)
-	case repo.Loaned:
+	switch {
+	case book.IsLoaned && book.IsCompleted:
+		return fmt.Sprintf("%s (loaned) (completed)", prefix)
+	case book.IsLoaned:
 		return fmt.Sprintf("%s (loaned)", prefix)
-	case repo.Read:
-		return fmt.Sprintf("%s (read)", prefix)
-	case repo.Book:
-		return prefix
+	case book.IsCompleted:
+		return fmt.Sprintf("%s (completed)", prefix)
 	default:
-		return "STUB: variant not found"
+		return prefix
 	}
 }
 
@@ -416,7 +415,7 @@ func (ed *EditBookVM) Submit() {
 	ed.Close()
 }
 
-func (ed *EditBookVM) Set(b *repo.BookEntry) {
+func (ed *EditBookVM) Set(b *models.BookEntry) {
 	ed.BookForm.Set(b)
 }
 
