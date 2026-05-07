@@ -70,6 +70,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 		deleteFinal,
 	)
 
+	// Search 
 	search := widget.NewEntryWithData(vmt.Search.Text)
 	searchOptions := widget.NewSelect(vmt.SearchOptions(), func(s string) {
 		_ = vmt.Search.Header.Set(s)
@@ -79,17 +80,16 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	vmt.SetSelector(vmc.Selector())
 	table := bookTable(vmt)
 
+	// Hide Options
+	hideLabel := widget.NewLabel("Hidden:")
 	hideOptions := widget.NewCheckGroup(vmt.HiddenOptions(), func(list []string) {
-		vmt.SetHidden(list)
+		vmt.SetHiddenHeaders(list)
 	})
 	hideOptions.Horizontal = true
+	hideOptions.SetSelected(vmt.HideHeaders.HiddenOptions())
 
-	hideOptions.SetSelected(vmt.Hidden())
-
-	hideLabel := widget.NewLabel("Hidden:")
-
+	// Hidden Bar
 	hidden := container.NewBorder(nil, nil, hideLabel, nil, hideLabel, hideOptions)
-	
 
 	controllers := container.NewVBox(
 		container.NewBorder(

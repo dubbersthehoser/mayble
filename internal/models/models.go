@@ -146,8 +146,8 @@ const (
 	IdxTitle int = iota
 	IdxAuthor
 	IdxGenre
-	IdxRating
 	IdxCompletedAt
+	IdxRating
 	IdxLoanedAt
 	IdxBorrower
 )

@@ -23,17 +23,85 @@ const (
 // The smallest width a column can be.
 const MinColWidth float32 = 100.0
 
-type hiddenHeaders struct {
-	hidden []string
+// 
+type HiddenHeaders struct {
+	hidden   map[string]bool
+	columns []string
 }
 
-func (hh *hiddenHeaders) SetHidden(h []string) *hiddenHeaders {
-	hh.hidden = h
-	return hh
+func NewHiddenHeaders() *HiddenHeaders {
+	h := HiddenHeaders{
+		hidden: make(map[string]bool),
+		columns: models.BookEntryFields(),
+	}
+	for _, o := range models.BookEntryFields() {
+		h.hidden[o] = false
+	}
+	return &h
 }
-func (hh *hiddenHeaders) GetOptions() []string {
-	
+
+func (h *HiddenHeaders) SetOptions(options []string) {
+	for key := range h.hidden {
+		h.hidden[key] = false
+	}
+	for _, o := range options {
+		switch o {
+		case "Read":
+			h.hidden[h.columns[models.IdxRating]] = true
+			h.hidden[h.columns[models.IdxCompletedAt]] = true
+		case "Loaned":
+			h.hidden[h.columns[models.IdxLoanedAt]] = true
+			h.hidden[h.columns[models.IdxBorrower]] = true
+		default:
+			h.hidden[o] = true
+		}
+	}
 }
+
+func (h *HiddenHeaders) SetHeaders(headers []string) {
+	for _, header := range headers {
+		h.hidden[header] = true
+	}
+}
+
+func (h *HiddenHeaders) Options() []string {
+	return []string{
+		"Title", "Author", "Genre", "Read", "Loaned",
+	}
+}
+
+func (h *HiddenHeaders) HiddenOptions() []string {
+	options := make([]string, 0 )
+	if h.hidden[h.columns[models.IdxLoanedAt]] &&
+	   h.hidden[h.columns[models.IdxBorrower]] {
+		options = append(options, "Loaned")
+	}
+	if h.hidden[h.columns[models.IdxCompletedAt]] &&
+	   h.hidden[h.columns[models.IdxRating]] {
+		options = append(options, "Read")
+	}
+	if h.hidden[h.columns[models.IdxTitle]] {
+		options = append(options, h.columns[models.IdxTitle])
+	}
+	if h.hidden[h.columns[models.IdxAuthor]] {
+		options = append(options, h.columns[models.IdxAuthor])
+	}
+	if h.hidden[h.columns[models.IdxGenre]] {
+		options = append(options, h.columns[models.IdxGenre])
+	}
+	return options
+}
+
+func (h *HiddenHeaders) Columns() []string {
+	columns := make([]string, 0)
+	for _, o := range models.BookEntryFields() {
+		if h.hidden[o] {
+			columns = append(columns, o)
+		}
+	}
+	return  columns
+}
+
 
 
 type TableVM struct {
@@ -43,6 +111,8 @@ type TableVM struct {
 
 	SortBy    binding.String
 	SortOrder binding.String
+
+	HideHeaders *HiddenHeaders
 
 	selector *EntrySelect
 
@@ -66,6 +136,8 @@ func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *TableVM {
 		SortBy:    binding.NewString(),
 		SortOrder: binding.NewString(),
 
+		HideHeaders: NewHiddenHeaders(),
+
 		Search: struct {
 			Text   binding.String
 			Header binding.String
@@ -78,6 +150,8 @@ func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *TableVM {
 
 		l: &listener{},
 	}
+
+	t.HideHeaders.SetHeaders(cfg.GetHiddenColumns())
 
 	t.Search.Text.AddListener(binding.NewDataListener(func() {
 		t.selector.unselect(notifySelect)
@@ -178,55 +252,24 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 	return width
 }
 
-// SetHidden set named option headers to hidden.
-func (t *TableVM) SetHidden(options []string) {
-	hide := hiddenOptionsToHeaders(options)
-	t.cfg.SetHiddenColumns(hide)
-	t.table.SetHidden(hide)
+// SetHiddenHeaders set named option headers to hidden.
+func (t *TableVM) SetHiddenHeaders(options []string) {
+	t.HideHeaders.SetOptions(options)
+	t.cfg.SetHiddenColumns(t.HideHeaders.Columns())
+	t.table.SetHidden(t.HideHeaders.Columns())
 	t.l.notify()
 }
 
-// Hidden return slice of hidden headers as named options.
-func (t *TableVM) Hidden() []string {
-	headers := t.table.HiddenHeaders()
-	return hiddenHeadersToOptions(headers)
+// HiddenHeaders returns set named options of hidden headers.
+func (t *TableVM) HiddenHeaders() []string {
+	return t.HideHeaders.HiddenOptions()
 }
 
-// hiddenHeadersToOptions returns hidden options from headers.
-func hiddenHeadersToOptions(headers []string) []string {
-	options := make([]string, 0)
-	for _, o := range headers {
-		switch o {
-		case "Rating", "Borrower":
-			continue
-		default:
-			options = append(options, o)
-		}
-	}
-	return options
-}
-
-// hiddenOptionsToHeaders returns a slice of headers from a slice of hidden header options.
-func hiddenOptionsToHeaders(options []string) []string {
-	hide := make([]string, 0)
-	for _, o := range options {
-		switch o {
-		case "Loaned":
-			hide = append(hide, "Loaned", "Borrower")
-		case "Completed":
-			hide = append(hide, "Read", "Rating")
-		default:
-			hide = append(hide, o)
-		}
-	}
-	return hide
-}
-
-// HiddenOptions returns the list of options for hiding columns.
+// HiddenOptions returns options for hidding columns.
 func (t *TableVM) HiddenOptions() []string {
-	headers := models.BookEntryFields()
-	return hiddenHeadersToOptions(headers)
+	return t.HideHeaders.Options()
 }
+
 
 func (t *TableVM) Headers() []string {
 	return t.table.Headers()
