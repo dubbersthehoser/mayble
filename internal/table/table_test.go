@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-func Test_Table(t *testing.T) {
+func TestTable(t *testing.T) {
 
 	headers := []string{
 		"Title",
@@ -17,7 +17,7 @@ func Test_Table(t *testing.T) {
 	
 	table := NewTable("TEST", headers)
 
-	{
+	{ // check Headers method returns the headers that it was given.
 		expect := headers
 		actual := table.Headers()
 

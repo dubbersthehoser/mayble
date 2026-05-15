@@ -42,7 +42,7 @@ func TestHeaderIndexing(t *testing.T) {
 		},
 		{
 			index: 6,
-			expect: "Loaned",
+			expect: "LoaneD",
 		},
 	}
 
