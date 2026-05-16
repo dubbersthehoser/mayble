@@ -3,83 +3,49 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"fmt"
-	"path/filepath"
 )
 
-// Table config for table view.
-type Table struct {
-	ColumnsHidden []string           `json:"hidden_columns"`
-	ColumnWidths  map[string]float32 `json:"column_width"`
-}
+const Version string ="2.0.0"
 
-// UI contains ui settings.
-type UI struct {
-	Table Table `json:"table"`
-	WindowBody int
+type OldConfig struct {
+	ConfigDir  string `json:"config_dir"`
+	ConfigFile string `json:"config_file"`
+	DBDriver   string `json:"db_driver"`
+	DBFile     string `json:"db_file"`
 }
-
-func (u *UI) SetWindowBody(w int) {
-	u.WindowBody = w
-}
-
-func (u *UI) GetWindowBody() int {
-	return u.WindowBody
-}
-
-// SetColumnWidth for column lable for size s.
-func (u *UI) SetColumnWidth(label string, s float32) {
-	if u.Table.ColumnWidths == nil {
-		u.Table.ColumnWidths = make(map[string]float32)
-	}
-	u.Table.ColumnWidths[label] = s
-}
-
-// GetColumnWidth from named label.
-func (u *UI) GetColumnWidth(label string) float32 {
-	if nil == u.Table.ColumnWidths {
-		return 0.0
-	}
-	v, ok := u.Table.ColumnWidths[label]
-	if !ok {
-		return 0.0
-	}
-	return v
-}
-
-func (u *UI) SetHiddenColumns(headers []string) {
-	u.Table.ColumnsHidden = headers
-}
-
-func (u *UI) GetHiddenColumns() []string {
-	return u.Table.ColumnsHidden
-}
-
 
 // Config contains all configuration for the application.
 type Config struct {
 	Version    string `json:"version"`
-	ConfigDir  string `json:"config_dir"`
 	ConfigFile string `json:"config_file"`
-	DBDriver   string `json:"db_driver"` // NOTE deprecated.
 	DBFile     string `json:"db_file"`
-	UI
+	Table struct {
+		Headers map[string]struct{
+			IsHidden bool
+			Width    float32
+		}
+	}
+	UI struct {
+		WindowBody int
+	}
 }
 
-// GetUITable grab table by name if not found returns an new table.
-func (c *Config) GetUITable() *Table {
-	if c.UI.Table.ColumnsHidden == nil {
-		c.UI.Table.ColumnsHidden = make([]string, 0)
+func NewConfigWithDefaults(appName string) (*Config, error) {
+	configFile, err := GetDefaultConfigFile(appName)
+	if err != nil {
+		return nil, err
 	}
-	if c.UI.Table.ColumnWidths == nil {
-		c.UI.Table.ColumnWidths = make(map[string]float32)
+	cfg := &Config{
+		Version: Version,
+		ConfigFile: configFile,
 	}
-	t := &c.UI.Table
-	return t
+	return cfg, nil
 }
 
-// save to config file.
+// Save to config file.
 func (c *Config) Save() error {
 	path := c.ConfigFile
 
@@ -94,62 +60,69 @@ func (c *Config) Save() error {
 	return nil
 }
 
-func (c *Config) Open() (*Config, error) {
-	return Load(c.ConfigDir)
-}
-
-// Load config from root directory. The file name will 'config.json'
-// and if file is not found it will return new Config type to be saved later.
-func Load(root string) (*Config, error) {
-
-	file := "config.json"
-	path := filepath.Join(root, file)
+func Load(path, appName string) (*Config, error) {
 
 	fileIO, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
-		cfg := &Config{
-			ConfigDir:  root,
-			ConfigFile: path,
+		cfg, err := NewConfigWithDefaults(appName)
+		if err != nil {
+			return nil, err
 		}
+		cfg.ConfigFile = path
 		return cfg, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("config.load %w", err)
+		return nil, fmt.Errorf("config: %w", err)
 	}
 	defer fileIO.Close()
 
+	raw, err := io.ReadAll(fileIO)
+	if err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+
+	if isOld(raw) {
+		cfg, err := NewConfigWithDefaults(appName)
+		if err != nil {
+			return nil, err
+		}
+		cfg.ConfigFile = path
+		err = backup(path, cfg)
+		return cfg, err
+	}
+
 	cfg := &Config{}
 
-	decoder := json.NewDecoder(fileIO)
-
-	err = decoder.Decode(cfg)
+	err = json.Unmarshal(raw, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("config.load %w", err)
+		return nil, fmt.Errorf("config: %w", err)
 	}
-	err = backupV1(path, cfg)
 	return cfg, err
 }
 
-// backupV1 create a backup of the old config if it is.
-func backupV1(path string, cfg *Config) error {
-	if cfg.Version != "" || cfg.DBFile == "" {
-		return nil
+func isOld(jsonBytes []byte) bool {
+	oldCfg := &OldConfig{}
+	err := json.Unmarshal(jsonBytes, oldCfg)
+	if err != nil {
+		return false
 	}
+	return oldCfg.ConfigDir != "" || oldCfg.DBDriver != ""
+}
 
-	cfg.Version = "2.0.0"
-
+// backup create a backup of the old config.
+func backup(path string, cfg *Config) error {
 	to, err := os.Create(path + ".bak")
 	if err != nil {
-		return fmt.Errorf("config.backup %w", err)
+		return fmt.Errorf("config: %w", err)
 	}
 	from, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("config.backup %w", err)
+		return fmt.Errorf("config: %w", err)
 	}
 
 	_, err = from.WriteTo(to)
 	if err != nil {
-		return fmt.Errorf("config.backup %w", err)
+		return fmt.Errorf("config: %w", err)
 	}
 	return nil
 }
