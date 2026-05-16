@@ -1,25 +1,30 @@
-// Package table 
+// Package table contains the logic for the UI table.
+//
 package table
 
 import (
-	"errors"
 	"cmp"
+	"errors"
 	"slices"
 )
 
 // A Table structure contains a linked-list of Headers and each of those headers contain a linked-list of Cells, and 
-// both linked-list is in a ring fomation.
+// both linked-list is in a ring formation.
 type Table struct {
 	headerOrder map[string]int // Keep original header locations.
+	idToRow     map[int64]int
 	rowCount    int            // Keep track of rows in table.
 	name        string
 	first       *Header        // First header in table list.
 }
 
+// NewTable create new table with name of table and its list of header names.
+// The order of the headers is persistent when appending values to the table.
 func NewTable(name string, headers []string) *Table {
 	t := &Table{
 		name: name,
 		headerOrder: make(map[string]int),
+		idToRow: make(map[int64]int),
 	}
 
 	for i, h := range headers {
@@ -37,7 +42,6 @@ func NewTable(name string, headers []string) *Table {
 	return t
 }
 
-
 // Headers returns the current header order.
 func (t *Table) Headers() []string {
 	headers := make([]string, 0)
@@ -54,7 +58,7 @@ func (t *Table) Headers() []string {
 	}
 }
 
-// OriginalHeaders lists original header order when created table was created.
+// OriginalHeaders lists original header order when table was created.
 func (t *Table) OriginalHeaders() []string {
 	l := make([]string, len(t.headerOrder))
 	for h, v := range t.headerOrder {
@@ -63,7 +67,7 @@ func (t *Table) OriginalHeaders() []string {
 	return l
 }
 
-// HiddenHeaders list hidden headers.
+// HiddenHeaders list hidden headers only.
 func (t *Table) HiddenHeaders() []string {
 	headers := make([]string, 0)
 	curr := t.first
@@ -78,7 +82,7 @@ func (t *Table) HiddenHeaders() []string {
 	}
 }
 
-// VisableHeaders list shown headers.
+// VisableHeaders list shown headers only.
 func (t *Table) VisableHeaders() []string {
 	headers := make([]string, 0)
 	curr := t.first
@@ -93,17 +97,10 @@ func (t *Table) VisableHeaders() []string {
 	}
 }
 
-func (t *Table) getCurrentHeaderIndexes() []int {
-	current := t.Headers()
-	indexs := make([]int, len(current))
-	for i := range current {
-		indexs[i] = t.headerOrder[current[i]]
-	}
-	return indexs
-}
 
 // AppendRow add a row to table with entry id and its values.
-// returns errors when the number of values don't match number of table headers.
+// The order of the values must match the original header order of the table.
+// Errors when the number of values don't match number of table headers.
 func (t *Table) AppendRow(id int64, values []string) error {
 	if len(values) != len(t.headerOrder) {
 		return errors.New("table invalid value count")
@@ -116,6 +113,8 @@ func (t *Table) AppendRow(id int64, values []string) error {
 	}
 	values = tempValues
 
+	t.idToRow[id] = t.rowCount
+
 	curr := t.first
 	i := 0
 	for {
@@ -124,22 +123,25 @@ func (t *Table) AppendRow(id int64, values []string) error {
 		curr = curr.next
 		if t.first == curr {
 			t.rowCount += 1
-			return nil
+			break
 		}
 	}
+	return nil
+
 }
 
 // ClearValues removes values from table.
-func (t *Table) ClearValues() error {
+func (t *Table) ClearValues() {
 	curr := t.first
 	for {
 		curr.value = nil
 		curr = curr.next
 		if curr == t.first {
-			t.rowCount = 0
-			return nil
+			break
 		}
 	}
+	clear(t.idToRow)
+	t.rowCount = 0
 }
 
 // GetCell return cell from table at row and col.
@@ -171,13 +173,24 @@ func (t *Table) Name() string {
 	return t.name
 }
 
+// getCurrentHeaderIdexes returns a list of indexs of the original header order
+// and is mapped to the current header order.
+func (t *Table) getCurrentHeaderIndexes() []int {
+	current := t.Headers()
+	indexs := make([]int, len(current))
+	for i := range current {
+		indexs[i] = t.headerOrder[current[i]]
+	}
+	return indexs
+}
+
+
 // SetHidden sets the headers and it's values to hidden with specified header names.
 func (t *Table) SetHidden(headers []string) {
 	
-	// When setting headers as hidden, will re-order the header keeping all
+	// When setting headers as hidden, will re-order the header. Keeping all
 	// the hidden headers to the right and shown headers to the left, while
 	// keeping the original header order for the left side.
-	//
 
 	hidden := make([]*Header, 0)
 	shown := make([]*Header, 0)
@@ -196,7 +209,8 @@ func (t *Table) SetHidden(headers []string) {
 		}
 	}
 
-	// mantain the column ording for shown values by sorting index numbers.
+	// Maintain the column ording for shown values by sorting index numbers
+	// of the original header order.
 	slices.SortFunc(shown, func(a, b *Header) int {
 		APlace := t.headerOrder[a.name]
 		BPlace := t.headerOrder[b.name]
@@ -213,11 +227,13 @@ func (t *Table) SetHidden(headers []string) {
 	}
 }
 
+// Size get the current row and column size of the table.
 func (t *Table) Size() (row int, col int) {
 	row, col = t.rowCount, len(t.headerOrder)
 	return
 }
 
+// A Header is a header for the table column.
 type Header struct {
 	name   string
 	table  *Table
@@ -227,6 +243,7 @@ type Header struct {
 
 	value *Cell
 }
+
 func newHeader(t *Table, name string) *Header {
 	h := &Header{
 		name: name,
@@ -238,15 +255,18 @@ func newHeader(t *Table, name string) *Header {
 }
 
 func newStubHeader(t *Table) *Header {
+	// really nice for catching bugs.
 	h := newHeader(t, "STUB")
 	h.appendValue(-1, "STUB")
 	return h
 }
 
+// IsHidden get the hidden status of header.
 func (h *Header) IsHidden() bool {
 	return h.hidden
 }
 
+// Name get the name of the header.
 func (h *Header) Name() string {
 	return h.name
 }
@@ -263,15 +283,12 @@ func (h *Header) appendHeader(n *Header) {
 }
 
 func (h *Header) appendValue(id int64, v string) {
-	h.appendCell(newCell(h, id, v))
-}
-
-func (h *Header) appendCell(c *Cell) {
+	cell := newCell(h, id, v)
 	if h.value == nil {
-		h.value = c
+		h.value = cell
 		return
 	}
-	h.value.append(c)
+	h.value.verticalAppend(cell)
 }
 
 func (h *Header) getCell(idx int) *Cell {
@@ -282,54 +299,61 @@ func (h *Header) getCell(idx int) *Cell {
 			return curr
 		}
 		i += 1
-		curr = curr.next
+		curr = curr.down
 		if curr == h.value {
 			return newStubCell(h)
 		}
 	}
 }
 
+
+// A Cell is a data cell from a table.
 type Cell struct {
 	header *Header
 	id     int64
 	value  string
-	next   *Cell
-	prev   *Cell
+	down   *Cell
+	up     *Cell
 }
+
 func newCell(h *Header, id int64, v string) *Cell {
 	c := &Cell{
 		header: h,
 		id: id,
 		value: v,
 	}
-	c.next = c
-	c.prev = c
+	c.down = c
+	c.up = c
 	return c
 }
+
 func newStubCell(h *Header) *Cell {
 	return newCell(h, -1, "STUB") 
 }
 
+// ID returns the row ID of the cell.
 func (c *Cell) ID() int64 {
 	return c.id
 }
 
+// Value returns the value of the cell.
 func (c *Cell) Value() string {
 	return c.value
 }
 
+// Header returns the name of the header of the cell.
 func (c *Cell) Header() string {
 	return c.header.name
 }
 
 // append add cell as if c is head of list, and v is added to the end of the list.
-func (c *Cell) append(v *Cell) {
+func (c *Cell) verticalAppend(v *Cell) {
 	next := c
-	prev := c.prev
-	v.next = next
-	v.prev = prev
-	next.prev = v
-	prev.next = v
+	prev := c.up
+	v.down = next
+	v.up = prev
+	next.up = v
+	prev.down = v
 }
 
 // IsHidden check wheather cell is hidden.
@@ -337,9 +361,8 @@ func (c *Cell) IsHidden() bool {
 	return c.header.hidden
 }
 
-
-
-// WalkVisableValues 
+// WalkVisableValues walks all visable cells from t and is passed to fn. 
+// When fn returns returns true the walk will end.
 func WalkVisableValues(t *Table, fn func(row, col int, c *Cell) bool) {
 	
 	currHeader := t.first
@@ -355,7 +378,7 @@ func WalkVisableValues(t *Table, fn func(row, col int, c *Cell) bool) {
 			if fn(row, col, currCell) {
 				return
 			}
-			currCell = currCell.next
+			currCell = currCell.down
 			row += 1
 			if currCell == currHeader.value {
 				break

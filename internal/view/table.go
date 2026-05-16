@@ -34,7 +34,7 @@ func BookEditForm(vm *viewmodel.EditBookVM) fyne.CanvasObject {
 	return c
 }
 
-func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fyne.CanvasObject {
+func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.Table) fyne.CanvasObject {
 
 	editBtn := widget.NewButton("Edit", func() {
 		vmc.Edit()
@@ -148,7 +148,7 @@ func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.TableVM) fy
 	return view
 }
 
-func bookTable(vm *viewmodel.TableVM) fyne.CanvasObject {
+func bookTable(vm *viewmodel.Table) fyne.CanvasObject {
 
 	//
 	// Table
@@ -248,10 +248,10 @@ type HeaderButton struct {
 	widget.Button
 	minSize fyne.Size
 	label   string
-	vm      *viewmodel.TableVM
+	vm      *viewmodel.Table
 }
 
-func NewHeaderButton(label string, vm *viewmodel.TableVM) *HeaderButton {
+func NewHeaderButton(label string, vm *viewmodel.Table) *HeaderButton {
 	hb := &HeaderButton{
 		label: label,
 		vm:    vm,

@@ -23,6 +23,12 @@ const (
 // The smallest width a column can be.
 const MinColWidth float32 = 100.0
 
+type TableBody struct {
+	Table       *Table
+	Search      *SearchTable
+	Controllers *TableControllersVM
+}
+
 // 
 type HiddenHeaders struct {
 	hidden   map[string]bool
@@ -71,7 +77,7 @@ func (h *HiddenHeaders) Options() []string {
 }
 
 func (h *HiddenHeaders) HiddenOptions() []string {
-	options := make([]string, 0 )
+	options := make([]string, 0)
 	if h.hidden[h.columns[models.IdxLoanedAt]] &&
 	   h.hidden[h.columns[models.IdxBorrower]] {
 		options = append(options, "Loaned")
@@ -102,9 +108,52 @@ func (h *HiddenHeaders) Columns() []string {
 	return  columns
 }
 
+type SearchTable struct {
+	table  *Table
+	header string
+}
+func NewSearchTable(t *Table) *SearchTable {
+	return &SearchTable{
+		table: t,
+	}
+}
+
+func (st *SearchTable) SetSearchColumn(header string) {
+	st.header = header
+}
+
+func (st *SearchTable) SearchColumnList() []string {
+	return []string{
+		"All",
+		"Title",
+		"Author",
+		"Genre",
+		"Borrower",
+	}
+}
+
+func (st *SearchTable) Search(s string) {
+	
+}
+
+type TableHeader struct {
+	table *Table
+	cfg   TableHeaderConfigurator
+}
+
+func NewTableHeader(t *Table, cfg TableHeaderConfigurator) *TableHeader {
+	return &TableVisableHeader{
+		table: t,
+		cfg: cfg,
+	}
+}
+
+func (vh *TableHeader) SetHidden(headers []string) {
+	
+}
 
 
-type TableVM struct {
+type Table struct {
 	repo   repo.BookRetriever
 	bus    *bus.Bus
 	cfg    UIConfig
@@ -126,8 +175,8 @@ type TableVM struct {
 	l *listener
 }
 
-func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *TableVM {
-	t := &TableVM{
+func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *Table {
+	t := &Table{
 		table:  table.NewTable("Main", entryHeaders()),
 		repo:   r,
 		cfg:    cfg,
@@ -181,7 +230,7 @@ func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *TableVM {
 	return t
 }
 
-func (t *TableVM) search() {
+func (t *Table) search() {
 	search, _ := t.Search.Text.Get()
 	if search == "" {
 		return
@@ -199,13 +248,13 @@ func (t *TableVM) search() {
 	t.selector.selectCell(r.Row, r.Col, notifySelect)
 }
 
-func (t *TableVM) SetSelector(es *EntrySelect) *TableVM {
+func (t *Table) SetSelector(es *EntrySelect) *Table {
 	t.selector = es
 	return t
 }
 
 // SearchOptions a list of searchable options.
-func (t *TableVM) SearchOptions() []string {
+func (t *Table) SearchOptions() []string {
 	return []string{
 		"All",
 		"Title",
@@ -216,12 +265,12 @@ func (t *TableVM) SearchOptions() []string {
 }
 
 // Selector returns the table's selector.
-func (t *TableVM) Selector() *EntrySelect {
+func (t *Table) Selector() *EntrySelect {
 	return t.selector
 }
 
 // Sort table using sort bindings.
-func (t *TableVM) Sort() error {
+func (t *Table) Sort() error {
 	t.selector.unselect(notifySelect)
 	err := t.reload()
 	if err != nil {
@@ -233,7 +282,7 @@ func (t *TableVM) Sort() error {
 
 // StoreColumnWidth to the config file if it exists else it will be an nop.
 // When width is smaller then MinColWidth, MinColWidth will be used.
-func (t *TableVM) StoreColumnWidth(col int, width float32) {
+func (t *Table) StoreColumnWidth(col int, width float32) {
 	if width < MinColWidth {
 		width = MinColWidth
 	}
@@ -243,7 +292,7 @@ func (t *TableVM) StoreColumnWidth(col int, width float32) {
 }
 
 // GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
-func (t *TableVM) GetColumnWidth(col int) float32 {
+func (t *Table) GetColumnWidth(col int) float32 {
 	label := t.table.GetHeader(col).Name()
 	width := t.cfg.GetColumnWidth(label)
 	if width < MinColWidth {
@@ -253,7 +302,7 @@ func (t *TableVM) GetColumnWidth(col int) float32 {
 }
 
 // SetHiddenHeaders set named option headers to hidden.
-func (t *TableVM) SetHiddenHeaders(options []string) {
+func (t *Table) SetHiddenHeaders(options []string) {
 	t.HideHeaders.SetOptions(options)
 	t.cfg.SetHiddenColumns(t.HideHeaders.Columns())
 	t.table.SetHidden(t.HideHeaders.Columns())
@@ -261,32 +310,32 @@ func (t *TableVM) SetHiddenHeaders(options []string) {
 }
 
 // HiddenHeaders returns set named options of hidden headers.
-func (t *TableVM) HiddenHeaders() []string {
+func (t *Table) HiddenHeaders() []string {
 	return t.HideHeaders.HiddenOptions()
 }
 
 // HiddenOptions returns options for hidding columns.
-func (t *TableVM) HiddenOptions() []string {
+func (t *Table) HiddenOptions() []string {
 	return t.HideHeaders.Options()
 }
 
 
-func (t *TableVM) Headers() []string {
+func (t *Table) Headers() []string {
 	return t.table.Headers()
 }
 
-func (t *TableVM) Select(row, col int) {
+func (t *Table) Select(row, col int) {
 	cell := t.table.GetCell(row, col)
 	t.selector.selectID(cell.ID(), !notifySelect)
 	t.selector.selectCell(row, col, notifySelect)
 }
 
-func (t *TableVM) Unselect(row, col int) {
+func (t *Table) Unselect(row, col int) {
 	t.selector.unselect(!notifySelect)
 }
 
 // reload clear table, then call load.
-func (t *TableVM) reload() error {
+func (t *Table) reload() error {
 	t.table.ClearValues()
 	return t.load()
 }
@@ -328,7 +377,7 @@ func sortBooks(books []models.BookEntry, header string, desending bool) error {
 }
 
 // load load entries form repostory, sort them, and put them into table.
-func (t *TableVM) load() error {
+func (t *Table) load() error {
 
 	items, err := t.repo.GetAllBooks()
 	if err != nil {
@@ -357,11 +406,11 @@ func (t *TableVM) load() error {
 	return nil
 }
 
-func (t *TableVM) Size() (int, int) {
+func (t *Table) Size() (int, int) {
 	return t.table.Size()
 }
 
-func (t *TableVM) Get(row, col int) string {
+func (t *Table) Get(row, col int) string {
 	cell := t.table.GetCell(row, col)
 	value := cell.Value()
 	if value == "" {
@@ -370,25 +419,26 @@ func (t *TableVM) Get(row, col int) string {
 	return value
 }
 
-func (t *TableVM) GetID(row, col int) (int64, error) {
+func (t *Table) GetID(row, col int) (int64, error) {
 	cell := t.table.GetCell(row, col)
 	return cell.ID(), nil
 }
 
 // IsItemHidden check whether cell item is hidden.
-func (t *TableVM) IsItemHidden(row, col int) bool {
+func (t *Table) IsItemHidden(row, col int) bool {
 	return t.table.GetCell(row, col).IsHidden()
 }
 
 // IsHeaderHidden check whether header at col is hidden.
-func (t *TableVM) IsHeaderHidden(col int) bool {
+func (t *Table) IsHeaderHidden(col int) bool {
 	return t.table.GetHeader(col).IsHidden()
 
 }
 
-func (t *TableVM) AddListener(l binding.DataListener) {
+func (t *Table) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
+
 
 type TableControllersVM struct {
 	SearchText    binding.String

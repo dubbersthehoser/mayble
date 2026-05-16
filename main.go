@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+
 	appName := "mayble"
 	a := app.NewWithID("com.dubbersthehoser.mayble")
 	window := a.NewWindow("Mayble")

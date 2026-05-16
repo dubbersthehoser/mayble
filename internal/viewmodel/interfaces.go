@@ -1,6 +1,6 @@
 package viewmodel
 
-type TableConfig interface {
+type TableConfigorator interface {
 	SetColumnWidth(header string, width float32)
 	GetColumnWidth(header string) (width float32)
 	SetHiddenColumns(header []string)
@@ -10,7 +10,7 @@ type TableConfig interface {
 type UIConfig interface {
 	SetWindowBody(int)
 	GetWindowBody() int
-	TableConfig
+	TableConfigorator
 }
 
 type DatabaseOpener interface {
