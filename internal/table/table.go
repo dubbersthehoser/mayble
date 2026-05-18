@@ -148,7 +148,10 @@ func (t *Table) ClearValues() {
 // Returns stub cell if not found.
 func (t *Table) GetCell(row, col int) *Cell {
 	header := t.GetHeader(col)
-	return header.getCell(row)
+	cell := header.getCell(row)
+	cell.row = row
+	cell.col = col
+	return cell
 }
 
 // GetHeader returns the header at col index of current order.
@@ -312,6 +315,9 @@ type Cell struct {
 	header *Header
 	id     int64
 	value  string
+
+	row, col int
+
 	down   *Cell
 	up     *Cell
 }
@@ -334,6 +340,10 @@ func newStubCell(h *Header) *Cell {
 // ID returns the row ID of the cell.
 func (c *Cell) ID() int64 {
 	return c.id
+}
+
+func (c *Cell) Point() (row, col int) {
+	return c.row, c.col
 }
 
 // Value returns the value of the cell.

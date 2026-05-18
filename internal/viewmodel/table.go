@@ -13,6 +13,7 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/table"
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 const (
@@ -20,204 +21,295 @@ const (
 	stubValue    string = "N/A"
 )
 
+const (
+	tableEntrySelected   string = "table.selected"
+	tableEntryUnselected string = "table.unselected"
+	tableEditOpen        string = "table.edit.open"
+	tableEditClose       string = "table.edit.close"
+)
+
 // The smallest width a column can be.
 const MinColWidth float32 = 100.0
 
-type TableBody struct {
-	Table       *Table
-	Search      *SearchTable
-	Controllers *TableControllersVM
+type TableConfig struct {
+	cfg *config.Config
 }
 
-// 
-type HiddenHeaders struct {
-	hidden   map[string]bool
-	columns []string
-}
-
-func NewHiddenHeaders() *HiddenHeaders {
-	h := HiddenHeaders{
-		hidden: make(map[string]bool),
-		columns: models.BookEntryFields(),
+func (tc *TableConfig) GetHiddenColumns() []string {
+	columns := make([]string, 0)
+	for label, headers := range tc.cfg.UI.Headers {
+		if headers.IsHidden {
+			columns = append(columns, label)
+		}
 	}
-	for _, o := range models.BookEntryFields() {
-		h.hidden[o] = false
+	return columns
+}
+
+func (tc *TableConfig) SetHiddenColumns(labels []string) {
+	for _, label := range labels {
+		header, ok := tc.cfg.UI.Headers[label]
+		if !ok {
+			continue
+		}
+		header.IsHidden = true
+		tc.cfg.UI.Headers[label] = header
+	}
+}
+
+func (tc *TableConfig) SetSortBy(label string) {
+	tc.cfg.UI.TableSortBy = label
+}
+func (tc *TableConfig) GetSortBy() string {
+	by := tc.cfg.UI.TableSortBy
+	if by == "" {
+		by = models.BookEntryFields()[models.IdxTitle]
+		tc.SetSortBy(by)
+	}
+	return by
+}
+
+func (tc *TableConfig) GetAscending() bool {
+	return tc.cfg.UI.TableAscending
+}
+
+func (tc *TableConfig) SetAscending(t bool) {
+	tc.cfg.UI.TableAscending = t
+}
+
+func (tc *TableConfig) SetColumnWidth(label string, size float32) {
+	if size < MinColWidth {
+		size = MinColWidth
+	}
+	header, ok := tc.cfg.UI.Headers[label]
+	if !ok {
+		return
+	}
+	header.Width = size
+	tc.cfg.UI.Headers[label] = header
+}
+
+func (tc *TableConfig) GetColumnWidth(label string) float32 {
+	header, ok := tc.cfg.UI.Headers[label]
+	if !ok {
+		return MinColWidth
+	}
+	size := header.Width
+	if size < MinColWidth {
+		size = MinColWidth
+	}
+	return size
+}
+
+type TableHeaders struct {
+	table   *Table
+
+	// hiding columns
+	options []string
+	aliased map[string][]string
+
+}
+
+func NewTableHeaders(table *Table) *TableHeaders {
+	columns := models.BookEntryFields()
+	h := TableHeaders{
+		table: table,
+		options: []string{"Title", "Author", "Genre", "Read", "Loaned"},
+		aliased: map[string][]string{
+			"Title": {columns[models.IdxTitle]},
+			"Author": {columns[models.IdxAuthor]},
+			"Genre": {columns[models.IdxGenre]},
+			"Read": {
+				columns[models.IdxRating],
+				columns[models.IdxCompletedAt],
+			},
+			"Loaned": {
+				columns[models.IdxLoanedAt],
+				columns[models.IdxBorrower],
+			},
+		},
 	}
 	return &h
 }
 
-func (h *HiddenHeaders) SetOptions(options []string) {
-	for key := range h.hidden {
-		h.hidden[key] = false
-	}
+func (hh *TableHeaders) Headers() []string {
+	return hh.table.table.Headers()
+}
+
+func (hh *TableHeaders) HideOptions() []string {
+	return hh.options
+}
+
+func (hh *TableHeaders) SetHidden(options []string) {
+	columns := make([]string, 0)
 	for _, o := range options {
-		switch o {
-		case "Read":
-			h.hidden[h.columns[models.IdxRating]] = true
-			h.hidden[h.columns[models.IdxCompletedAt]] = true
-		case "Loaned":
-			h.hidden[h.columns[models.IdxLoanedAt]] = true
-			h.hidden[h.columns[models.IdxBorrower]] = true
-		default:
-			h.hidden[o] = true
+		cols, ok := hh.aliased[o]
+		if !ok {
+			log.Printf("WARNING: invalid option for hidden column '%s'", o)
+			continue
 		}
+		columns = append(columns, cols...)
 	}
+
+	hh.table.cfg.SetHiddenColumns(columns)
+	hh.table.table.SetHidden(columns)
 }
 
-func (h *HiddenHeaders) SetHeaders(headers []string) {
-	for _, header := range headers {
-		h.hidden[header] = true
-	}
-}
+func (hh *TableHeaders) GetHidden() []string {
 
-func (h *HiddenHeaders) Options() []string {
-	return []string{
-		"Title", "Author", "Genre", "Read", "Loaned",
-	}
-}
-
-func (h *HiddenHeaders) HiddenOptions() []string {
+	headers := hh.table.cfg.GetHiddenColumns()
 	options := make([]string, 0)
-	if h.hidden[h.columns[models.IdxLoanedAt]] &&
-	   h.hidden[h.columns[models.IdxBorrower]] {
-		options = append(options, "Loaned")
-	}
-	if h.hidden[h.columns[models.IdxCompletedAt]] &&
-	   h.hidden[h.columns[models.IdxRating]] {
-		options = append(options, "Read")
-	}
-	if h.hidden[h.columns[models.IdxTitle]] {
-		options = append(options, h.columns[models.IdxTitle])
-	}
-	if h.hidden[h.columns[models.IdxAuthor]] {
-		options = append(options, h.columns[models.IdxAuthor])
-	}
-	if h.hidden[h.columns[models.IdxGenre]] {
-		options = append(options, h.columns[models.IdxGenre])
+
+	for option, aliased := range hh.aliased {
+		for _, column := range aliased {
+			if !slices.Contains(headers, column) {
+				continue
+			}
+		}
+		options = append(options, option)
 	}
 	return options
 }
 
-func (h *HiddenHeaders) Columns() []string {
-	columns := make([]string, 0)
-	for _, o := range models.BookEntryFields() {
-		if h.hidden[o] {
-			columns = append(columns, o)
-		}
-	}
-	return  columns
+func (hh *TableHeaders) IsHidden(col int) bool {
+	header := hh.table.table.GetHeader(col)
+	return header.IsHidden()
 }
 
-type SearchTable struct {
-	table  *Table
-	header string
+
+func (th *TableHeaders) Sort() {
+	by := th.table.cfg.GetSortBy()
+	// TODO: Sort table...
 }
-func NewSearchTable(t *Table) *SearchTable {
-	return &SearchTable{
+
+func (th *TableHeaders) SetSortBy(label string) {
+	th.table.cfg.SetSortBy(label)
+}
+func (th *TableHeaders) GetSortBy() string {
+	return th.table.cfg.GetSortBy()
+}
+
+func (th *TableHeaders) GetAscending() bool {
+	return th.table.cfg.GetAscending()
+}
+
+func (th *TableHeaders) SetAscending(t bool) {
+	th.table.cfg.SetAscending(t)
+}
+
+func (th *TableHeaders) SetWidth(label string, width float32) {
+	th.table.cfg.SetColumnWidth(label, width)
+}
+
+func (th *TableHeaders) GetWidth(label string) float32 {
+	return th.table.cfg.GetColumnWidth(label)
+}
+
+type TableSelect struct {
+	table       *Table
+	cell        *table.Cell
+	hasSelected bool
+
+	searchOptions []string
+	searchBy    string
+
+	l *listener
+}
+
+func NewTableSelect(t *Table) *TableSelect {
+	ts := &TableSelect{
 		table: t,
+		searchBy: "All",
+		searchOptions: []string{
+			"All",
+			"Title",
+			"Author",
+			"Genre",
+			"Borrower",
+		},
 	}
+	return ts
 }
 
-func (st *SearchTable) SetSearchColumn(header string) {
-	st.header = header
+func (ts *TableSelect) Select(row, col int) {
+	ts.hasSelected = true
+	ts.l.notify()
+	ts.cell = ts.table.table.GetCell(row, col)
+	ts.table.bus.Notify(bus.Event{
+		Name: tableEntrySelected,
+		Data: ts.cell.ID(),
+	})
 }
 
-func (st *SearchTable) SearchColumnList() []string {
-	return []string{
-		"All",
-		"Title",
-		"Author",
-		"Genre",
-		"Borrower",
+func (ts *TableSelect) Unselect() {
+	ts.hasSelected = false
+	ts.l.notify()
+	ts.table.bus.Notify(bus.Event{
+		Name: tableEntryUnselected,
+		Data: -1,
+	})
+}
+
+func (ts *TableSelect) Selected() (row, col int) {
+	return ts.cell.Point()
+}
+
+func (ts *TableSelect) HasSelected() bool {
+	return ts.hasSelected
+}
+
+func (ts *TableSelect) Search(s string) {
+	result := table.Search(ts.table.table, s, ts.searchBy)
+	if len(result) == 0 {
+		return
 	}
+	// TODO 
+	book := result[0]
 }
 
-func (st *SearchTable) Search(s string) {
-	
+func (ts *TableSelect) SetSearchBy(option string) {
+	ts.searchBy = option
 }
 
-type TableHeader struct {
-	table *Table
-	cfg   TableHeaderConfigurator
+func (ts *TableSelect) GetSearchBy() string {
+	return ts.searchBy
 }
 
-func NewTableHeader(t *Table, cfg TableHeaderConfigurator) *TableHeader {
-	return &TableVisableHeader{
-		table: t,
-		cfg: cfg,
-	}
+
+func (ts *TableSelect) SearchOptions() []string {
+	return ts.searchOptions
 }
 
-func (vh *TableHeader) SetHidden(headers []string) {
-	
+func (t *TableSelect) AddListener(l binding.DataListener) {
+	t.l.AddListener(l)
 }
-
 
 type Table struct {
-	repo   repo.BookRetriever
+	store     repo.BookStore
+	retriever repo.BookRetriever
+
 	bus    *bus.Bus
-	cfg    UIConfig
-
-	SortBy    binding.String
-	SortOrder binding.String
-
-	HideHeaders *HiddenHeaders
-
-	selector *EntrySelect
-
-	Search struct {
-		Text   binding.String
-		Header binding.String
-	}
+	cfg    *TableConfig
+	genres *UniqueGenres
 
 	table *table.Table
 
 	l *listener
 }
 
-func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *Table {
+func NewTable(b *bus.Bus, cfg *TableConfig, s repo.BookStore, r repo.BookRetriever, ug *UniqueGenres) *Table {
 	t := &Table{
-		table:  table.NewTable("Main", entryHeaders()),
-		repo:   r,
-		cfg:    cfg,
-		bus:    b,
-
-		SortBy:    binding.NewString(),
-		SortOrder: binding.NewString(),
-
-		HideHeaders: NewHiddenHeaders(),
-
-		Search: struct {
-			Text   binding.String
-			Header binding.String
-		}{
-			Text:   binding.NewString(),
-			Header: binding.NewString(),
-		},
-
-		selector: newEntrySelect(r),
+		table: table.NewTable("Main", entryHeaders()),
+		store:  s,
+		retriever: r,
+		cfg:   cfg,
+		bus:   b,
+		genres: ug,
 
 		l: &listener{},
 	}
-
-	t.HideHeaders.SetHeaders(cfg.GetHiddenColumns())
-
-	t.Search.Text.AddListener(binding.NewDataListener(func() {
-		t.selector.unselect(notifySelect)
-		t.search()
-	}))
-
-	_ = t.SortOrder.Set("ASC")
-	_ = t.SortBy.Set(t.table.Headers()[0])
-	err := t.load()
-	if err != nil {
-		log.Println(err)
-	}
-
 	b.Subscribe(bus.Handler{
 		Name: msgDataChanged,
 		Handler: func(e *bus.Event) {
-			t.selector.unselect(notifySelect)
 			err := t.reload()
 			if err != nil {
 				log.Println(err)
@@ -226,58 +318,7 @@ func NewTableVM(b *bus.Bus, cfg UIConfig, r repo.BookRetriever) *Table {
 			t.l.notify()
 		},
 	})
-
 	return t
-}
-
-func (t *Table) search() {
-	search, _ := t.Search.Text.Get()
-	if search == "" {
-		return
-	}
-	header, _ := t.Search.Header.Get()
-	if header == "All" {
-		header = ""
-	}
-	result := table.Search(t.table, search, header)
-	if len(result) == 0 {
-		return
-	}
-	r := result[0]
-	t.selector.selectID(r.ID, !notifySelect)
-	t.selector.selectCell(r.Row, r.Col, notifySelect)
-}
-
-func (t *Table) SetSelector(es *EntrySelect) *Table {
-	t.selector = es
-	return t
-}
-
-// SearchOptions a list of searchable options.
-func (t *Table) SearchOptions() []string {
-	return []string{
-		"All",
-		"Title",
-		"Author",
-		"Genre",
-		"Borrower",
-	}
-}
-
-// Selector returns the table's selector.
-func (t *Table) Selector() *EntrySelect {
-	return t.selector
-}
-
-// Sort table using sort bindings.
-func (t *Table) Sort() error {
-	t.selector.unselect(notifySelect)
-	err := t.reload()
-	if err != nil {
-		return err
-	}
-	t.l.notify()
-	return nil
 }
 
 // StoreColumnWidth to the config file if it exists else it will be an nop.
@@ -301,85 +342,17 @@ func (t *Table) GetColumnWidth(col int) float32 {
 	return width
 }
 
-// SetHiddenHeaders set named option headers to hidden.
-func (t *Table) SetHiddenHeaders(options []string) {
-	t.HideHeaders.SetOptions(options)
-	t.cfg.SetHiddenColumns(t.HideHeaders.Columns())
-	t.table.SetHidden(t.HideHeaders.Columns())
-	t.l.notify()
-}
-
-// HiddenHeaders returns set named options of hidden headers.
-func (t *Table) HiddenHeaders() []string {
-	return t.HideHeaders.HiddenOptions()
-}
-
-// HiddenOptions returns options for hidding columns.
-func (t *Table) HiddenOptions() []string {
-	return t.HideHeaders.Options()
-}
-
-
-func (t *Table) Headers() []string {
-	return t.table.Headers()
-}
-
-func (t *Table) Select(row, col int) {
-	cell := t.table.GetCell(row, col)
-	t.selector.selectID(cell.ID(), !notifySelect)
-	t.selector.selectCell(row, col, notifySelect)
-}
-
-func (t *Table) Unselect(row, col int) {
-	t.selector.unselect(!notifySelect)
-}
-
 // reload clear table, then call load.
 func (t *Table) reload() error {
 	t.table.ClearValues()
 	return t.load()
 }
 
-// sortbooks sort slice of books.
-func sortBooks(books []models.BookEntry, header string, desending bool) error {
-
-	index := slices.Index(entryHeaders(), header)
-
-	if index == -1 {
-		return fmt.Errorf("sort_books: invalid header '%s'", header)
-	}
-
-	slices.SortFunc(books, func(a, b models.BookEntry) int {
-		r := -1
-		switch index {
-		case models.IdxTitle:
-			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
-		case models.IdxAuthor:
-			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
-		case models.IdxGenre:
-			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
-		case models.IdxBorrower:
-			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
-		case models.IdxLoanedAt:
-			r = a.Loaned.LoanedAt.Compare(b.LoanedAt)
-		case models.IdxRating:
-			r = cmp.Compare(a.Rating, b.Rating)
-		case models.IdxCompletedAt:
-			r = a.CompletedAt.Compare(b.CompletedAt)
-		}
-		if desending {
-			return r * -1
-		} else {
-			return r
-		}
-	})
-	return nil
-}
 
 // load load entries form repostory, sort them, and put them into table.
 func (t *Table) load() error {
 
-	items, err := t.repo.GetAllBooks()
+	items, err := t.retriever.GetAllBooks()
 	if err != nil {
 		return err
 	}
@@ -388,9 +361,9 @@ func (t *Table) load() error {
 		return nil
 	}
 
-	by, _ := t.SortBy.Get()
-	order, _ := t.SortOrder.Get()
-	err = sortBooks(items, by, order == "DESC")
+	by := t.cfg.GetSortBy()
+	ascending := t.cfg.GetAscending()
+	err = sortBooks(items, by, ascending)
 	if err != nil {
 		return err
 	}
@@ -424,92 +397,86 @@ func (t *Table) GetID(row, col int) (int64, error) {
 	return cell.ID(), nil
 }
 
-// IsItemHidden check whether cell item is hidden.
-func (t *Table) IsItemHidden(row, col int) bool {
-	return t.table.GetCell(row, col).IsHidden()
-}
-
-// IsHeaderHidden check whether header at col is hidden.
-func (t *Table) IsHeaderHidden(col int) bool {
-	return t.table.GetHeader(col).IsHidden()
-
-}
-
 func (t *Table) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
 
-
-type TableControllersVM struct {
-	SearchText    binding.String
-	selector      *EntrySelect
-	hiddenColumns []string
-	bus           *bus.Bus
-	EditIsOpen    binding.Bool
-	editBook      *EditBookVM
-
-	store repo.BookStore
+type TableEdit struct {
+	BookForm
+	table   *Table
+	IsOpen  binding.Bool
+	selected *models.BookEntry
 }
 
-func NewTableControllersVM(b *bus.Bus, r repo.BookRetriever, s repo.BookStore, g *UniqueGenres) *TableControllersVM {
-	tc := &TableControllersVM{
-		SearchText:    binding.NewString(),
-		hiddenColumns: make([]string, 0),
-		EditIsOpen:    binding.NewBool(),
-
-		bus:           b,
-
-		selector: newEntrySelect(r),
-		store:    s,
+func NewTableEdit(t *Table) *TableEdit {
+	ed := &TableEdit{
+		BookForm: *NewBookForm(),
+		IsOpen: binding.NewBool(),
 	}
-	tc.editBook = NewEditBookVM(b, s, g, tc.EditIsOpen)
-	return tc
-}
 
-func msgNotSelected(b *bus.Bus) {
-	b.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Nothing selected",
+	// handle selected book events
+	ed.table.bus.Subscribe(bus.Handler{
+		Name: tableEntrySelected,
+		Handler: func(e *bus.Event) {
+			id := e.Data.(int64)
+			book, err := ed.table.retriever.GetBookByID(id)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			ed.selected = &book
+		},
 	})
-}
 
-func (tc *TableControllersVM) Delete() {
-	if !tc.selector.HasSelected() {
-		msgNotSelected(tc.bus)
-		return
-	}
-	err := tc.store.DeleteBook(tc.selector.getID())
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	tc.bus.Notify(bus.Event{
-		Name: msgDataChanged,
+	// handle un-selected events
+	ed.table.bus.Subscribe(bus.Handler{
+		Name: tableEntryUnselected,
+		Handler: func(e *bus.Event) {
+			ed.selected = nil
+		},
 	})
+
+	return ed
 }
 
-func (tc *TableControllersVM) Edit() {
-	if !tc.selector.HasSelected() {
-		msgNotSelected(tc.bus)
+func (ed *TableEdit) Delete() {
+	if ed.selected == nil {
+		log.Println("ERROR: table edit selected is nil")
+		return
+	}
+	ed.table.store.DeleteBook(ed.selected.ID)
+	ed.table.reload()
+}
+
+func (ed *TableEdit) Open() {
+	if ed.selected == nil {
+		log.Println("ERROR: table edit selected is nil")
+		return
+	}
+	ed.Set(ed.selected)
+	_ = ed.IsOpen.Set(true)
+}
+
+func (ed *TableEdit) Submit() {
+	err := ed.BookForm.validate()
+	if err != nil {
+		ed.table.bus.Notify(bus.Event{
+			Name: msgUserError,
+			Data: err.Error(),
+		})
 		return
 	}
 
-	book, err := tc.selector.getBook()
-	if err != nil {
-		log.Println(err)
-	}
+	book := ed.BookForm.ToBookEntry()
 
-	tc.editBook.reset()
-	tc.editBook.Set(book)
-	_ = tc.EditIsOpen.Set(true)
+	ed.table.store.UpdateBook(book)
+	ed.table.reload()
+	ed.Close()
 }
 
-func (tc *TableControllersVM) Selector() *EntrySelect {
-	return tc.selector
-}
-
-func (tc *TableControllersVM) GetEditBook() *EditBookVM {
-	return tc.editBook
+func (ed *TableEdit) Close() {
+	ed.BookForm.reset()
+	ed.IsOpen.Set(false)
 }
 
 // entryHeaders lists the headers labels for book entry.
@@ -544,4 +511,47 @@ func entryValues(e *models.BookEntry) []string {
 		}
 	}
 	return values
+}
+
+// sortbooks sort slice of book entries.
+func sortBooks(books []models.BookEntry, header string, ascending bool) error {
+
+	index := slices.Index(entryHeaders(), header)
+
+	if index == -1 {
+		return fmt.Errorf("sort_books: invalid header '%s'", header)
+	}
+
+	slices.SortFunc(books, func(a, b models.BookEntry) int {
+		r := -1
+		switch index {
+		case models.IdxTitle:
+			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
+		case models.IdxAuthor:
+			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
+		case models.IdxGenre:
+			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
+		case models.IdxBorrower:
+			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
+		case models.IdxLoanedAt:
+			r = a.Loaned.LoanedAt.Compare(b.LoanedAt)
+		case models.IdxRating:
+			r = cmp.Compare(a.Rating, b.Rating)
+		case models.IdxCompletedAt:
+			r = a.CompletedAt.Compare(b.CompletedAt)
+		}
+		if !ascending {
+			return r * -1
+		} else {
+			return r
+		}
+	})
+	return nil
+}
+
+func msgNotSelected(b *bus.Bus) {
+	b.Notify(bus.Event{
+		Name: msgUserInfo,
+		Data: "Nothing selected",
+	})
 }

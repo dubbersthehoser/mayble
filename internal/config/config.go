@@ -17,20 +17,22 @@ type OldConfig struct {
 	DBFile     string `json:"db_file"`
 }
 
+type Header struct {
+	IsHidden bool    `json:"is_hidden"`
+	Width    float32 `json:"width"`
+}
+
 // Config contains all configuration for the application.
-type Config struct {
+type Config struct{
 	Version    string `json:"version"`
 	ConfigFile string `json:"config_file"`
 	DBFile     string `json:"db_file"`
-	Table struct {
-		Headers map[string]struct{
-			IsHidden bool
-			Width    float32
-		}
-	}
-	UI struct {
-		WindowBody int
-	}
+	UI struct{
+		OpenBody int              `json:"open_body"`
+		Headers map[string]Header `json:"headers"`
+		TableSortBy   string      `json:"table_sort_by"`
+		TableAscending bool       `json:"table_ascending"`
+	} `json:"ui"`
 }
 
 func NewConfigWithDefaults(appName string) (*Config, error) {
@@ -41,6 +43,15 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 	cfg := &Config{
 		Version: Version,
 		ConfigFile: configFile,
+		UI: struct{
+			OpenBody int              `json:"open_body"`
+			Headers map[string]Header `json:"headers"`
+			TableSortBy string        `json:"table_sort_by"`
+			TableAscending bool             `json:"table_ascending"`
+		}{
+			Headers: make(map[string]Header),
+		},
+
 	}
 	return cfg, nil
 }
