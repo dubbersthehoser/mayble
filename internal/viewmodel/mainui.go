@@ -49,12 +49,14 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 
 	b := &bus.Bus{}
 	as := app.NewService(cfg, db)
+	var store repo.BookStore = newStoreUserMessaging(as, b)
+	store = newStoreNotifyChanged(store, b)
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
 		cfg:        &cfg.UI,
 
-		store:     as,
+		store:     store,
 		genres:    NewUniqueGenres(b, as),
 		retriever: as,
 

@@ -48,10 +48,6 @@ func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
 		return
 	}
 	c.bus.Notify(bus.Event{
-		Name: msgDataChanged,
-		Data: nil,
-	})
-	c.bus.Notify(bus.Event{
 		Name: msgUserSuccess,
 		Data: "Imported!",
 	})

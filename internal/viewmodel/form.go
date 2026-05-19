@@ -357,21 +357,9 @@ func (bf *BookSubmissionForm) Submit() {
 		_, err = bf.repo.CreateBook(book)
 		if err != nil {
 			log.Println(fmt.Errorf("form.Submit: %w", err))
-			bf.bus.Notify(bus.Event{
-				Name: msgUserError,
-				Data: "Submission failed",
-			})
 			return
 		}
 	}
 	bf.sl.Clear()
-	bf.bus.Notify(bus.Event{
-		Name: msgUserSuccess,
-		Data: "Books Added!",
-	})
-
-	bf.bus.Notify(bus.Event{
-		Name: msgDataChanged,
-	})
 }
 

@@ -178,7 +178,27 @@ func (hh *TableHeaders) IsHidden(col int) bool {
 
 func (th *TableHeaders) Sort() {
 	by := th.table.cfg.GetSortBy()
-	// TODO: Sort table...
+	ascending := th.table.cfg.GetAscending()
+
+	books, err := th.table.retriever.GetAllBooks()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = sortBooks(books, by, ascending)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	th.table.table.ClearValues()
+
+	err = loadBooksToTable(books, th.table.table)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
 func (th *TableHeaders) SetSortBy(label string) {
@@ -242,7 +262,6 @@ func (ts *TableSelect) Select(row, col int) {
 
 func (ts *TableSelect) Unselect() {
 	ts.hasSelected = false
-	ts.l.notify()
 	ts.table.bus.Notify(bus.Event{
 		Name: tableEntryUnselected,
 		Data: -1,
@@ -258,12 +277,19 @@ func (ts *TableSelect) HasSelected() bool {
 }
 
 func (ts *TableSelect) Search(s string) {
-	result := table.Search(ts.table.table, s, ts.searchBy)
-	if len(result) == 0 {
+	results := table.Search(ts.table.table, s, ts.searchBy)
+	if len(results) == 0 {
 		return
 	}
-	// TODO 
-	book := result[0]
+	result := results[0]
+	ts.hasSelected = true
+	ts.cell = ts.table.table.GetCell(result.Row, result.Col)
+	ts.l.notify()
+	ts.table.bus.Notify(bus.Event{
+		Name: tableEntrySelected,
+		Data: ts.cell.ID(), 
+	})
+	
 }
 
 func (ts *TableSelect) SetSearchBy(option string) {
@@ -366,15 +392,6 @@ func (t *Table) load() error {
 	err = sortBooks(items, by, ascending)
 	if err != nil {
 		return err
-	}
-	for _, item := range items {
-		err := t.table.AppendRow(
-			item.ID,
-			entryValues(&item),
-		)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -554,4 +571,17 @@ func msgNotSelected(b *bus.Bus) {
 		Name: msgUserInfo,
 		Data: "Nothing selected",
 	})
+}
+
+func loadBooksToTable(books []models.BookEntry, t *table.Table) error {
+	for _, book := range books {
+		err := t.AppendRow(
+			book.ID,
+			entryValues(&book),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
