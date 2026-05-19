@@ -12,6 +12,13 @@ type CSVHandler interface {
 	ExportFile(path string) error
 }
 
+type BookImporter interface {
+	BookImport(io.Reader) error
+}
+
+type BookExporter interface {
+	BookExport(io.Writer, []models.BookEntry) error
+}
 
 type BookRetriever interface {
 	GetAllBooks() ([]models.BookEntry, error)
@@ -22,10 +29,6 @@ type BookStore interface {
 	BookCreator
 	BookUpdator
 	BookDeletor
-}
-
-type GenreRetriever interface {
-	GetUniqueGenres() ([]string, error)
 }
 
 type BookCreator interface {
@@ -40,10 +43,7 @@ type BookDeletor interface {
 	DeleteBook(id int64) error
 }
 
-type BookImporter interface {
-	BookImport(io.Reader) error
-}
 
-type BookExporter interface {
-	BookExport(io.Writer, []models.BookEntry) error
+type GenreRetriever interface {
+	GetUniqueGenres() ([]string, error)
 }
