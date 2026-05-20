@@ -27,13 +27,13 @@ const (
 
 type MainUI struct {
 	bus     *bus.Bus
-	cfg     UIConfig
+	cfg     *config.Config
 	errList []error
 
 	genres      *UniqueGenres
 	store       repo.BookStore
 	retriever   repo.BookRetriever
-	dbOpener    DatabaseOpener
+	dbOpener    DatabaseOpener //!!
 	fileHandler repo.CSVHandler
 
 	OpenedBody binding.Int
@@ -54,7 +54,7 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	mu := &MainUI{
 		OpenedBody: binding.NewInt(),
 		bus:        b,
-		cfg:        &cfg.UI,
+		cfg:        cfg,
 
 		store:     store,
 		genres:    NewUniqueGenres(b, as),
@@ -77,6 +77,8 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 
 	mu.DBFile.Set(cfg.DBFile)
 
+	// TODO Refactor this out.
+	//
 	// to clear info line
 	countDown := time.Duration(time.Minute / 10)
 	timer := time.NewTimer(0)
@@ -143,11 +145,11 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 
 func (m *MainUI) SetBody(w int) {
 	_ = m.OpenedBody.Set(w)
-	m.cfg.SetWindowBody(w)
+	m.cfg.UI.OpenBody = w
 }
 
 func (m *MainUI) GetBody() int {
-	return m.cfg.GetWindowBody()
+	return m.cfg.UI.OpenBody
 }
 
 func (m *MainUI) HasErrored() bool {
@@ -166,8 +168,8 @@ func (m *MainUI) GetMenuVM() *MenuVM {
 	return NewMenuVM(m.bus, m.fileHandler, m.dbOpener, m.DBFile)
 }
 
-func (m *MainUI) GetTableVM() *TableVM {
-	return NewTableVM(m.bus, m.cfg, m.retriever)
+func (m *MainUI) GetTable() *Table {
+	return NewTable(m.bus, m.cfg, m.store, m.retriever,)
 }
 
 func (m *MainUI) GetTableControllersVM() *TableControllersVM {
