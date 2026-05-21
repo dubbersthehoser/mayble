@@ -13,28 +13,18 @@ import (
 type Service struct {
 	cfg *config.Config
 	db *database.Database
+
+	listeners []func()
 }
 
-func NewService(cfg *config.Config, db *database.Database) *Service {
+func NewService(cfg *config.Config) *Service {
 	as := &Service{
 		cfg: cfg,
-		db: db,
+		db: nil,
+
+		listeners: make([]func(), 0),
 	}
 	return as
-}
-
-func (as *Service) OpenDB(s string) error {
-	ndb, err := database.Open(s)
-	if err != nil {
-		return err
-	}
-	err = as.db.Conn.Close()
-	if err != nil {
-		return err
-	}
-	as.db.Conn = ndb.Conn
-	as.db.Queries = ndb.Queries
-	return nil
 }
 
 func (as *Service) CloseDB() error {
@@ -42,15 +32,27 @@ func (as *Service) CloseDB() error {
 }
 
 func (as *Service) CreateBook(b *models.BookEntry) (int64, error) {
-	return as.db.CreateBook(b)
+	id, err := as.db.CreateBook(b)
+	if err == nil {
+		as.notify()
+	}
+	return id, err
 }
 
 func (as *Service) UpdateBook(b *models.BookEntry) error {
-	return as.db.UpdateBook(b)
+	err := as.db.UpdateBook(b)
+	if err == nil {
+		as.notify()
+	}
+	return err
 }
 
 func (as *Service) DeleteBook(id int64) error {
-	return as.db.DeleteBook(id)
+	err := as.db.DeleteBook(id)
+	if err == nil {
+		as.notify()
+	}
+	return err
 }
 
 func (as *Service) GetUniqueGenres() ([]string, error) {
@@ -99,5 +101,40 @@ func (as *Service) ImportFile(path string) error {
 			return err
 		}
 	}
+	as.notify()
 	return nil
 }
+
+func (as *Service) OpenDatabase(path string) error {
+	db, err := database.Open(path)
+	if err != nil {
+		return err
+	}
+
+	if as.db == nil {
+		return nil
+	}
+
+	err = as.db.Conn.Close()
+	if err != nil {
+		return err
+	}
+	as.db.Conn = db.Conn
+	as.db.Queries = db.Queries
+	as.notify()
+	as.cfg.DBFile = path
+	return nil
+}
+
+func (as *Service) AddListener(fn func()) {
+	as.listeners = append(as.listeners, fn)
+}
+
+func (as *Service) notify() {
+	for _, fn := range as.listeners {
+		fn()
+	}
+}
+
+
+

@@ -322,7 +322,7 @@ type Table struct {
 	l *listener
 }
 
-func NewTable(b *bus.Bus, cfg *TableConfig, s repo.BookStore, r repo.BookRetriever, ug *UniqueGenres) *Table {
+func NewTable(b *bus.Bus, cfg *TableConfig, s repo.BookStore, r subjectRetriever, ug *UniqueGenres) *Table {
 	t := &Table{
 		table: table.NewTable("Main", entryHeaders()),
 		store:  s,
@@ -333,16 +333,14 @@ func NewTable(b *bus.Bus, cfg *TableConfig, s repo.BookStore, r repo.BookRetriev
 
 		l: &listener{},
 	}
-	b.Subscribe(bus.Handler{
-		Name: msgDataChanged,
-		Handler: func(e *bus.Event) {
-			err := t.reload()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			t.l.notify()
-		},
+
+	r.AddListener(func(){
+		err := t.reload()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		t.l.notify()
 	})
 	return t
 }

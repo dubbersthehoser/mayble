@@ -14,18 +14,12 @@ type UniqueGenres struct {
 	l      *listener
 }
 
-func NewUniqueGenres(b *bus.Bus, g repo.GenreRetriever) *UniqueGenres {
+func NewUniqueGenres(b *bus.Bus, g subjectGenreRetriever) *UniqueGenres {
 	ug := &UniqueGenres{
 		genres: g,
 		l:      &listener{},
 	}
-
-	b.Subscribe(bus.Handler{
-		Name: msgDataChanged,
-		Handler: func(e *bus.Event) {
-			ug.Update()
-		},
-	})
+	g.AddListener(ug.Update)
 	ug.Update()
 	return ug
 }

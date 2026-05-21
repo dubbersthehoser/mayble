@@ -12,15 +12,15 @@ import (
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 )
 
-type MenuVM struct {
+type Menu struct {
 	DBFile binding.String
-	dbOpener    DatabaseOpener
+	dbOpener    databaseOpener
 	fileHandler repo.CSVHandler
 	bus    *bus.Bus
 }
 
-func NewMenuVM(b *bus.Bus, fh repo.CSVHandler, dbOpener DatabaseOpener, dbFile binding.String) *MenuVM {
-	m := &MenuVM{
+func NewMenu(b *bus.Bus, fh repo.CSVHandler, dbOpener databaseOpener, dbFile binding.String) *Menu {
+	m := &Menu{
 		DBFile: dbFile,
 		bus:    b,
 		dbOpener:    dbOpener,
@@ -29,7 +29,7 @@ func NewMenuVM(b *bus.Bus, fh repo.CSVHandler, dbOpener DatabaseOpener, dbFile b
 	return m
 }
 
-func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
+func (c *Menu) ImportCSV(r fyne.URIReadCloser, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -53,7 +53,7 @@ func (c *MenuVM) ImportCSV(r fyne.URIReadCloser, err error) {
 	})
 }
 
-func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
+func (c *Menu) ExportCSV(w fyne.URIWriteCloser, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -94,7 +94,7 @@ func (c *MenuVM) ExportCSV(w fyne.URIWriteCloser, err error) {
 	})
 }
 
-func (c *MenuVM) OpenDatabase(path string, err error) {
+func (c *Menu) OpenDatabase(path string, err error) {
 	if path == "" {
 		return
 	}
@@ -104,15 +104,11 @@ func (c *MenuVM) OpenDatabase(path string, err error) {
 		return
 	}
 
-	err = c.dbOpener.OpenDB(path)
+	err = c.dbOpener.OpenDatabase(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return
 	}
-
-	c.bus.Notify(bus.Event{
-		Name: msgDataChanged,
-	})
 
 	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
@@ -121,7 +117,7 @@ func (c *MenuVM) OpenDatabase(path string, err error) {
 	_ = c.DBFile.Set(path)
 }
 
-func (c *MenuVM) CreateDatabase(path string, err error) {
+func (c *Menu) CreateDatabase(path string, err error) {
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -138,7 +134,7 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 		path += ".db"
 	}
 
-	err = c.dbOpener.OpenDB(path)
+	err = c.dbOpener.OpenDatabase(path)
 	if err != nil {
 		displayError(c.bus, err)
 		return
@@ -147,10 +143,6 @@ func (c *MenuVM) CreateDatabase(path string, err error) {
 	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: fmt.Sprintf("created: '%s'", path),
-	})
-
-	c.bus.Notify(bus.Event{
-		Name: msgDataChanged,
 	})
 }
 

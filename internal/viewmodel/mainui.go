@@ -7,7 +7,6 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/bus"
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/database"
 	repo "github.com/dubbersthehoser/mayble/internal/repository"
 	"github.com/dubbersthehoser/mayble/internal/app"
 )
@@ -16,7 +15,6 @@ const (
 	msgUserError   string = "message.user.error"
 	msgUserSuccess string = "message.user.success"
 	msgUserInfo    string = "message.user.info"
-	msgDataChanged string = "message.data.changed"
 )
 
 const (
@@ -25,16 +23,27 @@ const (
 	BodyMenu
 )
 
+type subjectRetriever interface {
+	AddListener(func())
+	repo.BookRetriever
+}
+
+type subjectGenreRetriever interface {
+	AddListener(func())
+	repo.GenreRetriever
+}
+
+type databaseOpener interface {
+	OpenDatabase(s string) error
+}
+
 type MainUI struct {
 	bus     *bus.Bus
 	cfg     *config.Config
-	errList []error
+	service *app.Service
 
 	genres      *UniqueGenres
 	store       repo.BookStore
-	retriever   repo.BookRetriever
-	dbOpener    DatabaseOpener //!!
-	fileHandler repo.CSVHandler
 
 	OpenedBody binding.Int
 	DBFile     binding.String
@@ -45,27 +54,27 @@ type MainUI struct {
 	Clear   binding.Bool
 }
 
-func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI {
+func NewMainUI(cfg *config.Config) *MainUI {
 
 	b := &bus.Bus{}
-	as := app.NewService(cfg, db)
+	as := app.NewService(cfg)
+
+	if err := as.OpenDatabase(cfg.DBFile); err != nil {
+		// TODO Display error on table and Submit
+	}
+
+
 	var store repo.BookStore = newStoreUserMessaging(as, b)
-	store = newStoreNotifyChanged(store, b)
 	mu := &MainUI{
-		OpenedBody: binding.NewInt(),
 		bus:        b,
 		cfg:        cfg,
+		service:    as,
 
 		store:     store,
 		genres:    NewUniqueGenres(b, as),
-		retriever: as,
 
+		OpenedBody: binding.NewInt(),
 		DBFile:   binding.NewString(),
-		dbOpener: as,
-		fileHandler: as,
-
-		errList: errs,
-
 
 		Error:   binding.NewString(),
 		Success: binding.NewString(),
@@ -73,11 +82,10 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 		Clear:   binding.NewBool(),
 	}
 
-	mu.SetBody(mu.GetBody())
+	mu.SetOpenBody(mu.GetOpenBody())
+	_ = mu.DBFile.Set(cfg.DBFile)
 
-	mu.DBFile.Set(cfg.DBFile)
-
-	// TODO Refactor this out.
+	// TODO Refactor this out into its own type.
 	//
 	// to clear info line
 	countDown := time.Duration(time.Minute / 10)
@@ -143,40 +151,27 @@ func NewMainUI(cfg *config.Config, db *database.Database, errs []error) *MainUI 
 	return mu
 }
 
-func (m *MainUI) SetBody(w int) {
+func (m *MainUI) SetOpenBody(w int) {
 	_ = m.OpenedBody.Set(w)
 	m.cfg.UI.OpenBody = w
 }
 
-func (m *MainUI) GetBody() int {
+func (m *MainUI) GetOpenBody() int {
 	return m.cfg.UI.OpenBody
 }
 
-func (m *MainUI) HasErrored() bool {
-	return len(m.errList) > 0
-}
-
-func (m *MainUI) Errors() []string {
-	es := make([]string, len(m.errList))
-	for i, e := range m.errList {
-		es[i] = e.Error()
-	}
-	return es
-}
-
-func (m *MainUI) GetMenuVM() *MenuVM {
-	return NewMenuVM(m.bus, m.fileHandler, m.dbOpener, m.DBFile)
+func (m *MainUI) GetMenu() *Menu {
+	return NewMenu(m.bus, m.service, m.service, m.DBFile)
 }
 
 func (m *MainUI) GetTable() *Table {
-	return NewTable(m.bus, m.cfg, m.store, m.retriever,)
-}
-
-func (m *MainUI) GetTableControllersVM() *TableControllersVM {
-	return NewTableControllersVM(m.bus, m.retriever, m.store, m.genres)
+	return NewTable(m.bus, &TableConfig{cfg: m.cfg}, m.store, m.service, m.genres)
 }
 
 func (m *MainUI) GetBookSubmissionForm() *BookSubmissionForm {
 	return NewBookSubmissionForm(m.bus, m.store, m.genres)
 }
 
+
+type StatusLine struct {
+}
