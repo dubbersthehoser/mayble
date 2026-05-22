@@ -13,7 +13,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-func NewMenu(w fyne.Window, vm *viewmodel.MenuVM) *fyne.Container {
+func NewMenu(w fyne.Window, vm *viewmodel.Menu) *fyne.Container {
 
 	csvImportBtn := widget.NewButton("Import", func() {
 		d := dialog.NewFileOpen(vm.ImportCSV, w)

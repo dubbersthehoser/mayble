@@ -193,78 +193,67 @@ type StatusLine struct {
 }
 
 
+type BodyButton struct {
+	ID        int
+	OnLock    func()
+	OnUnlock  func()
+	Window BodyWindow
+}
+
 type BodyWindow struct {
-	id int
 	OnShow func()
 	OnHide func()
-}
-
-type BodyButton struct {
-	id        int
-	label     string
-	Locked binding.Bool
-
-	window *BodyWindow
-}
-
-func NewBodyButton(label string, id int, window *BodyWindow) *BodyButton {
-	bb := &BodyButton{
-		label: label,
-		window: window,
-	}
-	return bb
-}
-
-func (bb *BodyButton) Label() string{
-	return bb.label
-}
-
-func (bb *BodyButton) ID() int {
-	return bb.id
 }
 
 type BodySwitcher struct {
 	cfg     *config.Config
 	Buttons map[int]BodyButton
+	hasDatabase binding.Bool
 }
 
 func newBodySwitcher(cfg *config.Config, hasDatabase binding.Bool) *BodySwitcher {
 	bs := &BodySwitcher{
 		cfg: cfg,
+		hasDatabase: hasDatabase,
 	}
 
 	hasDatabase.AddListener(binding.NewDataListener(func() {
 		ok, _ := hasDatabase.Get()
 		bs.setDatabaseState(ok)
 	}))
+
 	return bs
 }
 
 func (bs *BodySwitcher) setDatabaseState(ok bool) {
 	if !ok {
 		bs.Switch(BodyMenu)
-		bs.Buttons[BodyForm].Locked.Set(true)
-		bs.Buttons[BodyData].Locked.Set(true)
+		bs.Buttons[BodyForm].OnLock()
+		bs.Buttons[BodyData].OnLock()
 	} else {
-		bs.Buttons[BodyForm].Locked.Set(false)
-		bs.Buttons[BodyData].Locked.Set(false)
+		bs.Buttons[BodyForm].OnUnlock()
+		bs.Buttons[BodyData].OnUnlock()
 	}
 }
 
 func (bs *BodySwitcher) SetBodies(buttons ...BodyButton) {
 	bs.Buttons = make(map[int]BodyButton)
 	for _, btn := range buttons {
-		bs.Buttons[btn.id] = btn
+		bs.Buttons[btn.ID] = btn
 	}
+	ok, _ := bs.hasDatabase.Get()
+	bs.setDatabaseState(ok)
 }
 
 func (bs *BodySwitcher) Switch(id int) {
 	for _, b := range bs.Buttons {
-		if b.id == id {
-			_ = b.Locked.Set(true)
-			bs.cfg.UI.OpenBody = b.id
+		if b.ID == id {
+			b.OnLock()
+			b.Window.OnShow()
+			bs.cfg.UI.OpenBody = b.ID
 		} else {
-			_ = b.Locked.Set(false)
+			b.OnUnlock()
+			b.Window.OnHide()
 		}
 	}
 }

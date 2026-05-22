@@ -224,6 +224,7 @@ func (th *TableHeaders) GetWidth(label string) float32 {
 	return th.table.cfg.GetColumnWidth(label)
 }
 
+
 type TableSelect struct {
 	table       *Table
 	cell        *table.Cell

@@ -13,18 +13,7 @@ import (
 )
 
 func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
-
-	// render unexpected errors. Force Stop.
-	if uiVM.HasErrored() {
-		o := container.NewVBox()
-		for _, s := range uiVM.Errors() {
-			label := widget.NewLabel(s)
-			label.Importance = widget.WarningImportance
-			o.Add(label)
-		}
-		return o
-	}
-
+	
 	// Status Line
 	// Displays input form .Error, .Info, .Success string bindings with proper colors.
 	//
@@ -58,32 +47,6 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	menu := NewMenu(w, uiVM.GetMenu())
 	form := NewBookSubmissionForm(uiVM.GetBookSubmissionForm())
 	table := fullBookTable(uiVM.GetTable())
-	setBodyShow := func(bodyID int) {
-		switch bodyID {
-		case viewmodel.BodyMenu:
-			menu.Show()
-			form.Hide()
-			table.Hide()
-		case viewmodel.BodyData:
-			menu.Hide()
-			form.Hide()
-			table.Show()
-		case viewmodel.BodyForm:
-			menu.Hide()
-			form.Show()
-			table.Hide()
-		default:
-			log.Println(fmt.Sprintf("ERROR: invalid body id %d", bodyID))
-		}
-	}
-
-	uiVM.HasDatabase.AddListener(binding.NewDataListener(func() {
-		ok, _ := uiVM.HasDatabase.Get()
-		if ok {
-			form.Show()
-			table.Show()
-		}
-	}))
 
 	body := container.NewStack(
 		menu,
@@ -91,91 +54,51 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		form,
 	)
 
+	bodyButtons := map[int]*widget.Button{
+		viewmodel.BodyMenu: widget.NewButton("Menu", nil),
+		viewmodel.BodyData: widget.NewButton("Table", nil),
+		viewmodel.BodyForm: widget.NewButton("Submit", nil),
+	}
+
+
 	switcher := uiVM.GetBodySwitcher()
 	switcher.SetBodies(
-		*viewmodel.NewBodyButton(
-			"Menu",
-			viewmodel.BodyMenu,
-			&viewmodel.BodyWindow{
-				OnHide: func() {
-					menu.Hide()
-					body.Refresh()
-				},
-				OnShow: func() {
-					menu.Show()
-					body.Refresh()
-				},
+		viewmodel.BodyButton{
+			ID: viewmodel.BodyMenu,
+			OnLock: bodyButtons[viewmodel.BodyMenu].Disable,
+			OnUnlock: bodyButtons[viewmodel.BodyMenu].Enable,
+
+			Window: viewmodel.BodyWindow{
+				OnHide: menu.Hide, // !I may need to refresh
+				OnShow: menu.Show,
 			},
-		),
-		*viewmodel.NewBodyButton(
-			"Table",
-			viewmodel.BodyData,
-			&viewmodel.BodyWindow{
-				OnHide: func() {
-					table.Hide()
-					body.Refresh()
-				},
-				OnShow: func() {
-					table.Show()
-					body.Refresh()
-				},
+		},
+		viewmodel.BodyButton{
+			ID: viewmodel.BodyData,
+			OnLock: bodyButtons[viewmodel.BodyData].Disable,
+			OnUnlock: bodyButtons[viewmodel.BodyData].Enable,
+
+			Window: viewmodel.BodyWindow{
+				OnHide: table.Hide,
+				OnShow: table.Show,
 			},
-		),
-		*viewmodel.NewBodyButton(
-			"Submit",
-			viewmodel.BodyForm,
-			&viewmodel.BodyWindow{
-				OnHide: func() {
-					table.Hide()
-					body.Refresh()
-				},
-				OnShow: func() {
-					table.Show()
-					body.Refresh()
-				},
+		},
+		viewmodel.BodyButton{
+			ID: viewmodel.BodyForm,
+			OnLock: bodyButtons[viewmodel.BodyForm].Disable,
+			OnUnlock: bodyButtons[viewmodel.BodyForm].Enable,
+
+			Window: viewmodel.BodyWindow{
+				OnHide: form.Hide,
+				OnShow: form.Show,
 			},
-		),
+		},
 	)
 
-	bodyButtons := map[int]fyne.CanvasObject{
-		viewmodel.BodyMenu: widget.NewButton("Menu", func() {
-			switcher.Switch(viewmodel.BodyMenu)
-		}),
-		viewmodel.BodyData: widget.NewButton("Table", func() {
-			switcher.Switch(viewmodel.BodyData)
-		}),
-		viewmodel.BodyForm: widget.NewButton("Submit", func() {
-			switcher.Switch(viewmodel.BodyForm)
-		}),
+	bodySelect := container.NewHBox()
+	for _, o := range bodyButtons {
+		bodySelect.Objects = append(bodySelect.Objects, o)
 	}
-
-	switcher.Buttons[viewmodel.BodyMenu].Locked.AddListener(binding.NewDataListener(func(){
-		
-	}))
-
-	for _, btn := range switcher.Buttons() {
-		w := widget.NewButton(btn.Label(), func() {
-			switcher.Switch(btn.ID())
-		})
-	
-
-		btn.Active.AddListener(binding.NewDataListener(func() {
-			active, _ := btn.Active.Get()
-			if active {
-				w.Enable()
-				setBodyShow(btn.ID())
-				body.Refresh()
-			} else {
-				w.Disable()
-				body.Refresh()
-			}
-			
-		}))
-		bodyButtons = append(bodyButtons, w)
-	}
-
-
-	bodySelect := container.NewHBox(bodyButtons...)
 
 	header := container.NewHBox(
 		bodySelect,

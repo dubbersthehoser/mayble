@@ -15,9 +15,10 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 
 	headers := viewmodel.NewTableHeaders(vmt)
 	selector := viewmodel.NewTableSelect(vmt)
+	editor := viewmodel.NewTableEdit(vmt)
 
 	editBtn := widget.NewButton("Edit", func() {
-		vmc.Edit()
+		editor.Open()
 	})
 
 	deleteFinal := widget.NewButton("Are You Sheer?", nil)
@@ -38,7 +39,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 
 	}
 	deleteFinal.OnTapped = func() {
-		vmc.Delete()
+		editor.Delete()
 		deleteFinal.Hide()
 		deleteInitial.Show()
 	}
