@@ -11,7 +11,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
-func fullBookTable(vmc *viewmodel.TableControllersVM, vmt *viewmodel.Table) fyne.CanvasObject {
+func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 
 	headers := viewmodel.NewTableHeaders(vmt)
 	selector := viewmodel.NewTableSelect(vmt)

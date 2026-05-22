@@ -1,6 +1,8 @@
 package view
 
 import (
+	"log"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
@@ -22,45 +24,6 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		}
 		return o
 	}
-
-	menuButton := widget.NewButton("Menu", func() {
-		uiVM.SetBody(viewmodel.BodyMenu)
-	})
-	tableButton := widget.NewButton("Table", func() {
-		uiVM.SetBody(viewmodel.BodyData)
-	})
-	createButton := widget.NewButton("Submit", func() {
-		uiVM.SetBody(viewmodel.BodyForm)
-	})
-
-	bodySelect := container.NewHBox(
-		menuButton,
-		tableButton,
-		createButton,
-	)
-
-	//toolbar := widget.NewToolbar(
-	//	widget.NewToolbarAction(
-	//		theme.SettingsIcon(),
-	//		func() {
-	//			uiVM.SetBody(viewmodel.BodyMenu)
-	//		},
-	//	),
-	//	widget.NewToolbarAction(
-	//		theme.ListIcon(),
-	//		func() {
-	//			uiVM.SetBody(viewmodel.BodyData)
-	//		},
-	//	),
-	//	widget.NewToolbarAction(
-	//		theme.DocumentIcon(),
-	//		func() {
-	//			uiVM.SetBody(viewmodel.BodyForm)
-	//		},
-	//	),
-	//)
-
-	//toolbar.Items[0].ToolbarObject().(*widget.Button).Enable()
 
 	// Status Line
 	// Displays input form .Error, .Info, .Success string bindings with proper colors.
@@ -92,18 +55,35 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		}
 	}))
 
-	header := container.NewHBox(
-		bodySelect,
-		statusLabel,
-	)
-
-	menu := NewMenu(w, uiVM.GetMenuVM())
+	menu := NewMenu(w, uiVM.GetMenu())
 	form := NewBookSubmissionForm(uiVM.GetBookSubmissionForm())
+	table := fullBookTable(uiVM.GetTable())
+	setBodyShow := func(bodyID int) {
+		switch bodyID {
+		case viewmodel.BodyMenu:
+			menu.Show()
+			form.Hide()
+			table.Hide()
+		case viewmodel.BodyData:
+			menu.Hide()
+			form.Hide()
+			table.Show()
+		case viewmodel.BodyForm:
+			menu.Hide()
+			form.Show()
+			table.Hide()
+		default:
+			log.Println(fmt.Sprintf("ERROR: invalid body id %d", bodyID))
+		}
+	}
 
-	table := fullBookTable(
-		uiVM.GetTableControllersVM(),
-		uiVM.GetTableVM(),
-	)
+	uiVM.HasDatabase.AddListener(binding.NewDataListener(func() {
+		ok, _ := uiVM.HasDatabase.Get()
+		if ok {
+			form.Show()
+			table.Show()
+		}
+	}))
 
 	body := container.NewStack(
 		menu,
@@ -111,37 +91,96 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		form,
 	)
 
-	uiVM.OpenedBody.AddListener(binding.NewDataListener(func() {
-		open, _ := uiVM.OpenedBody.Get()
-		createButton.Enable()
-		menuButton.Enable()
-		tableButton.Enable()
-		switch open {
-		case viewmodel.BodyForm:
-			createButton.Disable()
-			menu.Hide()
-			table.Hide()
-			form.Show()
-			statusLabel.SetText("")
-			body.Refresh()
-		case viewmodel.BodyMenu:
-			menuButton.Disable()
-			menu.Show()
-			table.Hide()
-			form.Hide()
-			statusLabel.SetText("")
-			body.Refresh()
-		case viewmodel.BodyData:
-			tableButton.Disable()
-			menu.Hide()
-			table.Show()
-			form.Hide()
-			statusLabel.SetText("")
-			body.Refresh()
-		default:
-			panic("opened body was not found")
-		}
+	switcher := uiVM.GetBodySwitcher()
+	switcher.SetBodies(
+		*viewmodel.NewBodyButton(
+			"Menu",
+			viewmodel.BodyMenu,
+			&viewmodel.BodyWindow{
+				OnHide: func() {
+					menu.Hide()
+					body.Refresh()
+				},
+				OnShow: func() {
+					menu.Show()
+					body.Refresh()
+				},
+			},
+		),
+		*viewmodel.NewBodyButton(
+			"Table",
+			viewmodel.BodyData,
+			&viewmodel.BodyWindow{
+				OnHide: func() {
+					table.Hide()
+					body.Refresh()
+				},
+				OnShow: func() {
+					table.Show()
+					body.Refresh()
+				},
+			},
+		),
+		*viewmodel.NewBodyButton(
+			"Submit",
+			viewmodel.BodyForm,
+			&viewmodel.BodyWindow{
+				OnHide: func() {
+					table.Hide()
+					body.Refresh()
+				},
+				OnShow: func() {
+					table.Show()
+					body.Refresh()
+				},
+			},
+		),
+	)
+
+	bodyButtons := map[int]fyne.CanvasObject{
+		viewmodel.BodyMenu: widget.NewButton("Menu", func() {
+			switcher.Switch(viewmodel.BodyMenu)
+		}),
+		viewmodel.BodyData: widget.NewButton("Table", func() {
+			switcher.Switch(viewmodel.BodyData)
+		}),
+		viewmodel.BodyForm: widget.NewButton("Submit", func() {
+			switcher.Switch(viewmodel.BodyForm)
+		}),
+	}
+
+	switcher.Buttons[viewmodel.BodyMenu].Locked.AddListener(binding.NewDataListener(func(){
+		
 	}))
+
+	for _, btn := range switcher.Buttons() {
+		w := widget.NewButton(btn.Label(), func() {
+			switcher.Switch(btn.ID())
+		})
+	
+
+		btn.Active.AddListener(binding.NewDataListener(func() {
+			active, _ := btn.Active.Get()
+			if active {
+				w.Enable()
+				setBodyShow(btn.ID())
+				body.Refresh()
+			} else {
+				w.Disable()
+				body.Refresh()
+			}
+			
+		}))
+		bodyButtons = append(bodyButtons, w)
+	}
+
+
+	bodySelect := container.NewHBox(bodyButtons...)
+
+	header := container.NewHBox(
+		bodySelect,
+		statusLabel,
+	)
 
 	frame := container.NewBorder(header, nil, nil, nil, body)
 

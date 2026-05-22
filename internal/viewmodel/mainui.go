@@ -2,6 +2,8 @@ package viewmodel
 
 import (
 	"time"
+	"log"
+	"errors"
 
 	"fyne.io/fyne/v2/data/binding"
 
@@ -15,6 +17,10 @@ const (
 	msgUserError   string = "message.user.error"
 	msgUserSuccess string = "message.user.success"
 	msgUserInfo    string = "message.user.info"
+)
+
+var (
+	errDBFile error = errors.New("database file error")
 )
 
 const (
@@ -45,8 +51,9 @@ type MainUI struct {
 	genres      *UniqueGenres
 	store       repo.BookStore
 
-	OpenedBody binding.Int
-	DBFile     binding.String
+	OpenedBody  binding.Int
+	DBFile      binding.String
+	HasDatabase binding.Bool
 
 	Error   binding.String
 	Success binding.String
@@ -59,8 +66,10 @@ func NewMainUI(cfg *config.Config) *MainUI {
 	b := &bus.Bus{}
 	as := app.NewService(cfg)
 
+	hasDatabase := true
 	if err := as.OpenDatabase(cfg.DBFile); err != nil {
-		// TODO Display error on table and Submit
+		log.Println("ERROR:", err.Error())
+		hasDatabase = false
 	}
 
 
@@ -73,14 +82,17 @@ func NewMainUI(cfg *config.Config) *MainUI {
 		store:     store,
 		genres:    NewUniqueGenres(b, as),
 
-		OpenedBody: binding.NewInt(),
-		DBFile:   binding.NewString(),
+		OpenedBody:  binding.NewInt(),
+		DBFile:      binding.NewString(),
+		HasDatabase: binding.NewBool(),
 
 		Error:   binding.NewString(),
 		Success: binding.NewString(),
 		Info:    binding.NewString(),
 		Clear:   binding.NewBool(),
 	}
+
+	_ = mu.HasDatabase.Set(hasDatabase)
 
 	mu.SetOpenBody(mu.GetOpenBody())
 	_ = mu.DBFile.Set(cfg.DBFile)
@@ -172,6 +184,87 @@ func (m *MainUI) GetBookSubmissionForm() *BookSubmissionForm {
 	return NewBookSubmissionForm(m.bus, m.store, m.genres)
 }
 
+func (m *MainUI) GetBodySwitcher() *BodySwitcher {
+	return newBodySwitcher(m.cfg, m.HasDatabase)
+}
+
 
 type StatusLine struct {
+}
+
+
+type BodyWindow struct {
+	id int
+	OnShow func()
+	OnHide func()
+}
+
+type BodyButton struct {
+	id        int
+	label     string
+	Locked binding.Bool
+
+	window *BodyWindow
+}
+
+func NewBodyButton(label string, id int, window *BodyWindow) *BodyButton {
+	bb := &BodyButton{
+		label: label,
+		window: window,
+	}
+	return bb
+}
+
+func (bb *BodyButton) Label() string{
+	return bb.label
+}
+
+func (bb *BodyButton) ID() int {
+	return bb.id
+}
+
+type BodySwitcher struct {
+	cfg     *config.Config
+	Buttons map[int]BodyButton
+}
+
+func newBodySwitcher(cfg *config.Config, hasDatabase binding.Bool) *BodySwitcher {
+	bs := &BodySwitcher{
+		cfg: cfg,
+	}
+
+	hasDatabase.AddListener(binding.NewDataListener(func() {
+		ok, _ := hasDatabase.Get()
+		bs.setDatabaseState(ok)
+	}))
+	return bs
+}
+
+func (bs *BodySwitcher) setDatabaseState(ok bool) {
+	if !ok {
+		bs.Switch(BodyMenu)
+		bs.Buttons[BodyForm].Locked.Set(true)
+		bs.Buttons[BodyData].Locked.Set(true)
+	} else {
+		bs.Buttons[BodyForm].Locked.Set(false)
+		bs.Buttons[BodyData].Locked.Set(false)
+	}
+}
+
+func (bs *BodySwitcher) SetBodies(buttons ...BodyButton) {
+	bs.Buttons = make(map[int]BodyButton)
+	for _, btn := range buttons {
+		bs.Buttons[btn.id] = btn
+	}
+}
+
+func (bs *BodySwitcher) Switch(id int) {
+	for _, b := range bs.Buttons {
+		if b.id == id {
+			_ = b.Locked.Set(true)
+			bs.cfg.UI.OpenBody = b.id
+		} else {
+			_ = b.Locked.Set(false)
+		}
+	}
 }
