@@ -54,9 +54,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 	// Search 
 	search := widget.NewEntry()
 	search.OnChanged = selector.Search
-	searchOptions := widget.NewSelect(selector.SearchOptions(), func(s string) {
-		_ = vmt.Search.Header.Set(s)
-	})
+	searchOptions := widget.NewSelect(selector.SearchOptions(), selector.SetSearchBy)
 	searchOptions.SetSelectedIndex(0)
 
 
@@ -96,7 +94,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 		table,
 	)
 
-	edit := bookEditForm(vmc.GetEditBook())
+	edit := bookEditForm(editor)
 
 	view := container.NewStack(
 		edit,
@@ -106,8 +104,8 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 
 	editBtn.Hide()
 	deleteBtn.Hide()
-	vmc.Selector().AddListener(binding.NewDataListener(func() {
-		if vmc.Selector().HasSelected() {
+	selector.AddListener(binding.NewDataListener(func() {
+		if selector.HasSelected() {
 			editBtn.Show()
 			deleteBtn.Show()
 		} else {
@@ -116,8 +114,8 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 		}
 	}))
 
-	vmc.EditIsOpen.AddListener(binding.NewDataListener(func() {
-		ok, _ := vmc.EditIsOpen.Get()
+	editor.IsOpen.AddListener(binding.NewDataListener(func() {
+		ok, _ := editor.IsOpen.Get()
 		if ok {
 			edit.Show()
 			fullTable.Hide()
@@ -135,7 +133,7 @@ func bookEditForm(vm *viewmodel.TableEdit) fyne.CanvasObject {
 	cancel := widget.NewButton("Cancel", vm.Close)
 	update := widget.NewButton("Update", vm.Submit)
 
-	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
+	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres())
 	isRead := widget.NewCheckWithData("Is Read", vm.IsRead)
 	isLoaned := widget.NewCheckWithData("On Loan", vm.IsLoaned)
 
@@ -180,7 +178,7 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 			_, colLen := vm.Size()
 			if cellID.Col < colLen {
 				data := vm.Get(cellID.Row, cellID.Col)
-				if vm.IsItemHidden(cellID.Row, cellID.Col) {
+				if vm.IsHidden(cellID.Row, cellID.Col) {
 					object.(*widget.Label).SetText("")
 					object.(*widget.Label).Hide()
 				} else {
@@ -271,7 +269,7 @@ func NewHeaderButton(label string, h *viewmodel.TableHeaders) *HeaderButton {
 		} else {
 			hb.headers.SetAscending(true)
 		}
-		hb.headers.Sort(hb.label)
+		hb.headers.Sort()
 	}
 
 	if hb.headers.GetSortBy() == hb.label {

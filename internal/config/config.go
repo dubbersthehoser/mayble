@@ -98,7 +98,7 @@ func Load(path, appName string) (*Config, error) {
 			return nil, err
 		}
 		cfg.ConfigFile = path
-		err = backup(path, cfg)
+		err = backup(path)
 		return cfg, err
 	}
 
@@ -121,7 +121,7 @@ func isOld(jsonBytes []byte) bool {
 }
 
 // backup create a backup of the old config.
-func backup(path string, cfg *Config) error {
+func backup(path string) error {
 	to, err := os.Create(path + ".bak")
 	if err != nil {
 		return fmt.Errorf("config: %w", err)

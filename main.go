@@ -10,6 +10,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/view"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	service "github.com/dubbersthehoser/mayble/internal/app"
 )
 
 func main() {
@@ -20,42 +21,41 @@ func main() {
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
 
-	errList := make([]error, 0)
-
-	configDir, err := config.GetDefaultDir(appName)
+	cfgFile, err := config.GetDefaultConfigFile(appName)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 
-	cfg, err := config.Load(configDir)
+	cfg, err := config.Load(cfgFile, appName)
 	if err != nil {
-		log.Println(err)
-		errList = append(errList, err)
+		log.Fatal(err)
 	}
 
 	if cfg != nil {
 		defer cfg.Save()
 	}
 
+	as := service.NewService(cfg)
+
 	var db *database.Database
 
 	if cfg.DBFile == "" {
 		db, err = database.OpenMem()
 		if err != nil {
-			log.Println(err)
-			errList = append(errList, err)
+			log.Fatal(err)
 		}
 	} else {
 		db, err = database.Open(cfg.DBFile)
 		if err != nil {
-			errList = append(errList, err)
+			log.Fatal(err)
 		}
 	}
 	if db != nil {
 		defer db.Conn.Close()
 	}
 
-	uiVM := viewmodel.NewMainUI(cfg, db, errList)
+
+	uiVM := viewmodel.NewMainUI(cfg, db)
 	content := view.NewMainUI(window, uiVM)
 	window.SetContent(content)
 	window.ShowAndRun()

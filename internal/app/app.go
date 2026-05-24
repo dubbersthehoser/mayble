@@ -105,6 +105,10 @@ func (as *Service) ImportFile(path string) error {
 	return nil
 }
 
+func (as *Service) LoadDatabase() error {
+	return as.OpenDatabase(as.cfg.DBFile)
+}
+
 func (as *Service) OpenDatabase(path string) error {
 	db, err := database.Open(path)
 	if err != nil {

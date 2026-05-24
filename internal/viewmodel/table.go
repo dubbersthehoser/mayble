@@ -290,7 +290,6 @@ func (ts *TableSelect) Search(s string) {
 		Name: tableEntrySelected,
 		Data: ts.cell.ID(), 
 	})
-	
 }
 
 func (ts *TableSelect) SetSearchBy(option string) {
@@ -408,6 +407,11 @@ func (t *Table) Get(row, col int) string {
 	return value
 }
 
+func (t *Table) IsHidden(row, col int) bool {
+	cell := t.table.GetCell(row, col)
+	return cell.IsHidden()
+}
+
 func (t *Table) GetID(row, col int) (int64, error) {
 	cell := t.table.GetCell(row, col)
 	return cell.ID(), nil
@@ -453,6 +457,10 @@ func NewTableEdit(t *Table) *TableEdit {
 	})
 
 	return ed
+}
+
+func (ed *TableEdit) Genres() *UniqueGenres {
+	return ed.table.genres
 }
 
 func (ed *TableEdit) Delete() {
