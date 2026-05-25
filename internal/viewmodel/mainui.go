@@ -67,7 +67,7 @@ func NewMainUI(cfg *config.Config) *MainUI {
 	as := app.NewService(cfg)
 
 	hasDatabase := true
-	if err := as.OpenDatabase(cfg.DBFile); err != nil {
+	if err := as.LoadDatabase(); err != nil {
 		log.Println("ERROR:", err.Error())
 		hasDatabase = false
 	}
