@@ -247,6 +247,7 @@ func NewTableSelect(t *Table) *TableSelect {
 			"Genre",
 			"Borrower",
 		},
+		l: &listener{},
 	}
 	return ts
 }
@@ -432,6 +433,7 @@ func NewTableEdit(t *Table) *TableEdit {
 	ed := &TableEdit{
 		BookForm: *NewBookForm(),
 		IsOpen: binding.NewBool(),
+		table: t,
 	}
 
 	// handle selected book events

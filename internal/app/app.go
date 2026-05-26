@@ -3,6 +3,7 @@ package app
 
 import (
 	"os"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
@@ -12,6 +13,7 @@ import (
 
 type Service struct {
 	cfg *config.Config
+
 	db *database.Database
 
 	listeners []func()
@@ -27,11 +29,21 @@ func NewService(cfg *config.Config) *Service {
 	return as
 }
 
+func (as *Service) noDatabase() bool {
+	return as.db == nil
+}
+
 func (as *Service) CloseDB() error {
+	if as.noDatabase() {
+		return nil
+	}
 	return as.db.Conn.Close()
 }
 
 func (as *Service) CreateBook(b *models.BookEntry) (int64, error) {
+	if as.noDatabase() {
+		return 0, nil
+	}
 	id, err := as.db.CreateBook(b)
 	if err == nil {
 		as.notify()
@@ -40,6 +52,9 @@ func (as *Service) CreateBook(b *models.BookEntry) (int64, error) {
 }
 
 func (as *Service) UpdateBook(b *models.BookEntry) error {
+	if as.noDatabase() {
+		return nil
+	}
 	err := as.db.UpdateBook(b)
 	if err == nil {
 		as.notify()
@@ -48,6 +63,9 @@ func (as *Service) UpdateBook(b *models.BookEntry) error {
 }
 
 func (as *Service) DeleteBook(id int64) error {
+	if as.noDatabase() {
+		return nil
+	}
 	err := as.db.DeleteBook(id)
 	if err == nil {
 		as.notify()
@@ -56,18 +74,30 @@ func (as *Service) DeleteBook(id int64) error {
 }
 
 func (as *Service) GetUniqueGenres() ([]string, error) {
+	if as.noDatabase() {
+		return []string{}, nil
+	}
 	return as.db.GetUniqueGenres()
 }
 
 func (as *Service) GetAllBooks() ([]models.BookEntry, error) {
+	if as.noDatabase() {
+		return []models.BookEntry{}, nil
+	}
 	return as.db.GetAllBooks()
 }
 
 func (as *Service) GetBookByID(id int64) (models.BookEntry, error) {
+	if as.noDatabase() {
+		return models.BookEntry{}, errors.New("nil database")
+	}
 	return as.db.GetBookByID(id)
 }
 
 func (as *Service) ExportFile(path string) error {
+	if as.noDatabase() {
+		return nil
+	}
 	books, err := as.db.GetAllBooks()
 	if err != nil {
 		return err
@@ -87,6 +117,9 @@ func (as *Service) ExportFile(path string) error {
 }
 
 func (as *Service) ImportFile(path string) error {
+	if as.noDatabase() {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -139,6 +172,3 @@ func (as *Service) notify() {
 		fn()
 	}
 }
-
-
-

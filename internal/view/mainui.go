@@ -59,15 +59,14 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 	}
 
 
-	switcher := uiVM.GetBodySwitcher()
-	switcher.SetBodies(
+	switcher := uiVM.GetBodySwitcher(
 		viewmodel.BodyButton{
 			ID: viewmodel.BodyMenu,
 			OnLock: bodyButtons[viewmodel.BodyMenu].Disable,
 			OnUnlock: bodyButtons[viewmodel.BodyMenu].Enable,
 
 			Window: viewmodel.BodyWindow{
-				OnHide: menu.Hide, // !I may need to refresh
+				OnHide: menu.Hide,
 				OnShow: menu.Show,
 			},
 		},
@@ -93,9 +92,19 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		},
 	)
 
+	bodyButtons[viewmodel.BodyMenu].OnTapped = func() {
+		switcher.Switch(viewmodel.BodyMenu)
+	}
+	bodyButtons[viewmodel.BodyData].OnTapped = func() {
+		switcher.Switch(viewmodel.BodyData)
+	}
+	bodyButtons[viewmodel.BodyForm].OnTapped = func() {
+		switcher.Switch(viewmodel.BodyForm)
+	}
+
 	bodySelect := container.NewHBox()
-	for _, o := range bodyButtons {
-		bodySelect.Objects = append(bodySelect.Objects, o)
+	for _, i := range []int{viewmodel.BodyMenu, viewmodel.BodyData, viewmodel.BodyForm} {
+		bodySelect.Objects = append(bodySelect.Objects, bodyButtons[i])
 	}
 
 	header := container.NewHBox(

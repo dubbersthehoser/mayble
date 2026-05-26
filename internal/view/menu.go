@@ -31,6 +31,30 @@ func NewMenu(w fyne.Window, vm *viewmodel.Menu) *fyne.Container {
 		d.Show()
 	})
 
+
+	disableFileHandle := func() {
+		csvExportBtn.Disable()
+		csvImportBtn.Disable()
+	}
+	enableFileHandle := func() {
+		csvExportBtn.Enable()
+		csvImportBtn.Enable()
+	}
+
+	if ok, _ := vm.HasDatabase.Get(); !ok {
+		disableFileHandle()
+	}
+
+	vm.HasDatabase.AddListener(binding.NewDataListener(func() {
+		if ok, _ := vm.HasDatabase.Get(); ok {
+			enableFileHandle()
+		} else {
+			disableFileHandle()
+		}
+	}))
+
+
+
 	openDBBtn := widget.NewButton("Open", func() {
 		d := dialog.NewFileOpen(func(r fyne.URIReadCloser, err error) {
 			var path string

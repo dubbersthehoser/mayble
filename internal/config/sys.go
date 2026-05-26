@@ -32,10 +32,10 @@ func findConfigDir(appName string) (string, bool) {
 		hasConfigDir bool
 	)
 	userConfig, err := os.UserConfigDir()
-	hasConfigDir = err != nil
+	hasConfigDir = err == nil
 
 	userHome, err := os.UserHomeDir()
-	hasHomeDir = err != nil
+	hasHomeDir = err == nil
 
 	if hasConfigDir {
 		path := filepath.Join(userConfig, appName)

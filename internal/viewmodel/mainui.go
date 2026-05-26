@@ -68,10 +68,9 @@ func NewMainUI(cfg *config.Config) *MainUI {
 
 	hasDatabase := true
 	if err := as.LoadDatabase(); err != nil {
-		log.Println("ERROR:", err.Error())
+		log.Println("WARNING:", err.Error())
 		hasDatabase = false
 	}
-
 
 	var store repo.BookStore = newStoreUserMessaging(as, b)
 	mu := &MainUI{
@@ -173,7 +172,7 @@ func (m *MainUI) GetOpenBody() int {
 }
 
 func (m *MainUI) GetMenu() *Menu {
-	return NewMenu(m.bus, m.service, m.service, m.DBFile)
+	return NewMenu(m.bus, m.service, m.service, m.DBFile, m.HasDatabase)
 }
 
 func (m *MainUI) GetTable() *Table {
@@ -184,8 +183,8 @@ func (m *MainUI) GetBookSubmissionForm() *BookSubmissionForm {
 	return NewBookSubmissionForm(m.bus, m.store, m.genres)
 }
 
-func (m *MainUI) GetBodySwitcher() *BodySwitcher {
-	return newBodySwitcher(m.cfg, m.HasDatabase)
+func (m *MainUI) GetBodySwitcher(btns ...BodyButton) *BodySwitcher {
+	return newBodySwitcher(btns, m.cfg, m.HasDatabase)
 }
 
 
@@ -211,21 +210,25 @@ type BodySwitcher struct {
 	hasDatabase binding.Bool
 }
 
-func newBodySwitcher(cfg *config.Config, hasDatabase binding.Bool) *BodySwitcher {
+func newBodySwitcher(btns []BodyButton, cfg *config.Config, hasDatabase binding.Bool) *BodySwitcher {
 	bs := &BodySwitcher{
 		cfg: cfg,
 		hasDatabase: hasDatabase,
 	}
+	bs.setBodies(btns...)
 
 	hasDatabase.AddListener(binding.NewDataListener(func() {
 		ok, _ := hasDatabase.Get()
 		bs.setDatabaseState(ok)
 	}))
-
 	return bs
 }
 
 func (bs *BodySwitcher) setDatabaseState(ok bool) {
+	if len(bs.Buttons) == 0 {
+		log.Println("WARNING: missing switch buttons")
+		return
+	}
 	if !ok {
 		bs.Switch(BodyMenu)
 		bs.Buttons[BodyForm].OnLock()
@@ -236,7 +239,7 @@ func (bs *BodySwitcher) setDatabaseState(ok bool) {
 	}
 }
 
-func (bs *BodySwitcher) SetBodies(buttons ...BodyButton) {
+func (bs *BodySwitcher) setBodies(buttons ...BodyButton) {
 	bs.Buttons = make(map[int]BodyButton)
 	for _, btn := range buttons {
 		bs.Buttons[btn.ID] = btn

@@ -13,19 +13,27 @@ import (
 )
 
 type Menu struct {
-	DBFile binding.String
+	DBFile      binding.String
 	dbOpener    databaseOpener
 	fileHandler repo.CSVHandler
-	bus    *bus.Bus
+	HasDatabase binding.Bool
+	bus         *bus.Bus
 }
 
-func NewMenu(b *bus.Bus, fh repo.CSVHandler, dbOpener databaseOpener, dbFile binding.String) *Menu {
+func NewMenu(b *bus.Bus, fh repo.CSVHandler, dbOpener databaseOpener, dbFile binding.String, hasDB binding.Bool) *Menu {
 	m := &Menu{
 		DBFile: dbFile,
 		bus:    b,
 		dbOpener:    dbOpener,
+		HasDatabase: hasDB,
 		fileHandler: fh,
 	}
+
+	if ok, _ := m.HasDatabase.Get(); !ok {
+		_ = m.DBFile.Set("[database not found]")
+	}
+
+
 	return m
 }
 
@@ -110,6 +118,8 @@ func (c *Menu) OpenDatabase(path string, err error) {
 		return
 	}
 
+	_ = c.HasDatabase.Set(true)
+
 	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,
 		Data: fmt.Sprintf("opened: '%s'", path),
@@ -139,6 +149,8 @@ func (c *Menu) CreateDatabase(path string, err error) {
 		displayError(c.bus, err)
 		return
 	}
+
+	_ = c.HasDatabase.Set(true)
 
 	c.bus.Notify(bus.Event{
 		Name: msgUserInfo,

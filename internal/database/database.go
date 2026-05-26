@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"os"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
@@ -54,40 +55,35 @@ func Open(path string) (*Database, error) {
 	if checkIsV1(db.Conn) {
 		err := migrate(path, db.Conn)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("open migrate: %w", err)
 		}
 	}
 
 	return db, nil
 }
 
+// dbCopy copy file pathFromt to pathTo
 func dbCopy(pathFrom, pathTo string) error {
-
-	const op status.Op = "database.dbCopy"
-
 	to, err := os.Create(pathTo)
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return err
 	}
 	from, err := os.Open(pathFrom)
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return err
 	}
 	_, err = from.WriteTo(to)
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return err
 	}
 	return nil
 }
 
 // migrate up database and create backup.
 func migrate(path string, conn *sql.DB) error {
-
-	const op status.Op = "database.migrage"
-
 	err := dbCopy(path, path+".bak")
 	if err != nil {
-		return status.E(op, status.Unexpected, status.LevelError, err)
+		return err
 	}
 	return sqlite.MigrateUpTo(conn, version)
 }
