@@ -29,14 +29,8 @@ const (
 	BodyMenu
 )
 
-type subjectRetriever interface {
+type sourceSubject interface {
 	AddListener(func())
-	repo.BookRetriever
-}
-
-type subjectGenreRetriever interface {
-	AddListener(func())
-	repo.GenreRetriever
 }
 
 type databaseOpener interface {
@@ -79,7 +73,7 @@ func NewMainUI(cfg *config.Config) *MainUI {
 		service:    as,
 
 		store:     store,
-		genres:    NewUniqueGenres(b, as),
+		genres:    NewUniqueGenres(b, as, as),
 
 		OpenedBody:  binding.NewInt(),
 		DBFile:      binding.NewString(),
@@ -176,7 +170,7 @@ func (m *MainUI) GetMenu() *Menu {
 }
 
 func (m *MainUI) GetTable() *Table {
-	return NewTable(m.bus, &TableConfig{cfg: m.cfg}, m.store, m.service, m.genres)
+	return NewTable(m.bus, &TableConfig{cfg: m.cfg}, m.service, m.store, m.service, m.genres)
 }
 
 func (m *MainUI) GetBookSubmissionForm() *BookSubmissionForm {

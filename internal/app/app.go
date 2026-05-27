@@ -149,15 +149,15 @@ func (as *Service) OpenDatabase(path string) error {
 	}
 
 	if as.db == nil {
-		return nil
+		as.db = db
+	} else {
+		err = as.db.Conn.Close()
+		if err != nil {
+			return err
+		}
+		as.db.Conn = db.Conn
+		as.db.Queries = db.Queries
 	}
-
-	err = as.db.Conn.Close()
-	if err != nil {
-		return err
-	}
-	as.db.Conn = db.Conn
-	as.db.Queries = db.Queries
 	as.notify()
 	as.cfg.DBFile = path
 	return nil
