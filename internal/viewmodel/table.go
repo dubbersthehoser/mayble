@@ -155,17 +155,14 @@ func (hh *TableHeaders) SetHidden(options []string) {
 }
 
 func (hh *TableHeaders) GetHidden() []string {
-
 	headers := hh.table.cfg.GetHiddenColumns()
 	options := make([]string, 0)
-
 	for option, aliased := range hh.aliased {
 		for _, column := range aliased {
-			if !slices.Contains(headers, column) {
-				continue
+			if slices.Contains(headers, column) {
+				options = append(options, option)
 			}
 		}
-		options = append(options, option)
 	}
 	return options
 }
