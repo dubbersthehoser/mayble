@@ -124,7 +124,6 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 			fullTable.Show()
 		}
 	}))
-
 	return view
 }
 
@@ -216,7 +215,6 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 			object.(*HeaderButton).Hide()
 		}
 	}
-
 
 	// Set the width of the columns.
 	for i, label := range headers.Headers() {
