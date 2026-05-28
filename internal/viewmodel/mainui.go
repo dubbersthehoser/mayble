@@ -218,6 +218,23 @@ func newBodySwitcher(btns []BodyButton, cfg *config.Config, hasDatabase binding.
 	return bs
 }
 
+func (bs *BodySwitcher) Switch(id int) {
+	for _, b := range bs.Buttons {
+		if b.ID == id {
+			b.OnLock()
+			b.Window.OnShow()
+			bs.cfg.UI.OpenBody = b.ID
+		} else {
+			b.OnUnlock()
+			b.Window.OnHide()
+		}
+	}
+}
+
+func (bs *BodySwitcher) Sync() {
+	bs.Switch(bs.cfg.UI.OpenBody)
+}
+
 func (bs *BodySwitcher) setDatabaseState(ok bool) {
 	if len(bs.Buttons) == 0 {
 		log.Println("WARNING: missing switch buttons")
@@ -242,15 +259,3 @@ func (bs *BodySwitcher) setBodies(buttons ...BodyButton) {
 	bs.setDatabaseState(ok)
 }
 
-func (bs *BodySwitcher) Switch(id int) {
-	for _, b := range bs.Buttons {
-		if b.ID == id {
-			b.OnLock()
-			b.Window.OnShow()
-			bs.cfg.UI.OpenBody = b.ID
-		} else {
-			b.OnUnlock()
-			b.Window.OnHide()
-		}
-	}
-}

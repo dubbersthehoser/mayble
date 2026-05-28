@@ -102,6 +102,8 @@ func NewMainUI(w fyne.Window, uiVM *viewmodel.MainUI) *fyne.Container {
 		switcher.Switch(viewmodel.BodyForm)
 	}
 
+	switcher.Sync()
+
 	bodySelect := container.NewHBox()
 	for _, i := range []int{viewmodel.BodyMenu, viewmodel.BodyData, viewmodel.BodyForm} {
 		bodySelect.Objects = append(bodySelect.Objects, bodyButtons[i])
