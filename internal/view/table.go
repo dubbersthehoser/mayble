@@ -61,7 +61,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 
 	table := bookTable(vmt, headers, selector)
 
-	// Hide Options
+	// Hide Column Options
 	hideLabel := widget.NewLabel("Hidden:")
 	hideOptions := widget.NewCheckGroup(headers.HideOptions(), func(list []string) {
 		headers.SetHidden(list)
@@ -69,7 +69,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 	hideOptions.Horizontal = true
 	hideOptions.SetSelected(headers.GetHidden())
 
-	// Hidden Bar
+	// Hidden Column Bar
 	hidden := container.NewBorder(nil, nil, hideLabel, nil, hideLabel, hideOptions)
 	controllers := container.NewVBox(
 		container.NewBorder(
@@ -201,7 +201,8 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 		if cellID.Row != -1 {
 			return
 		}
-		vm.StoreColumnWidth(cellID.Col, object.Size().Width)
+		//vm.StoreColumnWidth(cellID.Col, object.Size().Width)
+		headers.StoreWidth(cellID.Col, object.Size().Width) // (2) this has to be relitive to column position
 		_, colLen := vm.Size()
 		if cellID.Col < colLen {
 			if headers.IsHidden(cellID.Col) {
@@ -218,6 +219,7 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 
 	// Set the width of the columns.
 	for i, label := range headers.Headers() {
+		// (2) this has to be label per label. ignore relitive column position.
 		width := headers.GetWidth(label)
 		table.SetColumnWidth(i, width)
 	}

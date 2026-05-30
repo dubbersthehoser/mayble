@@ -130,7 +130,6 @@ func NewTable(b *bus.Bus, cfg *TableConfig, source sourceSubject, s repo.BookSto
 			log.Println(err)
 			return
 		}
-		println("reloaded")
 		t.l.notify()
 	})
 	return t
@@ -139,51 +138,20 @@ func NewTable(b *bus.Bus, cfg *TableConfig, source sourceSubject, s repo.BookSto
 // StoreColumnWidth to the config file if it exists else it will be an nop.
 // When width is smaller then MinColWidth, MinColWidth will be used.
 func (t *Table) StoreColumnWidth(col int, width float32) {
-	if width < MinColWidth {
-		width = MinColWidth
-	}
 	header := t.table.GetHeader(col)
 	label := header.Name()
 	t.cfg.SetColumnWidth(label, width)
 }
 
 // GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
-func (t *Table) GetColumnWidth(col int) float32 {
-	label := t.table.GetHeader(col).Name()
-	width := t.cfg.GetColumnWidth(label)
-	if width < MinColWidth {
-		width = MinColWidth
-	}
-	return width
-}
-
-// reload clear table, then call load.
-func (t *Table) reload() error {
-	t.table.ClearValues()
-	return t.load()
-}
-
-
-// load load entries form repostory, sort them, and put them into table.
-func (t *Table) load() error {
-
-	items, err := t.retriever.GetAllBooks()
-	if err != nil {
-		return err
-	}
-
-	if len(items) == 0 {
-		return nil
-	}
-
-	by := t.cfg.GetSortBy()
-	ascending := t.cfg.GetAscending()
-	err = sortBooks(items, by, ascending)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//func (t *Table) GetColumnWidth(col int) float32 {
+//	label := t.table.GetHeader(col).Name()
+//	width := t.cfg.GetColumnWidth(label)
+//	if width < MinColWidth {
+//		width = MinColWidth
+//	}
+//	return width
+//}
 
 func (t *Table) Size() (int, int) {
 	return t.table.Size()
@@ -208,9 +176,41 @@ func (t *Table) GetID(row, col int) (int64, error) {
 	return cell.ID(), nil
 }
 
+func (t *Table) Sync() {
+	t.reload()
+}
+
 func (t *Table) AddListener(l binding.DataListener) {
 	t.l.AddListener(l)
 }
+
+// reload clear table, then call load.
+func (t *Table) reload() error {
+	t.table.ClearValues()
+	return t.load()
+}
+
+// load load entries form repostory, sort them, and put them into table.
+func (t *Table) load() error {
+
+	items, err := t.retriever.GetAllBooks()
+	if err != nil {
+		return err
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	by := t.cfg.GetSortBy()
+	ascending := t.cfg.GetAscending()
+	err = sortBooks(items, by, ascending)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 type TableHeaders struct {
 	table   *Table
@@ -326,11 +326,14 @@ func (th *TableHeaders) SetAscending(t bool) {
 	th.table.cfg.SetAscending(t)
 }
 
-func (th *TableHeaders) SetWidth(label string, width float32) {
+func (th *TableHeaders) StoreWidth(col int, width float32) {
+	label := th.table.table.GetHeader(col).Name()
 	th.table.cfg.SetColumnWidth(label, width)
 }
 
-func (th *TableHeaders) GetWidth(label string) float32 {
+func (th *TableHeaders) GetWidthWithLable(lable string) float32 {
+	col := 
+	label := th.table.table.GetHeader(col).Name()
 	return th.table.cfg.GetColumnWidth(label)
 }
 
