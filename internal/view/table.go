@@ -202,7 +202,7 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 			return
 		}
 		//vm.StoreColumnWidth(cellID.Col, object.Size().Width)
-		headers.StoreWidth(cellID.Col, object.Size().Width) // (2) this has to be relitive to column position
+		headers.SetWidthWithColumn(cellID.Col, object.Size().Width) // (2) this has to be relitive to column position
 		_, colLen := vm.Size()
 		if cellID.Col < colLen {
 			if headers.IsHidden(cellID.Col) {
@@ -220,7 +220,7 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 	// Set the width of the columns.
 	for i, label := range headers.Headers() {
 		// (2) this has to be label per label. ignore relitive column position.
-		width := headers.GetWidth(label)
+		width := headers.GetWidthWithLabel(label)
 		table.SetColumnWidth(i, width)
 	}
 

@@ -311,11 +311,13 @@ func (th *TableHeaders) Sort() {
 	}
 }
 
-func (th *TableHeaders) SetSortBy(label string) {
-	th.table.cfg.SetSortBy(label)
-}
+
 func (th *TableHeaders) GetSortBy() string {
 	return th.table.cfg.GetSortBy()
+}
+
+func (th *TableHeaders) SetSortBy(label string) {
+	th.table.cfg.SetSortBy(label)
 }
 
 func (th *TableHeaders) GetAscending() bool {
@@ -326,14 +328,12 @@ func (th *TableHeaders) SetAscending(t bool) {
 	th.table.cfg.SetAscending(t)
 }
 
-func (th *TableHeaders) StoreWidth(col int, width float32) {
+func (th *TableHeaders) SetWidthWithColumn(col int, width float32) {
 	label := th.table.table.GetHeader(col).Name()
 	th.table.cfg.SetColumnWidth(label, width)
 }
 
-func (th *TableHeaders) GetWidthWithLable(lable string) float32 {
-	col := 
-	label := th.table.table.GetHeader(col).Name()
+func (th *TableHeaders) GetWidthWithLabel(label string) float32 {
 	return th.table.cfg.GetColumnWidth(label)
 }
 
