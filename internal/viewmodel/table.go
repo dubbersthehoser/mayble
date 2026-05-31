@@ -125,11 +125,7 @@ func NewTable(b *bus.Bus, cfg *TableConfig, source sourceSubject, s repo.BookSto
 		l: &listener{},
 	}
 	source.AddListener(func(){
-		err := t.reload()
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		t.reload()
 		t.l.notify()
 	})
 	return t
@@ -185,30 +181,32 @@ func (t *Table) AddListener(l binding.DataListener) {
 }
 
 // reload clear table, then call load.
-func (t *Table) reload() error {
+func (t *Table) reload() {
 	t.table.ClearValues()
-	return t.load()
+	t.load()
 }
 
 // load load entries form repostory, sort them, and put them into table.
-func (t *Table) load() error {
+func (t *Table) load() {
 
 	items, err := t.retriever.GetAllBooks()
 	if err != nil {
-		return err
+		log.Println("ERROR: table:", err)
 	}
 
 	if len(items) == 0 {
-		return nil
+		return 
 	}
 
 	by := t.cfg.GetSortBy()
 	ascending := t.cfg.GetAscending()
 	err = sortBooks(items, by, ascending)
 	if err != nil {
-		return err
+		log.Println("ERROR: table:", err)
 	}
-	return nil
+	loadBooksToTable(items, t.table)
+	t.l.notify()
+	return 
 }
 
 
@@ -251,10 +249,14 @@ func NewTableHeaders(table *Table) *TableHeaders {
 		},
 	}
 
+
 	for _, label := range h.Headers() {
 		h.Labels[label] = binding.NewString()
 		_ = h.Labels[label].Set(h.labelSuffix["normal"] + label)
 	}
+
+	h.updateLabels()
+	h.table.reload()
 
 	return &h
 }
@@ -310,41 +312,11 @@ func (th *TableHeaders) Sort(label string) {
 		ascending = false
 	}
 
-	for _, label := range th.Headers() {
-		th.Labels[label].Set(th.labelSuffix["normal"] + label)
-	}
-
-
-
-	if ascending {
-		th.Labels[label].Set(th.labelSuffix["asc"] + label)
-	} else {
-		th.Labels[label].Set(th.labelSuffix["desc"] + label)
-	}
-
 	th.table.cfg.SetAscending(ascending)
 	th.table.cfg.SetSortBy(label)
 
-
-	books, err := th.table.retriever.GetAllBooks()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	err = sortBooks(books, by, ascending)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	th.table.table.ClearValues()
-
-	err = loadBooksToTable(books, th.table.table)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	th.updateLabels()
+	th.table.reload()
 }
 
 func (th *TableHeaders) SetWidthWithColumn(col int, width float32) {
@@ -354,6 +326,21 @@ func (th *TableHeaders) SetWidthWithColumn(col int, width float32) {
 
 func (th *TableHeaders) GetWidthWithLabel(label string) float32 {
 	return th.table.cfg.GetColumnWidth(label)
+}
+
+func (th *TableHeaders) updateLabels() {
+	for _, label := range th.Headers() {
+		th.Labels[label].Set(th.labelSuffix["normal"] + label)
+	}
+
+	label := th.table.cfg.GetSortBy()
+	ascending := th.table.cfg.GetAscending()
+
+	if ascending {
+		th.Labels[label].Set(th.labelSuffix["asc"] + label)
+	} else {
+		th.Labels[label].Set(th.labelSuffix["desc"] + label)
+	}
 }
 
 
