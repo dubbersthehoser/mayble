@@ -219,6 +219,8 @@ type TableHeaders struct {
 	options []string
 	aliased map[string][]string
 
+	Labels      map[string]binding.String
+	labelSuffix map[string]string
 }
 
 func NewTableHeaders(table *Table) *TableHeaders {
@@ -239,7 +241,21 @@ func NewTableHeaders(table *Table) *TableHeaders {
 				columns[models.IdxBorrower],
 			},
 		},
+
+		Labels: make(map[string]binding.String),
+
+		labelSuffix: map[string]string{
+			"normal": "- ",
+			"asc": "↑ ",
+			"desc": "↓ ",
+		},
 	}
+
+	for _, label := range h.Headers() {
+		h.Labels[label] = binding.NewString()
+		_ = h.Labels[label].Set(h.labelSuffix["normal"] + label)
+	}
+
 	return &h
 }
 
@@ -285,10 +301,30 @@ func (hh *TableHeaders) IsHidden(col int) bool {
 	return header.IsHidden()
 }
 
-
-func (th *TableHeaders) Sort() {
+func (th *TableHeaders) Sort(label string) {
 	by := th.table.cfg.GetSortBy()
 	ascending := th.table.cfg.GetAscending()
+	if by == label {
+		ascending = !ascending
+	} else {
+		ascending = false
+	}
+
+	for _, label := range th.Headers() {
+		th.Labels[label].Set(th.labelSuffix["normal"] + label)
+	}
+
+
+
+	if ascending {
+		th.Labels[label].Set(th.labelSuffix["asc"] + label)
+	} else {
+		th.Labels[label].Set(th.labelSuffix["desc"] + label)
+	}
+
+	th.table.cfg.SetAscending(ascending)
+	th.table.cfg.SetSortBy(label)
+
 
 	books, err := th.table.retriever.GetAllBooks()
 	if err != nil {
@@ -309,23 +345,6 @@ func (th *TableHeaders) Sort() {
 		log.Println(err)
 		return
 	}
-}
-
-
-func (th *TableHeaders) GetSortBy() string {
-	return th.table.cfg.GetSortBy()
-}
-
-func (th *TableHeaders) SetSortBy(label string) {
-	th.table.cfg.SetSortBy(label)
-}
-
-func (th *TableHeaders) GetAscending() bool {
-	return th.table.cfg.GetAscending()
-}
-
-func (th *TableHeaders) SetAscending(t bool) {
-	th.table.cfg.SetAscending(t)
 }
 
 func (th *TableHeaders) SetWidthWithColumn(col int, width float32) {

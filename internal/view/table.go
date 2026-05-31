@@ -194,7 +194,7 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 	table.ShowHeaderColumn = false
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return NewHeaderButton("", headers)
+		return NewHeaderButton(headers)
 	}
 
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
@@ -208,8 +208,8 @@ func bookTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *v
 			if headers.IsHidden(cellID.Col) {
 				object.(*HeaderButton).Hide()
 			} else {
-				header := headers.Headers()[cellID.Col]
-				object.(*HeaderButton).InitLabel(header)
+				label := headers.Headers()[cellID.Col]
+				object.(*HeaderButton).Update(label)
 				object.(*HeaderButton).Show()
 			}
 		} else { // (A) create hidden header.
@@ -257,54 +257,27 @@ type HeaderButton struct {
 	headers *viewmodel.TableHeaders
 }
 
-func NewHeaderButton(label string, h *viewmodel.TableHeaders) *HeaderButton {
+func NewHeaderButton( h *viewmodel.TableHeaders) *HeaderButton {
 	hb := &HeaderButton{
-		label: label,
 		headers: h,
 	}
 
 	hb.OnTapped = func() {
-		if hb.headers.GetAscending() && hb.ASCLabel() == hb.Text {
-			hb.headers.SetAscending(false)
-		} else {
-			hb.headers.SetAscending(true)
-		}
-		hb.headers.Sort()
+		hb.headers.Sort(hb.label)
 	}
 
-	if hb.headers.GetSortBy() == hb.label {
-		hb.SetText(hb.ASCLabel())
-	}
 	hb.minSize = fyne.NewSize(80, 30)
 	hb.ExtendBaseWidget(hb)
 	return hb
 }
 
-func (hb *HeaderButton) InitLabel(s string) {
-	hb.label = s
-	if hb.headers.GetSortBy() == hb.label {
-		if hb.headers.GetAscending() {
-			hb.SetText(hb.ASCLabel())
-		} else {
-			hb.SetText(hb.DESCLabel())
-		}
-	} else {
-		hb.SetText(hb.NormalLabel())
-	}
+func (hb *HeaderButton) Update(l string) {
+	hb.label = l
+	text, _ := hb.headers.Labels[l].Get()
+	hb.SetText(text)
+	hb.headers.Labels[hb.label].AddListener(binding.NewDataListener(func() {
+		text, _ := hb.headers.Labels[hb.label].Get()
+		hb.SetText(text)
+	}))
 }
 
-func (hb *HeaderButton) NormalLabel() string {
-	return "- " + hb.label
-}
-
-func (hb *HeaderButton) ASCLabel() string {
-	return "↑ " + hb.label
-}
-
-func (hb *HeaderButton) DESCLabel() string {
-	return "↓ " + hb.label
-}
-
-func (hb *HeaderButton) MinSize() fyne.Size {
-	return hb.minSize
-}
