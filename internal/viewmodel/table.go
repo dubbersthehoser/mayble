@@ -46,13 +46,24 @@ func (tc *TableConfig) GetHiddenColumns() []string {
 }
 
 func (tc *TableConfig) SetHiddenColumns(labels []string) {
+
+	for label, header := range tc.cfg.UI.Headers {
+		if slices.Contains(labels, label) {
+			header.IsHidden = true
+		} else {
+			header.IsHidden = false
+		}
+		tc.cfg.UI.Headers[label] = header
+	}
+
+	// create headers if not in config
 	for _, label := range labels {
 		header, ok := tc.cfg.UI.Headers[label]
 		if !ok {
-			continue
+			header = config.Header{}
+			header.IsHidden = true
+			tc.cfg.UI.Headers[label] = header
 		}
-		header.IsHidden = true
-		tc.cfg.UI.Headers[label] = header
 	}
 }
 
@@ -130,24 +141,6 @@ func NewTable(b *bus.Bus, cfg *TableConfig, source sourceSubject, s repo.BookSto
 	})
 	return t
 }
-
-// StoreColumnWidth to the config file if it exists else it will be an nop.
-// When width is smaller then MinColWidth, MinColWidth will be used.
-func (t *Table) StoreColumnWidth(col int, width float32) {
-	header := t.table.GetHeader(col)
-	label := header.Name()
-	t.cfg.SetColumnWidth(label, width)
-}
-
-// GetColumnWidth from the config file if it exsits, else returns defualt MinColWidth.
-//func (t *Table) GetColumnWidth(col int) float32 {
-//	label := t.table.GetHeader(col).Name()
-//	width := t.cfg.GetColumnWidth(label)
-//	if width < MinColWidth {
-//		width = MinColWidth
-//	}
-//	return width
-//}
 
 func (t *Table) Size() (int, int) {
 	return t.table.Size()
@@ -368,13 +361,19 @@ func NewTableSelect(t *Table) *TableSelect {
 		},
 		l: &listener{},
 	}
+
+	ts.table.AddListener(binding.NewDataListener(func() {
+		ts.Unselect()
+		ts.l.notify()
+	}))
+
 	return ts
 }
 
 func (ts *TableSelect) Select(row, col int) {
 	ts.hasSelected = true
-	ts.l.notify()
 	ts.cell = ts.table.table.GetCell(row, col)
+	ts.l.notify()
 	ts.table.bus.Notify(bus.Event{
 		Name: tableEntrySelected,
 		Data: ts.cell.ID(),
@@ -419,7 +418,6 @@ func (ts *TableSelect) SetSearchBy(option string) {
 func (ts *TableSelect) GetSearchBy() string {
 	return ts.searchBy
 }
-
 
 func (ts *TableSelect) SearchOptions() []string {
 	return ts.searchOptions
