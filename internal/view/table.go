@@ -62,7 +62,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 	table := bookTable(vmt, headers, selector)
 
 	// Hide Column Options
-	hideLabel := widget.NewLabel("Hidden:")
+	hideLabel := widget.NewLabel("Hide Columns:")
 	hideOptions := widget.NewCheckGroup(headers.HideOptions(), func(list []string) {
 		headers.SetHidden(list)
 	})

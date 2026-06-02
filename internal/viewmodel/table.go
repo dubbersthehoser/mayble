@@ -242,7 +242,6 @@ func NewTableHeaders(table *Table) *TableHeaders {
 		},
 	}
 
-
 	for _, label := range h.Headers() {
 		h.Labels[label] = binding.NewString()
 		_ = h.Labels[label].Set(h.labelSuffix["normal"] + label)

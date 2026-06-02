@@ -47,7 +47,7 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 			OpenBody int              `json:"open_body"`
 			Headers map[string]Header `json:"headers"`
 			TableSortBy string        `json:"table_sort_by"`
-			TableAscending bool             `json:"table_ascending"`
+			TableAscending bool       `json:"table_ascending"`
 		}{
 			Headers: make(map[string]Header),
 		},
