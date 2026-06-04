@@ -396,8 +396,14 @@ func (ts *TableSelect) HasSelected() bool {
 }
 
 func (ts *TableSelect) Search(s string) {
-	results := table.Search(ts.table.table, s, ts.searchBy)
+	by := ts.searchBy
+	if ts.searchBy == "All" {
+		by = ""
+	}
+	results := table.Search(ts.table.table, s, by)
 	if len(results) == 0 {
+		ts.Unselect()
+		ts.l.notify()
 		return
 	}
 	result := results[0]

@@ -38,6 +38,7 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 		}()
 
 	}
+
 	deleteFinal.OnTapped = func() {
 		editor.Delete()
 		deleteFinal.Hide()

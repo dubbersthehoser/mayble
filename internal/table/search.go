@@ -114,9 +114,11 @@ func Search(t *Table, search, header string) []SearchResult {
 		if search == "" {
 			return false
 		}
+
 		if header != "" && c.Header() != header {
 			return false
 		}
+
 		score := searchCompare(c.Value(), search)
 		if score == -1 {
 			return false
