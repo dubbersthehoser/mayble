@@ -85,14 +85,17 @@ func (tc *TableConfig) GetSortBy() string {
 	return by
 }
 
+// GetAscending returns whether to do ascending sorting.
 func (tc *TableConfig) GetAscending() bool {
 	return tc.cfg.UI.TableAscending
 }
 
+// SetAscending store whether to do ascending sorting.
 func (tc *TableConfig) SetAscending(t bool) {
 	tc.cfg.UI.TableAscending = t
 }
 
+// SetColumnWidth store a column header name to a size. 
 func (tc *TableConfig) SetColumnWidth(label string, size float32) {
 	if size < MinColWidth {
 		size = MinColWidth
@@ -105,6 +108,7 @@ func (tc *TableConfig) SetColumnWidth(label string, size float32) {
 	tc.cfg.UI.Headers[label] = header
 }
 
+// GetColumnWidth returns the column header's size. 
 func (tc *TableConfig) GetColumnWidth(label string) float32 {
 	header, ok := tc.cfg.UI.Headers[label]
 	if !ok {
