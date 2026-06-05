@@ -17,24 +17,26 @@ import (
 )
 
 const (
-	notifySelect bool   = true
-	stubValue    string = "N/A"
+	// The default value for an empty value.
+	stubValue    string = "N/A" 
 )
 
+// Used to singled when a entry was selected or unselected from a bus.
 const (
 	tableEntrySelected   string = "table.selected"
 	tableEntryUnselected string = "table.unselected"
-	tableEditOpen        string = "table.edit.open"
-	tableEditClose       string = "table.edit.close"
 )
 
 // The smallest width a column can be.
 const MinColWidth float32 = 100.0
 
+// A TableConfig is a wapper for main config to only expose used values use for
+// the table, and creates guaranties for values.
 type TableConfig struct {
 	cfg *config.Config
 }
 
+// GetHiddenColumns returns column header names that are hidden.
 func (tc *TableConfig) GetHiddenColumns() []string {
 	columns := make([]string, 0)
 	for label, headers := range tc.cfg.UI.Headers {
@@ -45,6 +47,7 @@ func (tc *TableConfig) GetHiddenColumns() []string {
 	return columns
 }
 
+// SetHiddenColumns store column header names that should be hidden.
 func (tc *TableConfig) SetHiddenColumns(labels []string) {
 
 	for label, header := range tc.cfg.UI.Headers {
@@ -67,9 +70,12 @@ func (tc *TableConfig) SetHiddenColumns(labels []string) {
 	}
 }
 
+// SetSortBy store the current sorted column header name.
 func (tc *TableConfig) SetSortBy(label string) {
 	tc.cfg.UI.TableSortBy = label
 }
+
+// GetSortBy returns the sorted by column header name.
 func (tc *TableConfig) GetSortBy() string {
 	by := tc.cfg.UI.TableSortBy
 	if by == "" {
