@@ -51,7 +51,6 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 		}{
 			Headers: make(map[string]Header),
 		},
-
 	}
 	return cfg, nil
 }
@@ -111,13 +110,15 @@ func Load(path, appName string) (*Config, error) {
 	return cfg, err
 }
 
+// isOld check wether json string is in the format of the old config.
 func isOld(jsonBytes []byte) bool {
 	oldCfg := &OldConfig{}
 	err := json.Unmarshal(jsonBytes, oldCfg)
 	if err != nil {
 		return false
 	}
-	return oldCfg.ConfigDir != "" || oldCfg.DBDriver != ""
+	// DBDriver was removed for v2 config.
+	return oldCfg.DBDriver != ""
 }
 
 // backup create a backup of the old config.
