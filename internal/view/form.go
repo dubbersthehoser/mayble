@@ -14,8 +14,10 @@ func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
 
 	loanCheck := widget.NewCheckWithData("Is on loan.", vm.IsLoaned)
 	readCheck := widget.NewCheckWithData("Has been completed.", vm.IsRead)
-	submit := widget.NewButton("Submit", vm.Submit)
-	add := widget.NewButton("Add Form", vm.AddSubmission)
+
+	submit := NewEnterButton("Submit", vm.Submit)
+	add := NewEnterButton("Add Form", vm.AddSubmission)
+
 	submit.Alignment = widget.ButtonAlignLeading
 	add.Alignment = widget.ButtonAlignLeading
 
@@ -24,18 +26,16 @@ func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
 
 	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
 
-	limitSubmit := container.NewHBox(limit, submit)
-
 	top := container.NewVBox(
 		bookEntry,
 		loanCheck,
 		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
 		readCheck,
 		newReadEntry(vm.IsRead, vm.Completed, vm.Rating),
-		container.NewBorder(nil, nil, add, limitSubmit, add, limitSubmit),
+		container.NewHBox(add, submit, limit),
 	)
 
-	return container.NewBorder(top, nil, nil, nil,
+	return container.NewHBox(
 		top,
 		newSubmitionList(vm.SubmissionList()),
 	)
@@ -163,12 +163,9 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 				}(i),
 			)
 
-			//del.Importance = widget.DangerImportance
-			//edt.Importance = widget.SuccessImportance
-
 			btns := container.NewHBox(edt, del)
 
-			object := container.NewBorder(nil, nil, nil, btns, btns, widget.NewLabel(v))
+			object := container.NewHBox(btns, widget.NewLabel(v))
 			content.Add(object)
 		}
 
@@ -178,6 +175,6 @@ func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
 	}))
 	update()
 
-	list := container.NewStack(container.NewVScroll(container.NewStack(content)))
+	list := container.NewVScroll(content)
 	return list
 }

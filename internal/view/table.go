@@ -21,6 +21,10 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 		editor.Open()
 	})
 
+	//createBtn := widget.NewButton("Create", func() {
+	//	println("hello")
+	//})
+
 	deleteFinal := widget.NewButton("Are You Sheer?", nil)
 	deleteInitial := widget.NewButton("Delete", nil)
 
@@ -73,12 +77,12 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 	// Hidden Column Bar
 	hidden := container.NewBorder(nil, nil, hideLabel, nil, hideLabel, hideOptions)
 	controllers := container.NewVBox(
-		container.NewBorder(
-			nil, nil,
+		container.NewGridWithColumns(
+			2,
 			searchOptions,
-			nil,
-			search,
+			container.NewStack(search),
 		),
+
 		container.NewBorder(
 			nil, nil,
 			hidden,

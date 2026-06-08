@@ -8,7 +8,12 @@ import (
 	"fmt"
 )
 
-const Version string ="2.0.0"
+// Current config version.
+const Version string = "2.0.0"
+
+var (
+	ErrIsOldConfig error = errors.New("old config")
+)
 
 type OldConfig struct {
 	ConfigDir  string `json:"config_dir"`
@@ -35,6 +40,7 @@ type Config struct{
 	} `json:"ui"`
 }
 
+// NewConfigWithDefaults returns a fresh configuration for application.
 func NewConfigWithDefaults(appName string) (*Config, error) {
 	configFile, err := GetDefaultConfigFile(appName)
 	if err != nil {
@@ -49,6 +55,7 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 			TableSortBy string        `json:"table_sort_by"`
 			TableAscending bool       `json:"table_ascending"`
 		}{
+			OpenBody: 0,
 			Headers: make(map[string]Header),
 		},
 	}
@@ -70,35 +77,22 @@ func (c *Config) Save() error {
 	return nil
 }
 
-func Load(path, appName string) (*Config, error) {
+// Load config file form file path. 
+func Load(path string) (*Config, error) {
 
-	fileIO, err := os.Open(path)
-	if errors.Is(err, os.ErrNotExist) {
-		cfg, err := NewConfigWithDefaults(appName)
-		if err != nil {
-			return nil, err
-		}
-		cfg.ConfigFile = path
-		return cfg, nil
-	}
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
-	defer fileIO.Close()
+	defer file.Close()
 
-	raw, err := io.ReadAll(fileIO)
+	raw, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
 
 	if isOld(raw) {
-		cfg, err := NewConfigWithDefaults(appName)
-		if err != nil {
-			return nil, err
-		}
-		cfg.ConfigFile = path
-		err = backup(path)
-		return cfg, err
+		return nil, ErrIsOldConfig
 	}
 
 	cfg := &Config{}
@@ -107,6 +101,17 @@ func Load(path, appName string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
+	return cfg, err
+}
+
+// Migrate old config to current config.
+func Migrate(path, appName string) (*Config, error) {
+	cfg, err := NewConfigWithDefaults(appName)
+	if err != nil {
+		return nil, err
+	}
+	cfg.ConfigFile = path
+	err = backup(path)
 	return cfg, err
 }
 
