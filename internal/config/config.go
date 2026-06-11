@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"fmt"
+
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 // Current config version.
@@ -23,6 +25,7 @@ type OldConfig struct {
 }
 
 type Header struct {
+	Name     string  `json:"name"`
 	IsHidden bool    `json:"is_hidden"`
 	Width    float32 `json:"width"`
 }
@@ -33,10 +36,9 @@ type Config struct{
 	ConfigFile string `json:"config_file"`
 	DBFile     string `json:"db_file"`
 	UI struct{
-		OpenBody int              `json:"open_body"`
-		Headers map[string]Header `json:"headers"`
-		TableSortBy   string      `json:"table_sort_by"`
-		TableAscending bool       `json:"table_ascending"`
+		Headers        map[int]Header `json:"headers"`
+		TableSortBy    int            `json:"table_sort_by"`
+		TableAscending bool           `json:"table_ascending"`
 	} `json:"ui"`
 }
 
@@ -50,15 +52,21 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 		Version: Version,
 		ConfigFile: configFile,
 		UI: struct{
-			OpenBody int              `json:"open_body"`
-			Headers map[string]Header `json:"headers"`
-			TableSortBy string        `json:"table_sort_by"`
-			TableAscending bool       `json:"table_ascending"`
+			Headers map[int]Header `json:"headers"`
+			TableSortBy int        `json:"table_sort_by"`
+			TableAscending bool    `json:"table_ascending"`
 		}{
-			OpenBody: 0,
-			Headers: make(map[string]Header),
+			Headers: make(map[int]Header),
 		},
 	}
+
+	for i, label := range models.BookEntryFields() {
+		header := Header{
+			Name: label,
+		}
+		cfg.UI.Headers[i] = header
+	}
+
 	return cfg, nil
 }
 

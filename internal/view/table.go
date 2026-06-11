@@ -79,13 +79,16 @@ func fullBookTable(vmt *viewmodel.Table) fyne.CanvasObject {
 	controllers := container.NewVBox(
 		container.NewGridWithColumns(
 			2,
-			searchOptions,
-			container.NewStack(search),
+			hidden,
+			container.NewGridWithColumns(
+				2,
+				search,
+				searchOptions,
+			),
 		),
 
 		container.NewBorder(
-			nil, nil,
-			hidden,
+			nil, nil, nil,
 			container.NewHBox(
 				editBtn,
 				deleteBtn,

@@ -136,13 +136,14 @@ func (c *Menu) CreateDatabase(path string, err error) {
 	if path == "" {
 		return
 	}
-	_ = c.DBFile.Set(path)
 
 	if !strings.HasSuffix(path, ".db") &&
 	   !strings.HasSuffix(path, ".sqlite") &&
 	   !strings.HasSuffix(path, ".sqlite3") {
 		path += ".db"
 	}
+
+	_ = c.DBFile.Set(path)
 
 	err = c.dbOpener.OpenDatabase(path)
 	if err != nil {

@@ -4,6 +4,10 @@ package app
 import (
 	"os"
 	"errors"
+	"slices"
+	"fmt"
+	"cmp"
+	"strings"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/database"
@@ -163,6 +167,7 @@ func (as *Service) OpenDatabase(path string) error {
 	return nil
 }
 
+// AddListener listen for database changes.
 func (as *Service) AddListener(fn func()) {
 	as.listeners = append(as.listeners, fn)
 }
@@ -171,4 +176,38 @@ func (as *Service) notify() {
 	for _, fn := range as.listeners {
 		fn()
 	}
+}
+
+// SortBooks sort slice of book entries.
+func SortBooks(books []models.BookEntry, index int, ascending bool) error {
+
+	if !(models.IdxTitle <= index && models.IdxBorrower >= index) {
+		return fmt.Errorf("sort_books: invalid index '%d'", index)
+	}
+
+	slices.SortFunc(books, func(a, b models.BookEntry) int {
+		r := -1
+		switch index {
+		case models.IdxTitle:
+			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
+		case models.IdxAuthor:
+			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
+		case models.IdxGenre:
+			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
+		case models.IdxBorrower:
+			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
+		case models.IdxLoanedAt:
+			r = a.Loaned.LoanedAt.Compare(b.LoanedAt)
+		case models.IdxRating:
+			r = cmp.Compare(a.Rating, b.Rating)
+		case models.IdxCompletedAt:
+			r = a.CompletedAt.Compare(b.CompletedAt)
+		}
+		if !ascending {
+			return r * -1
+		} else {
+			return r
+		}
+	})
+	return nil
 }
