@@ -3,10 +3,10 @@ package view
 import (
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 
@@ -20,7 +20,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	// By adding an invisable header with an empty column, allows the user to move
 	// the last visable header / column to be resized with the mouse. Down side is
 	// that there is an empty selectable item on the first entry of that last column.
-
 
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
@@ -36,10 +35,10 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
 			_, colLen := vm.DataTable.Size()
 			if cellID.Col < colLen {
-				data := vm.Get(cellID.Row, cellID.Col)
+				data := vm.DataTable.Get(cellID.Row, cellID.Col)
 				object.(*widget.Label).Show()
 				object.(*widget.Label).SetText(data)
-				}
+
 			} else { // (A) create empty column.
 				object.(*widget.Label).SetText("")
 			}
@@ -47,21 +46,24 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	)
 
 	table.ShowHeaderColumn = false
+	header := NewHeader(vm)
 
 	table.CreateHeader = func() fyne.CanvasObject {
-		return NewHeaderButton(headers)
+		return header.NewHeaderButton()
 	}
 
 	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
-		//vm.StoreColumnWidth(cellID.Col, object.Size().Width)
-		headers.SetWidthWithColumn(cellID.Col, object.Size().Width) // (2) this has to be relitive to column position
-		_, colLen := vm.Size()
+		vm.ColumnSettings.SetWidth(vm.ColumnSettings.Headers()[cellID.Col], object.Size().Width)
+
+		_, colLen := vm.DataTable.Size()
 		if cellID.Col < colLen {
-			label := headers.Headers()[cellID.Col]
-			object.(*HeaderButton).Update(label)
+			label := models.BookEntryFields()[cellID.Col]
+			by := vm.Sorting.GetOrderBy()
+			asc := vm.Sorting.GetAscending()
+			object.(*HeaderButton).Update(label, by, asc)
 			object.(*HeaderButton).Show()
 		} else { // (A) create hidden header.
 			object.(*HeaderButton).Hide()
@@ -69,52 +71,92 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	}
 
 	// Set the width of the columns.
-	for i, label := range headers.Headers() {
-		// (2) this has to be label per label. ignore relitive column position.
-		width := headers.GetWidthWithLabel(label)
+	for i, label := range models.BookEntryFields() {
+		width := vm.ColumnSettings.GetWidth(label)
 		table.SetColumnWidth(i, width)
 	}
 
 	// Selection
 	table.OnSelected = func(id widget.TableCellID) {
-		selector.Select(id.Row, id.Col)
+		vm.Selected.Select(id.Row, id.Col)
 	}
 	table.OnUnselected = func(id widget.TableCellID) {
-		selector.Unselect()
+		vm.Selected.Unselect()
 		table.UnselectAll()
 	}
 
-	selector.AddListener(binding.NewDataListener(func() {
-		if selector.HasSelected() {
-			row, col := selector.Selected()
+	vm.Selected.AddListener(func() {
+		if vm.Selected.Has() {
+			row, col := vm.Selected.Get()
 			table.Select(widget.TableCellID{Row: row, Col: col})
 		} else {
 			table.UnselectAll()
 		}
-	}))
+	})
 
 	// Listen for updates from table
-	vm.AddListener(binding.NewDataListener(func() {
+	vm.DataTable.AddListener(func() {
 		table.Refresh()
-	}))
+	})
 
 	return table
 }
 
-type HeaderButton struct {
-	widget.Button
-	minSize fyne.Size
-	label   string
-	headers *viewmodel.TableHeaders
+type Header struct {
+	vm      *viewmodel.Window
+	buttons []*HeaderButton
+
 }
 
-func NewHeaderButton( h *viewmodel.TableHeaders) *HeaderButton {
+func NewHeader(vm *viewmodel.Window) *Header {
+	h := &Header{
+		vm: vm,
+		buttons: make([]*HeaderButton, 0),
+	}
+	return h
+}
+
+func (h *Header) NewHeaderButton() *HeaderButton {
+	hb := NewHeaderButton(h)
+	h.buttons = append(h.buttons, hb)
+	return hb
+}
+
+func (h *Header) Pressed(label string) {
+	by := h.vm.Sorting.GetOrderBy()
+	asc := h.vm.Sorting.GetAscending()
+
+	if by == label {
+		asc = !asc
+	} else {
+		by = label
+		asc = false
+	}
+
+	h.vm.Sorting.SetOrderBy(by)
+	h.vm.Sorting.SetAscending(asc)
+
+	for _, btn := range h.buttons {
+		btn.Update(btn.label, by, asc)
+	}
+
+	h.vm.Sorting.Sort()
+}
+
+type HeaderButton struct {
+	widget.Button
+	header *Header
+	minSize fyne.Size
+	label   string
+}
+
+func NewHeaderButton(h *Header) *HeaderButton {
 	hb := &HeaderButton{
-		headers: h,
+		header: h,
 	}
 
 	hb.OnTapped = func() {
-		hb.headers.Sort(hb.label)
+		hb.header.Pressed(hb.label)
 	}
 
 	hb.minSize = fyne.NewSize(80, 30)
@@ -122,13 +164,15 @@ func NewHeaderButton( h *viewmodel.TableHeaders) *HeaderButton {
 	return hb
 }
 
-func (hb *HeaderButton) Update(l string) {
-	hb.label = l
-	text, _ := hb.headers.Labels[l].Get()
-	hb.SetText(text)
-	hb.headers.Labels[hb.label].AddListener(binding.NewDataListener(func() {
-		text, _ := hb.headers.Labels[hb.label].Get()
-		hb.SetText(text)
-	}))
+func (hb *HeaderButton) Update(label string, by string, asc bool) {
+	hb.label = label
+	if label == by {
+		if asc {
+			hb.SetText("↑ " + label)
+		} else {
+			hb.SetText("↓ " + label)
+		}
+	} else {
+		hb.SetText("- " + label)
+	}
 }
-

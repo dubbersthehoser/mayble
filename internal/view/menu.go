@@ -70,6 +70,7 @@ func NewMenu(w fyne.Window, vm *viewmodel.Menu) *fyne.Container {
 		d.Show()
 
 	})
+
 	saveDBBtn := widget.NewButton("Create", func() {
 		d := dialog.NewFileSave(func(w fyne.URIWriteCloser, err error) {
 			var path string

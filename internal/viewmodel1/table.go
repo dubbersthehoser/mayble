@@ -61,8 +61,6 @@ func (s *SortingTable) notify() {
 	}
 }
 
-
-
 type ColumnSettings struct {
 	cfg *config.Config
 	l []func()
@@ -73,6 +71,25 @@ func newColumnSettings(cfg *config.Config) *ColumnSettings {
 		cfg: cfg,
 	}
 	return cs
+}
+
+func (ts *ColumnSettings) Headers() []string {
+	fullFields := models.BookEntryFields()
+	if ts.IsLoanHidden() {
+		fullFields[models.IdxBorrower] = ""
+		fullFields[models.IdxLoanedAt] = ""
+	}
+	if ts.IsReadHidden() {
+		fullFields[models.IdxCompletedAt] = ""
+		fullFields[models.IdxRating] = ""
+	}
+	headers := make([]string, 0)
+	for _, h := range fullFields {
+		if h != "" {
+			headers = append(headers, h)
+		}
+	}
+	return headers
 }
 
 func (ts *ColumnSettings) IsLoanHidden() bool {
@@ -130,6 +147,7 @@ func (ts *ColumnSettings) GetWidth(label string) float32 {
 	return h.Width
 }
 
+// AddListener listen for changes to hidden columns.
 func (ts *ColumnSettings) AddListener(fn func()) {
 	if ts.l == nil {
 		ts.l = make([]func(), 0)
@@ -145,16 +163,21 @@ func (ts *ColumnSettings) notify() {
 
 type EntrySelected struct {
 	row int
+	col int
 	l []func()
 }
 
-func (es *EntrySelected) Select(row int) {
+func (es *EntrySelected) Select(row, col int) {
 	es.row = row
 	es.notify()
 }
 func (es *EntrySelected) Unselect() {
 	es.row = -1
 	es.notify()
+}
+
+func (es *EntrySelected) Get() (int, int) {
+	return es.row, es.col
 }
 
 func (es *EntrySelected) Has() bool {

@@ -16,7 +16,6 @@ import (
 const (
 	BodyNoData int = iota
 	BodyTable
-	BodySettings
 	BodyBookEdit
 	BodyBookCreate
 )
@@ -24,6 +23,7 @@ const (
 type Window struct {
 	cfg            *config.Config
 	service        *app.Service
+
 	Body           *Body
 	StatusLine     *StatusLine
 	Controls       *TableControl

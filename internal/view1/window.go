@@ -79,6 +79,11 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 		create,
 	)
 
+	vm.ColumnSettings.AddListener(func() {
+		body.Objects[1] = newTable(vm)
+	})
+
+
 	return body
 }
 
