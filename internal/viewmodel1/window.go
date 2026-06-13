@@ -10,7 +10,6 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
-
 )
 
 const (
@@ -29,10 +28,13 @@ type Window struct {
 	Controls       *TableControl
 	FileManage     *FileManage
 	DBPath         *DBPath
+	UniqueGenres   *UniqueGenres
 	Selected       *EntrySelected
 	ColumnSettings *ColumnSettings
 	DataTable      *DataTable
 	Sorting        *SortingTable
+	Searching      *Searching
+	Search         func(string)
 }
 
 func NewWindow(cfg *config.Config) *Window {
@@ -45,6 +47,8 @@ func NewWindow(cfg *config.Config) *Window {
 		DBPath: newDBPath(cfg),
 		DataTable: newDataTable(cfg, serv),
 		Sorting: newSortingTable(cfg),
+		Searching: &Searching{},
+		UniqueGenres: newUniqueGenres(serv),
 	}
 
 	w.Controls = &TableControl{
@@ -65,6 +69,14 @@ func NewWindow(cfg *config.Config) *Window {
 				log.Println("Error:", err)
 			}
 		},
+	}
+
+	w.Search = func(s string) {
+		row, col, ok := w.Searching.search(w.DataTable.data, s)
+		if !ok {
+			return
+		}
+		w.Selected.Select(row, col)
 	}
 
 	w.FileManage = &FileManage{
@@ -139,6 +151,7 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
+
 	if err := serv.LoadDatabase(); err != nil {
 		w.StatusLine.sendError(err.Error())
 		w.Body.Set(BodyNoData)
@@ -160,57 +173,6 @@ func NewWindow(cfg *config.Config) *Window {
 	w.Selected = &EntrySelected{}
 	return w
 }
-
-type DBPath struct {
-	cfg *config.Config
-	l []func()
-}
-func newDBPath(cfg *config.Config) *DBPath{
-	dbp := &DBPath{
-		cfg: cfg,
-	}
-	return dbp
-}
-func (p *DBPath) Get() string {
-	return p.cfg.DBFile
-}
-func (p *DBPath) Set(s string) {
-	p.cfg.DBFile = s
-}
-func (p *DBPath) AddListener(fn func()) {
-	if p.l == nil {
-		p.l = make([]func(), 0)
-	}
-	p.l = append(p.l, fn)
-}
-
-type Body struct {
-	value int
-	l []func()
-}
-
-func (b *Body) Value() int {
-	return b.value
-}
-
-func (b *Body) Set(v int) {
-	b.value = v
-	b.notify()
-}
-
-func (b *Body) notify() {
-	for _, fn := range b.l {
-		fn()
-	}
-}
-
-func (b *Body) AddListener(fn func()) {
-	if b.l == nil {
-		b.l = make([]func(), 0)
-	}
-	b.l = append(b.l, fn)
-}
-
 
 type TableControl struct {
 	OnCreate   func()

@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
-	//"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
@@ -37,7 +36,7 @@ func NewWindow(w fyne.Window, vm *viewmodel.Window) *fyne.Container {
 func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 
 	noData := newNoData(vm)
-	table := newTable(vm)
+	table := newBodyTable(vm)
 	edit := newEdit(vm)
 	create := newCreate(vm)
 
@@ -79,21 +78,9 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 		create,
 	)
 
-	vm.ColumnSettings.AddListener(func() {
-		body.Objects[1] = newTable(vm)
-	})
-
-
 	return body
 }
 
-func newEdit(vm *viewmodel.Window) fyne.CanvasObject {
-	return nil
-}
-
-func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
-	return nil
-}
 
 func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 	// todo: needs more work.

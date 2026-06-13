@@ -7,6 +7,16 @@ import (
 
 const dateFormat = "02/01/2006"
 
+const capRating = 6
+
+func Ratings() []string {
+	r := make([]string, capRating)
+	for i := range capRating {
+		r[i] = formatRating(i)
+	}
+	return r
+}
+
 func formatDate(t *time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -31,5 +41,10 @@ func formatRating(r int) string {
 	default:
 		return "ERROR"
 	}
+}
+
+func parseDate(t string) (*time.Time, error) {
+	ret, err := time.Parse(dateFormat, t)
+	return &ret, err
 }
 

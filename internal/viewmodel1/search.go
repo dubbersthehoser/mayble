@@ -1,159 +1,97 @@
 package viewmodel
 
 import (
-	"cmp"
 	"slices"
-	"strings"
-	"unicode"
+	"cmp"
+	
+	"github.com/dubbersthehoser/mayble/internal/search"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
-// EditDist an Levenshtein distance function.
-//
-// Returns the total number edits to make s and t match.
-func EditDist(s, t string) int {
+type Searching struct {
+	column int
 
-	if len(s) == 0 {
-		return len(t)
-	}
-	if len(t) == 0 {
-		return len(s)
-	}
-
-	height := len(t) + 1
-	width := len(s) + 1
-
-	topbuf := make([]int, width)
-	buffer := make([]int, width)
-
-	for i := range width {
-		topbuf[i] = i
-	}
-
-	for y := 1; y < height; y++ {
-		buffer[0] = y
-		for x := 1; x < width; x++ {
-			if t[y-1] != s[x-1] {
-				del := 1 + topbuf[x]
-				ins := 1 + buffer[x-1]
-				cha := 1 + topbuf[x-1]
-				buffer[x] = min(del, ins, cha)
-			} else {
-				buffer[x] = topbuf[x-1]
-			}
-		}
-		buffer, topbuf = topbuf, buffer
-	}
-	return topbuf[width-1]
+	cellSearch  search.CellSearch
+	tableSearch search.TableSearch
 }
 
-// searchCompare get the compare score for a search.
-//
-// Score goes from 0-n where 0 is the lowest and n is the highest.
-// No match returns -1.
-func searchCompare(text, search string) int {
+func (s *Searching) SetBy(c string) {
+	if c == "All" {
+		s.column = -1
+		return
+	} 
 
-	text = strings.ToLower(text)
-	search = strings.ToLower(search)
+	s.column = slices.Index(models.BookEntryFields(), c)
+}
 
-	const (
-		ExactMatch int = 10000
-		NoMatch    int = -1
-
-		SubString     int = 5000 // Base sub-string search score.
-		BoundaryBonus int = 1000 // Sub-string bonus for being a prefix of a word.
-
-		Fuzzy         int = 1000 // Base fuzzy search score
-		fuzzyTheshold int = 40   // Precentage theshold for the length of longest string to the edit distance.
-		fuzzyStep     int = -100 // Reduced score per edit distance step.
-	)
-
-	if text == search {
-		return ExactMatch
+func (s *Searching) search(data [][]string, search string) (int, int, bool){
+	type result struct{
+		row, col, score int
 	}
-
-	if idx := strings.Index(text, search); idx != -1 {
-		score := SubString
-		// check whether the search string is at the start of a word in text.
-		inBoundary := idx == 0 || !unicode.IsLetter(rune(text[idx-1]))
-		if inBoundary {
-			score += BoundaryBonus
-		}
-		return score
-	}
-
-	distance := EditDist(text, search)
-	maxLength := max(len(text), len(search))
-	if distance*100 > (maxLength * fuzzyTheshold) {
-		return NoMatch
-	}
-	score := Fuzzy + (distance * fuzzyStep)
-	if score < 0 {
-		return NoMatch
+	if s.column == -1 {
+		return s.searchAll(data, search)
 	} else {
-		return score
+		return s.searchColumn(data, search)
 	}
 }
 
-type dataSearch struct {
-	test string
-	data [][]string
-	col, row int
-}
-
-func (ds *dataSearch) Next() bool {
-	if len(ds.data) >= ds.row {
-		return false
+func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool) {
+	type result struct{
+		row, score int
 	}
-	if len(ds.data[ds.row]) >= ds.col {
-		ds.row += 1
-		ds.col = 0
-		if len(ds.data) >= ds.row {
-			return false
+	results := make([]result, 0)
+	s.cellSearch.Set(data[s.column], search)
+	for !s.cellSearch.IsFinished() {
+		for s.cellSearch.Next() {
+			row := s.cellSearch.Pos()
+			score := s.cellSearch.Score()
+			r := result{
+				row: row,
+				score: score,
+			}
+			results = append(results, r)
 		}
 	}
-	text := ds.data[ds.row][ds.col]
-}
 
-// A SearchResult is a result of a table search.
-type SearchResult struct {
-	ID       int64
-	Row, Col int
-	Score    int
-}
-
-// Search table for values.
-//
-// Set header to an empty string will do a global search, otherwise searches a particular column.
-func Search(data [][]string, search, header string) []SearchResult {
-	if search == "" {
-		return []SearchResult{}
+	if len(results) == 0 {
+		return 0, 0, false
 	}
-	result := []SearchResult{}
-	WalkVisableValues(t, func(row, col int, c *Cell) bool {
 
-		if search == "" {
-			return false
-		}
-
-		if header != "" && c.Header() != header {
-			return false
-		}
-
-		score := searchCompare(c.Value(), search)
-		if score == -1 {
-			return false
-		}
-		r := SearchResult{
-			Score: score,
-			Row:   row,
-			Col:   col,
-			ID:    c.ID(),
-		}
-		result = append(result, r)
-		return false
+	slices.SortFunc(results, func(a, b result) int {
+		return cmp.Compare(a.score, b.score)
 	})
-	slices.SortFunc(result, func(a, b SearchResult) int {
-		return cmp.Compare(a.Score, b.Score) * -1
-	})
-	return result
+	r := results[0]
+	return r.row, s.column, true
 }
+
+func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
+	type result struct{
+		row, col, score int
+	}
+	results := make([]result, 0)
+	s.tableSearch.Set(data, search)
+	for !s.tableSearch.IsFinished() {
+		for s.tableSearch.Next() {
+			row, col := s.tableSearch.Pos()
+			score := s.tableSearch.Score()
+			r := result{
+				row: row,
+				col: col,
+				score: score,
+			}
+			results = append(results, r)
+		}
+	}
+
+	if len(results) == 0 {
+		return 0,0, false
+	}
+
+	slices.SortFunc(results, func(a, b result) int {
+		return cmp.Compare(a.score, b.score)
+	})
+
+	r := results[0]
+	return r.row, r.col, true
+}
+

@@ -4,11 +4,37 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/container"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
+func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
+
+	search := widget.NewEntry()
+	searchBy := widget.NewSelect(
+		[]string{
+			"All",
+			"Table",
+			"Author",
+			"Genre",
+			"Borrower",
+		}, 
+		vm.Searching.SetBy,
+	)
+
+	top := container.NewGridWithColumns(2, search, searchBy)
+	table := container.NewStack(newTable(vm))
+	body := container.NewBorder(top, nil,nil,nil, table)
+
+	vm.ColumnSettings.AddListener(func() {
+		table.Objects[0] = newTable(vm)
+		table.Refresh()
+	})
+
+	return body
+}
 
 //func newTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *viewmodel.TableSelect) fyne.CanvasObject {
 func newTable(vm *viewmodel.Window) fyne.CanvasObject {
