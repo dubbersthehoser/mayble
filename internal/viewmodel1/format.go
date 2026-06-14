@@ -2,6 +2,8 @@ package viewmodel
 
 import (
 	"time"
+	"fmt"
+	"slices"
 )
 
 
@@ -46,5 +48,13 @@ func formatRating(r int) string {
 func parseDate(t string) (*time.Time, error) {
 	ret, err := time.Parse(dateFormat, t)
 	return &ret, err
+}
+
+func parseRating(r string) (int, error) {
+	idx := slices.Index(Ratings(), r)
+	if idx == -1 {
+		return 0, fmt.Errorf("invalid rating string '%s'", r)
+	}
+	return idx, nil
 }
 

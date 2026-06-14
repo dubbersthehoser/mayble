@@ -17,9 +17,6 @@ import (
 
 func NewWindow(w fyne.Window, vm *viewmodel.Window) *fyne.Container {
 
-	// Todo: put this in main
-	w.SetMaster()
-
 	w.SetMainMenu(newMainMenu(vm, w))
 
 	status := newStatusLine(vm.StatusLine)

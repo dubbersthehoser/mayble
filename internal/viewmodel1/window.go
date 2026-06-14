@@ -35,6 +35,7 @@ type Window struct {
 	Sorting        *SortingTable
 	Searching      *Searching
 	Search         func(string)
+	Form           *BookForm
 }
 
 func NewWindow(cfg *config.Config) *Window {
@@ -49,6 +50,47 @@ func NewWindow(cfg *config.Config) *Window {
 		Sorting: newSortingTable(cfg),
 		Searching: &Searching{},
 		UniqueGenres: newUniqueGenres(serv),
+	}
+
+	w.Form = &BookForm{
+		OnUpdate: func() {
+			book, err := w.Form.GetBookEntry()
+			if err != nil {
+				w.StatusLine.sendError(err.Error())
+				log.Println("Waring:", err)
+				return
+			}
+
+			row, _ := w.Selected.Get()
+			id, ok := w.DataTable.rowToID[row]
+			if !ok {
+				log.Printf("Error: row '%d' not found in ids", row)
+				return
+			}
+			book.ID = id
+			if err := serv.UpdateBook(book); err != nil {
+				log.Println("Error:", err)
+				w.StatusLine.sendError(err.Error())
+				return
+			}
+			w.StatusLine.sendSuccess("Updated!")
+		},
+
+		OnCreate: func() {
+			book, err := w.Form.GetBookEntry()
+			if err != nil {
+				w.StatusLine.sendError(err.Error())
+				log.Println("Waring:", err)
+				return
+			}
+
+			if _, err := serv.CreateBook(book); err != nil {
+				log.Println("Error:", err)
+				w.StatusLine.sendError(err.Error())
+				return
+			}
+			w.StatusLine.sendSuccess("Created!")
+		},
 	}
 
 	w.Controls = &TableControl{

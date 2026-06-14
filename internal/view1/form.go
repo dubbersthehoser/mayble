@@ -3,55 +3,59 @@ package view
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
 	
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 )
 func newEdit(vm *viewmodel.Window) fyne.CanvasObject {
-	return nil
+	return newBookForm(vm, "Update", vm.Form.OnUpdate)
 }
 
 func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
-	return nil
+	return newBookForm(vm, "Create", vm.Form.OnCreate)
 }
 
-func newBookForm(vm *viewmodel.Window, submit func()) fyne.CanvasObject {
+func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
-	loanCheck := widget.NewCheck("Is on loan.", vm.updateForm.SetLoaned)
-	readCheck := widget.NewCheckWithData("Has been completed.", vm.IsRead)
+	loanCheck := widget.NewCheck("Is on loan.", vm.Form.SetLoaned)
+	readCheck := widget.NewCheck("Has been completed.", vm.Form.SetCompleted)
 
-	submit := NewEnterButton("Submit", submit)
+	submitBtn := NewEnterButton(label, submit)
 
-	submit.Alignment = widget.ButtonAlignLeading
+	submitBtn.Alignment = widget.ButtonAlignLeading
 
-	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
+	bookEntry := newBookEntry(vm)
 
 	top := container.NewVBox(
 		bookEntry,
 		loanCheck,
-		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
+		newLoanEntry(vm),
 		readCheck,
-		newReadEntry(vm.IsRead, vm.Completed, vm.Rating),
-		container.NewHBox(add, submit, limit),
+		newReadEntry(vm),
+		container.NewHBox(submitBtn),
 	)
 
 	return top
 }
 
-func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.UniqueGenres) *fyne.Container {
+func newBookEntry(vm *viewmodel.Window) *fyne.Container {
 
-	titleEntry := widget.NewEntryWithData(title)
-	authorEntry := widget.NewEntryWithData(author)
+	titleEntry := widget.NewEntry()
+	titleEntry.OnChanged = vm.Form.SetTitle
+	authorEntry := widget.NewEntry()
+	authorEntry.OnChanged = vm.Form.SetAuthor
 
-	genres := uniqueGenres.Get()
+	genres := vm.UniqueGenres.Genres()
 	genreEntry := widget.NewSelectEntry(genres)
-	genreEntry.Bind(genre)
+	genreEntry.OnChanged = vm.Form.SetGenre
+	vm.UniqueGenres.AddListener(func() {
+		genreEntry.SetOptions(vm.UniqueGenres.Genres())
+	})
 
-	uniqueGenres.AddListener(binding.NewDataListener(func() {
-		genres := uniqueGenres.Get()
-		genreEntry.SetOptions(genres)
-	}))
+	vm.Form.AddListener(func() {
+		titleEntry.SetText(vm.Form.GetTitle())
+		authorEntry.SetText(vm.Form.GetAuthor())
+	})
 
 	titleEntry.SetPlaceHolder("Title...")
 	authorEntry.SetPlaceHolder("Author...")
@@ -66,12 +70,11 @@ func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.U
 
 }
 
-func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.String) *fyne.Container {
+func newLoanEntry(vm *viewmodel.Window) *fyne.Container {
 	dateEntry := widget.NewDateEntry()
+	dateEntry.OnChanged = vm.Form.SetLoanedAt
 	nameEntry := widget.NewEntry()
-
-	dateEntry.Bind(date)
-	nameEntry.Bind(borrower)
+	nameEntry.OnChanged = vm.Form.SetBorrower
 
 	nameEntry.SetPlaceHolder("Borrower...")
 	dateEntry.SetPlaceHolder("DD/MM/YYYY")
@@ -81,33 +84,33 @@ func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.S
 		dateEntry,
 	)
 
-	ok, _ := isLoaned.Get()
-	if !ok {
-		dateEntry.Disable()
-		nameEntry.Disable()
-	}
-
-	isLoaned.AddListener(binding.NewDataListener(func() {
-		ok, _ := isLoaned.Get()
-		if ok {
+	update := func() {
+		if vm.Form.IsLoaned() {
 			dateEntry.Enable()
 			nameEntry.Enable()
 		} else {
 			dateEntry.Disable()
 			nameEntry.Disable()
 		}
-	}))
+
+		dateEntry.Date = vm.Form.GetLoanedAt()
+		dateEntry.Refresh()
+
+		nameEntry.SetText(vm.Form.GetBorrower())
+	}
+	vm.Form.AddListener(update)
+	update()
+
 	return c
 }
 
-func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.String) *fyne.Container {
-	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), rating)
+func newReadEntry(vm *viewmodel.Window) *fyne.Container {
+	ratingEntry := widget.NewSelect(viewmodel.Ratings(), vm.Form.SetRating)
 	completedEntry := widget.NewDateEntry()
-
-	ratingEntry.Bind(rating)
-	completedEntry.Bind(completed)
+	completedEntry.OnChanged = vm.Form.SetCompletedAt
 
 	rattingStrings := viewmodel.Ratings()
+
 	ratingEntry.PlaceHolder = rattingStrings[0]
 	completedEntry.SetPlaceHolder("DD/MM/YYYY")
 
@@ -116,21 +119,21 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 		ratingEntry,
 	)
 
-	ok, _ := isRead.Get()
-	if !ok {
-		ratingEntry.Disable()
-		completedEntry.Disable()
-	}
-
-	isRead.AddListener(binding.NewDataListener(func() {
-		ok, _ := isRead.Get()
-		if ok {
+	update := func() {
+		if vm.Form.IsCompleted() {
 			ratingEntry.Enable()
 			completedEntry.Enable()
 		} else {
 			ratingEntry.Disable()
 			completedEntry.Disable()
 		}
-	}))
+
+		ratingEntry.SetSelected(vm.Form.GetRating())
+		completedEntry.Date = vm.Form.GetCompletedAt()
+	}
+
+	vm.Form.AddListener(update)
+	update()
+
 	return c
 }

@@ -166,7 +166,8 @@ func (ts *TableSearch) Next() bool {
 		return false
 	}
 	if ts.cellSearch == nil {
-		ts.cellSearch = NewCellSearch(ts.table[ts.row], ts.search)
+		ts.cellSearch = &CellSearch{}
+		ts.cellSearch.Set(ts.table[ts.row], ts.search)
 	}
 	
 	for !ts.cellSearch.Next() {
@@ -175,7 +176,7 @@ func (ts *TableSearch) Next() bool {
 			if ts.IsFinished() {
 				return false
 			}
-			ts.cellSearch.Research(ts.table[ts.row], ts.search)
+			ts.cellSearch.Set(ts.table[ts.row], ts.search)
 		}
 	}
 	return true

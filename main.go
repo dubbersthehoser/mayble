@@ -9,8 +9,8 @@ import (
 	"fyne.io/fyne/v2/app"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/view"
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/view1"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 )
 
 func fatalLaunch(err error) {
@@ -55,9 +55,11 @@ func main() {
 	// Todo: add window size to config.
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
+	window.SetMaster()
 
-	uiVM := viewmodel.NewMainUI(cfg)
-	content := view.NewMainUI(window, uiVM)
+
+	vm := viewmodel.NewWindow(cfg)
+	content := view.NewWindow(window, vm)
 
 	window.SetContent(content)
 	window.ShowAndRun()
