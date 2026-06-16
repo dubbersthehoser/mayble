@@ -28,7 +28,12 @@ func newStatusLine() *StatusLine {
 		},
 		clrTimer: time.NewTimer(0),
 		start: make(chan struct{}),
-		
+
+		Text: binding.NewString(),
+	}
+
+	sl.clear = func() {
+		sl.Text.Set("")
 	}
 
 	countDown := time.Duration(time.Minute / 10)
@@ -43,7 +48,7 @@ func newStatusLine() *StatusLine {
 			}
 		}
 	}()
-	
+
 	return sl
 }
 

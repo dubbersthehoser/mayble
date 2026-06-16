@@ -82,10 +82,10 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		if cellID.Row != -1 {
 			return
 		}
-		vm.ColumnSettings.SetWidth(vm.ColumnSettings.Headers()[cellID.Col], object.Size().Width)
 
 		_, colLen := vm.DataTable.Size()
 		if cellID.Col < colLen {
+			vm.ColumnSettings.SetWidth(vm.ColumnSettings.Headers()[cellID.Col], object.Size().Width)
 			label := models.BookEntryFields()[cellID.Col]
 			by := vm.Sorting.GetOrderBy()
 			asc := vm.Sorting.GetAscending()
@@ -131,6 +131,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 type Header struct {
 	vm      *viewmodel.Window
 	buttons []*HeaderButton
+	minSize fyne.Size
 
 }
 
@@ -143,7 +144,11 @@ func NewHeader(vm *viewmodel.Window) *Header {
 }
 
 func (h *Header) NewHeaderButton() *HeaderButton {
-	hb := NewHeaderButton(h)
+	minSize := fyne.NewSize(
+		h.vm.ColumnSettings.MinWidth(),
+		25.0,
+	)
+	hb := NewHeaderButton(h, minSize)
 	h.buttons = append(h.buttons, hb)
 	return hb
 }
@@ -176,9 +181,10 @@ type HeaderButton struct {
 	label   string
 }
 
-func NewHeaderButton(h *Header) *HeaderButton {
+func NewHeaderButton(h *Header, minSize fyne.Size) *HeaderButton {
 	hb := &HeaderButton{
 		header: h,
+		minSize: minSize,
 	}
 
 	hb.OnTapped = func() {
@@ -187,6 +193,7 @@ func NewHeaderButton(h *Header) *HeaderButton {
 
 	hb.minSize = fyne.NewSize(80, 30)
 	hb.ExtendBaseWidget(hb)
+
 	return hb
 }
 
@@ -201,4 +208,8 @@ func (hb *HeaderButton) Update(label string, by string, asc bool) {
 	} else {
 		hb.SetText("- " + label)
 	}
+}
+
+func (hb *HeaderButton) MinSize() fyne.Size {
+	return hb.minSize
 }

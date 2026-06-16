@@ -35,11 +35,14 @@ type Config struct{
 	Version    string `json:"version"`
 	ConfigFile string `json:"config_file"`
 	DBFile     string `json:"db_file"`
-	UI struct{
-		Headers        map[int]Header `json:"headers"`
-		TableSortBy    int            `json:"table_sort_by"`
-		TableAscending bool           `json:"table_ascending"`
-	} `json:"ui"`
+	UI         UI     `json:"ui"`
+}
+
+type UI struct {
+	Headers map[int]Header `json:"headers"`
+	TableSortBy int        `json:"table_sort_by"`
+	TableAscending bool    `json:"table_ascending"`
+	TableMinWidth  float32 `json:"table_min_width"`
 }
 
 // NewConfigWithDefaults returns a fresh configuration for application.
@@ -51,12 +54,9 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 	cfg := &Config{
 		Version: Version,
 		ConfigFile: configFile,
-		UI: struct{
-			Headers map[int]Header `json:"headers"`
-			TableSortBy int        `json:"table_sort_by"`
-			TableAscending bool    `json:"table_ascending"`
-		}{
+		UI: UI{
 			Headers: make(map[int]Header),
+			TableMinWidth:  100.0,
 		},
 	}
 

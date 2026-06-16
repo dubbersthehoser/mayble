@@ -17,6 +17,7 @@ func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
+
 	loanCheck := widget.NewCheck("Is on loan.", vm.Form.SetLoaned)
 	readCheck := widget.NewCheck("Has been completed.", vm.Form.SetCompleted)
 
@@ -128,7 +129,9 @@ func newReadEntry(vm *viewmodel.Window) *fyne.Container {
 			completedEntry.Disable()
 		}
 
-		ratingEntry.SetSelected(vm.Form.GetRating())
+		// Don't use .SetSelected will create inf recursion.
+		ratingEntry.Selected = vm.Form.GetRating()
+		ratingEntry.Refresh()
 		completedEntry.Date = vm.Form.GetCompletedAt()
 	}
 

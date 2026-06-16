@@ -193,9 +193,12 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
+	w.Body.Set(BodyTable)
+
 
 	if err := serv.LoadDatabase(); err != nil {
 		w.StatusLine.sendError(err.Error())
+		log.Println("Warning:", err)
 		w.Body.Set(BodyNoData)
 	}
 

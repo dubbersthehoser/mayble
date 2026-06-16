@@ -73,6 +73,10 @@ func newColumnSettings(cfg *config.Config) *ColumnSettings {
 	return cs
 }
 
+func (ts *ColumnSettings) MinWidth() float32 {
+	return ts.cfg.UI.TableMinWidth
+}
+
 func (ts *ColumnSettings) Headers() []string {
 	fullFields := models.BookEntryFields()
 	if ts.IsLoanHidden() {
@@ -123,6 +127,9 @@ func (ts *ColumnSettings) SetReadHidden(t bool) {
 }
 
 func (ts *ColumnSettings) SetWidth(label string, width float32) {
+	if width <= ts.cfg.UI.TableMinWidth {
+		width = ts.cfg.UI.TableMinWidth
+	}
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
@@ -141,10 +148,15 @@ func (ts *ColumnSettings) GetWidth(label string) float32 {
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
-		return 200.0 // Todo: add constant or use config
+		return ts.cfg.UI.TableMinWidth
 	}
 	h := ts.cfg.UI.Headers[idx]
-	return h.Width
+	width := h.Width
+	if width <= ts.cfg.UI.TableMinWidth {
+		width = ts.cfg.UI.TableMinWidth
+	}
+	println(width)
+	return width
 }
 
 // AddListener listen for changes to hidden columns.
@@ -211,6 +223,7 @@ func newDataTable(cfg *config.Config, s *app.Service) *DataTable {
 	dt := &DataTable{
 		service: s,
 		cfg: cfg,
+		rowToID: make(map[int]int64),
 	}
 	dt.service.AddListener(func() {
 		dt.load()
