@@ -15,6 +15,16 @@ type Searching struct {
 	tableSearch search.TableSearch
 }
 
+func (s *Searching) GetOptions() []string {
+	return []string{
+		"All",
+		"Table",
+		"Author",
+		"Genre",
+		"Borrower",
+	}
+}
+
 func (s *Searching) SetBy(c string) {
 	if c == "All" {
 		s.column = -1

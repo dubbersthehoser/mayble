@@ -17,13 +17,16 @@ func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
-
 	loanCheck := widget.NewCheck("Is on loan.", vm.Form.SetLoaned)
 	readCheck := widget.NewCheck("Has been completed.", vm.Form.SetCompleted)
 
 	submitBtn := NewEnterButton(label, submit)
-
 	submitBtn.Alignment = widget.ButtonAlignLeading
+
+	closeBtn := NewEnterButton("Cancel", func() {
+		vm.Form.Reset()
+		vm.Body.Set(viewmodel.BodyTable)
+	})
 
 	bookEntry := newBookEntry(vm)
 
@@ -33,7 +36,7 @@ func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasO
 		newLoanEntry(vm),
 		readCheck,
 		newReadEntry(vm),
-		container.NewHBox(submitBtn),
+		container.NewHBox(submitBtn, closeBtn),
 	)
 
 	return top

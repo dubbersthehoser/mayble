@@ -14,15 +14,11 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := widget.NewEntry()
 	searchBy := widget.NewSelect(
-		[]string{
-			"All",
-			"Table",
-			"Author",
-			"Genre",
-			"Borrower",
-		}, 
+		vm.Searching.GetOptions(),
 		vm.Searching.SetBy,
 	)
+
+	searchBy.SetSelected(vm.Searching.GetOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
 	table := container.NewStack(newTable(vm))

@@ -92,20 +92,20 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	edit := widget.NewButton("Edit", vm.Controls.OnEdit)
 	
 	deleteFinal := widget.NewButton("Are You Sheer?", nil)
+	deleteFinal.Hide()
 	deleteInitial := widget.NewButton("Delete", nil)
 
 	deleteInitial.OnTapped = func() {
 		deleteFinal.Show()
 		deleteInitial.Hide()
-
-		go func() {
+		fyne.Do(func() {
 			timer := time.NewTimer(time.Second * 2)
 			<-timer.C
 			fyne.Do(func() {
 				deleteFinal.Hide()
 				deleteInitial.Show()
 			})
-		}()
+		})
 
 	}
 
@@ -130,9 +130,11 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	update := func() {
 		if vm.Body.Value() != viewmodel.BodyTable {
 			view.Hide()
-			return
+		} else {
+			view.Show()
 		}
 		if vm.Selected.Has() {
+			println("yest")
 			deleteInitial.Enable()
 			deleteFinal.Enable()
 			edit.Enable()
@@ -143,13 +145,11 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 			edit.Disable()
 			unselect.Disable()
 		}
-		
 	}
 
 	vm.Selected.AddListener(update)
 	vm.Body.AddListener(update)
 	update()
-
 	return view
 }
 

@@ -155,7 +155,6 @@ func (ts *ColumnSettings) GetWidth(label string) float32 {
 	if width <= ts.cfg.UI.TableMinWidth {
 		width = ts.cfg.UI.TableMinWidth
 	}
-	println(width)
 	return width
 }
 
@@ -179,8 +178,17 @@ type EntrySelected struct {
 	l []func()
 }
 
+func newEntrySelected() *EntrySelected {
+	es := &EntrySelected{
+		row: -1,
+		col: -1,
+	}
+	return es
+}
+
 func (es *EntrySelected) Select(row, col int) {
 	es.row = row
+	es.col = col
 	es.notify()
 }
 func (es *EntrySelected) Unselect() {
@@ -283,7 +291,7 @@ func (dt *DataTable) load() {
 		return
 	}
 
-	dt.data = dt.data[0:]
+	dt.data = dt.data[:0]
 	clear(dt.rowToID)
 	
 	for row, book := range books {

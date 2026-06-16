@@ -49,6 +49,7 @@ func NewWindow(cfg *config.Config) *Window {
 		DataTable: newDataTable(cfg, serv),
 		Sorting: newSortingTable(cfg),
 		Searching: &Searching{},
+		Selected: newEntrySelected(),
 		UniqueGenres: newUniqueGenres(serv),
 	}
 
@@ -74,6 +75,8 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			w.StatusLine.sendSuccess("Updated!")
+			w.Form.Reset()
+			w.Body.Set(BodyTable)
 		},
 
 		OnCreate: func() {
@@ -90,6 +93,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			w.StatusLine.sendSuccess("Created!")
+			w.Form.Reset()
 		},
 	}
 
@@ -215,7 +219,6 @@ func NewWindow(cfg *config.Config) *Window {
 		w.DataTable.load()
 	})
 
-	w.Selected = &EntrySelected{}
 	return w
 }
 
