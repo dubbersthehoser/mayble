@@ -18,10 +18,10 @@ type Searching struct {
 func (s *Searching) GetOptions() []string {
 	return []string{
 		"All",
-		"Table",
-		"Author",
-		"Genre",
-		"Borrower",
+		models.BookEntryFields()[models.IdxTitle],
+		models.BookEntryFields()[models.IdxAuthor],
+		models.BookEntryFields()[models.IdxGenre],
+		models.BookEntryFields()[models.IdxBorrower],
 	}
 }
 
@@ -35,9 +35,6 @@ func (s *Searching) SetBy(c string) {
 }
 
 func (s *Searching) search(data [][]string, search string) (int, int, bool){
-	type result struct{
-		row, col, score int
-	}
 	if s.column == -1 {
 		return s.searchAll(data, search)
 	} else {
@@ -103,5 +100,15 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 
 	r := results[0]
 	return r.row, r.col, true
+}
+
+func AllowedSearchOptions(options, headers []string) []string {
+	o := make([]string, 0)
+	for _, option := range options {
+		if slices.Contains(headers, option) || option == "All" {
+			o = append(o, option)
+		}
+	}
+	return o
 }
 

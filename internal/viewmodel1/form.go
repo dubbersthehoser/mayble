@@ -4,6 +4,8 @@ import (
 	"errors"
 	"slices"
 	"time"
+
+	"fyne.io/fyne/v2/data/binding"
 	
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/app"
@@ -13,107 +15,87 @@ type BookForm struct{
 
 	s *app.Service
 
-	entry struct{
-		title, author, genre string
-		isCompleted, isLoaned bool
-		completedAt *time.Time
-		rating string
-		loanedAt  *time.Time
-		borrower string
+	Fyne struct{
+		Title binding.String
+		Author binding.String
+		Genre binding.String
+
+		IsLoaned binding.Bool
+		Borrower binding.String
+		LoanedAt binding.String
+
+		IsCompleted binding.Bool
+		CompletedAt   binding.String
+		Rating      binding.String
+
 	}
 
 	SubmitLabel string
 	OnUpdate func()
 	OnCreate func()
+}
 
-	l []func()
+func newBookForm(onUpdate, onCreate func()) *BookForm {
+	bf := &BookForm{
+		OnUpdate: onUpdate,
+		OnCreate: onCreate,
+		Fyne: struct{
+			Title binding.String
+			Author binding.String
+			Genre binding.String
+
+			IsLoaned binding.Bool
+			Borrower binding.String
+			LoanedAt binding.String
+
+			IsCompleted binding.Bool
+			CompletedAt   binding.String
+			Rating      binding.String
+		}{
+			Title: binding.NewString(),
+			Author: binding.NewString(),
+			Genre: binding.NewString(),
+
+			IsLoaned: binding.NewBool(),
+			Borrower: binding.NewString(),
+			LoanedAt: binding.NewString(),
+
+			IsCompleted: binding.NewBool(),
+			Rating:      binding.NewString(),
+			CompletedAt: binding.NewString(),
+		},
+	}
+	return bf
 }
 
 func (bf *BookForm) Reset() {
-	bf.entry.title = ""
-	bf.entry.author = ""
-	bf.entry.genre = ""
-	bf.entry.completedAt = nil
-	bf.entry.rating = ""
-	bf.entry.loanedAt = nil
-	bf.entry.borrower = ""
-	bf.entry.isCompleted = false
-	bf.entry.isLoaned = false
+	_ = bf.Fyne.Title.Set("")
+	_ = bf.Fyne.Author.Set("")
+	_ = bf.Fyne.Genre.Set("")
+	_ = bf.Fyne.CompletedAt.Set("")
+	_ = bf.Fyne.Rating.Set("")
+	_ = bf.Fyne.LoanedAt.Set("")
+	_ = bf.Fyne.Borrower.Set("")
+	_ = bf.Fyne.IsCompleted.Set(false)
+	_ = bf.Fyne.IsLoaned.Set(false)
 }
 
-func (bf *BookForm) SetTitle(s string) {
-	bf.entry.title = s
-	bf.notify()
-}
-func (bf *BookForm) GetTitle() string {
-	return bf.entry.title
-}
+func (bf *BookForm) Set(book *models.BookEntry) {
+	_ = bf.Fyne.Title.Set(book.Title)
+	_ = bf.Fyne.Author.Set(book.Author)
+	_ = bf.Fyne.Genre.Set(book.Genre)
 
-func (bf *BookForm) SetAuthor(s string) {
-	bf.entry.author = s
-	bf.notify()
-}
-func (bf *BookForm) GetAuthor() string {
-	return bf.entry.author
-}
+	_ = bf.Fyne.IsCompleted.Set(book.IsCompleted)
+	if book.IsCompleted {
+		_ = bf.Fyne.CompletedAt.Set(book.CompletedAt.Format(dateFormat))
+		_ = bf.Fyne.Rating.Set(Ratings()[book.Rating])
+	}
 
-func (bf *BookForm) SetGenre(s string) {
-	bf.entry.genre = s
-	bf.notify()
-}
-func (bf *BookForm) GetGenre() string {
-	return bf.entry.genre
-}
-
-func (bf *BookForm) SetRating(s string) {
-	bf.entry.rating = s
-	bf.notify()
-}
-
-func (bf *BookForm) GetRating() string {
-	return bf.entry.rating 
-}
-
-func (bf *BookForm) SetCompletedAt(t *time.Time) {
-	bf.entry.completedAt = t
-	bf.notify()
-}
-func (bf *BookForm) GetCompletedAt() *time.Time {
-	return bf.entry.completedAt
-}
-
-func (bf *BookForm) SetBorrower(s string) {
-	bf.entry.borrower = s
-	bf.notify()
-}
-func (bf *BookForm) GetBorrower() string{
-	return bf.entry.borrower
-}
-
-func (bf *BookForm) SetLoanedAt(t *time.Time) {
-	bf.entry.loanedAt = t
-	bf.notify()
-}
-func (bf *BookForm) GetLoanedAt() *time.Time {
-	return bf.entry.loanedAt
-}
-
-func (bf *BookForm) SetLoaned(t bool) {
-	bf.entry.isLoaned = t
-	bf.notify()
-}
-
-func (bf *BookForm) IsLoaned() bool {
-	return bf.entry.isLoaned
-}
-
-func (bf *BookForm) SetCompleted(t bool) {
-	bf.entry.isCompleted = t
-	bf.notify()
-}
-
-func (bf *BookForm) IsCompleted() bool {
-	return bf.entry.isCompleted
+	bf.Fyne.IsLoaned.Set(book.IsLoaned)
+	if book.IsLoaned {
+		_ = bf.Fyne.LoanedAt.Set(book.LoanedAt.Format(dateFormat))
+		_ = bf.Fyne.Borrower.Set(book.Borrower)
+	}
 }
 
 func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
@@ -124,23 +106,31 @@ func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
 	
 	book := models.BookEntry{}
 
-	book.Title = bf.entry.title
-	book.Author = bf.entry.author
-	book.Genre = bf.entry.genre
+	book.Title, _ = bf.Fyne.Title.Get()
+	book.Author, _ = bf.Fyne.Author.Get()
+	book.Genre, _ = bf.Fyne.Genre.Get()
 
-	book.IsLoaned = bf.entry.isLoaned
-	if bf.entry.isLoaned {
-		date := bf.entry.loanedAt
-		book.LoanedAt = *date
-		book.Borrower = bf.entry.borrower
+	book.IsLoaned, _ = bf.Fyne.IsLoaned.Get()
+	if book.IsLoaned {
+		var err error
+		date, _ := bf.Fyne.LoanedAt.Get()
+		book.LoanedAt, err = time.Parse(dateFormat, date)
+		if err != nil {
+			return nil, err
+		}
+		book.Borrower, _ = bf.Fyne.Borrower.Get()
 	}
 
-	book.IsCompleted = bf.entry.isCompleted
-	if bf.entry.isCompleted {
-		date := bf.entry.completedAt
-		book.CompletedAt = *date
-
-		rating, err := parseRating(bf.entry.rating)
+	book.IsCompleted, _ = bf.Fyne.IsCompleted.Get()
+	if book.IsCompleted {
+		var err error
+		date, _ := bf.Fyne.CompletedAt.Get()
+		book.CompletedAt, err = time.Parse(dateFormat, date)
+		if err != nil {
+			return nil, err
+		}
+		rs, _ := bf.Fyne.Rating.Get()
+		rating, err := parseRating(rs)
 		if err != nil {
 			return nil, err
 		}
@@ -149,10 +139,19 @@ func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
 	return &book, nil
 }
 
+func (bf *BookForm) IsLoaned() bool {
+	ok, _ := bf.Fyne.IsLoaned.Get()
+	return ok
+}
+func (bf *BookForm) IsCompleted() bool {
+	ok, _ := bf.Fyne.IsCompleted.Get()
+	return ok
+}
+
 func (bf *BookForm) validate() error {
-	title := bf.entry.title
-	author := bf.entry.author
-	genre := bf.entry.genre
+	title, _ := bf.Fyne.Title.Get()
+	author, _ := bf.Fyne.Author.Get()
+	genre, _ := bf.Fyne.Genre.Get()
 
 	if title == "" {
 		return errors.New("missing title")
@@ -164,33 +163,44 @@ func (bf *BookForm) validate() error {
 		return errors.New("missing genre")
 	}
 
-	isLoaned := bf.entry.isLoaned
-	isRead := bf.entry.isCompleted
+	isLoaned, _ := bf.Fyne.IsLoaned.Get()
+	isRead, _ := bf.Fyne.IsCompleted.Get()
 
 	if isLoaned {
-		date := bf.entry.loanedAt
-		borrower := bf.entry.borrower
+		date, _ := bf.Fyne.LoanedAt.Get()
+		borrower, _ := bf.Fyne.Borrower.Get()
 
 		if borrower == "" {
 			return errors.New("missing borrower")
 		}
-		if date == nil {
+
+		if date == "" {
 			return errors.New("missing borrower date")
+		}
+
+		_, err := time.Parse(dateFormat, date)
+		if err != nil {
+			return errors.New("invalid date for loaned")
 		}
 	}
 
 	if isRead {
-		completed := bf.entry.completedAt
-		rating := bf.entry.rating
+		date, _ := bf.Fyne.CompletedAt.Get()
+		rating, _ := bf.Fyne.Rating.Get()
 
-		if completed == nil {
+		if date == "" {
 			return errors.New("missing completion date")
+		}
+
+		_, err := time.Parse(dateFormat, date)
+		if err != nil {
+			return errors.New("invalid date for completion")
 		}
 
 		ratings := Ratings()
 		rank := slices.Index(ratings, rating)
 		if rank == 0 {
-			return errors.New("ratting not selected")
+			return errors.New("rating not selected")
 		}
 		if rank == -1 {
 			return errors.New("invalid rating")
@@ -198,18 +208,5 @@ func (bf *BookForm) validate() error {
 		}
 	}
 	return nil
-}
-
-func (bf *BookForm) AddListener(fn func()) {
-	if bf.l == nil {
-		bf.l = make([]func(), 0)
-	}
-	bf.l = append(bf.l, fn)
-}
-
-func (bf *BookForm) notify() {
-	for _, fn := range bf.l {
-		fn()
-	}
 }
 

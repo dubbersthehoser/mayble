@@ -186,6 +186,31 @@ func SortBooks(books []models.BookEntry, index int, ascending bool) error {
 	}
 
 	slices.SortFunc(books, func(a, b models.BookEntry) int {
+
+		// keep all the non-active values to the bottom of list.
+		switch index {
+		case models.IdxRating, models.IdxCompletedAt:
+			if !a.IsCompleted && !b.IsCompleted {
+				return 0
+			}
+			if !a.IsCompleted {
+				return 1
+			}
+			if !b.IsCompleted {
+				return -1
+			}
+		case models.IdxBorrower, models.IdxLoanedAt:
+			if !a.IsLoaned && !b.IsLoaned {
+				return 0
+			}
+			if !a.IsLoaned {
+				return 1
+			}
+			if !b.IsLoaned {
+				return -1
+			}
+		}
+		
 		r := -1
 		switch index {
 		case models.IdxTitle:
@@ -203,10 +228,10 @@ func SortBooks(books []models.BookEntry, index int, ascending bool) error {
 		case models.IdxCompletedAt:
 			r = a.CompletedAt.Compare(b.CompletedAt)
 		}
-		if !ascending {
-			return r * -1
-		} else {
+		if ascending {
 			return r
+		} else {
+			return r * -1
 		}
 	})
 	return nil

@@ -59,7 +59,8 @@ func main() {
 
 
 	vm := viewmodel.NewWindow(cfg)
-	content := view.NewWindow(window, vm)
+	f := view.NewFyne(a, window)
+	content := view.NewWindow(f, vm)
 
 	window.SetContent(content)
 	window.ShowAndRun()

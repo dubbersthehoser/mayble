@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/data/binding"
 	
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 )
@@ -17,8 +18,8 @@ func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
-	loanCheck := widget.NewCheck("Is on loan.", vm.Form.SetLoaned)
-	readCheck := widget.NewCheck("Has been completed.", vm.Form.SetCompleted)
+	loanCheck := widget.NewCheckWithData("Is on loan.", vm.Form.Fyne.IsLoaned)
+	readCheck := widget.NewCheckWithData("Has been completed.", vm.Form.Fyne.IsCompleted)
 
 	submitBtn := NewEnterButton(label, submit)
 	submitBtn.Alignment = widget.ButtonAlignLeading
@@ -44,21 +45,14 @@ func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasO
 
 func newBookEntry(vm *viewmodel.Window) *fyne.Container {
 
-	titleEntry := widget.NewEntry()
-	titleEntry.OnChanged = vm.Form.SetTitle
-	authorEntry := widget.NewEntry()
-	authorEntry.OnChanged = vm.Form.SetAuthor
+	titleEntry := widget.NewEntryWithData(vm.Form.Fyne.Title)
+	authorEntry := widget.NewEntryWithData(vm.Form.Fyne.Author)
 
 	genres := vm.UniqueGenres.Genres()
 	genreEntry := widget.NewSelectEntry(genres)
-	genreEntry.OnChanged = vm.Form.SetGenre
+	genreEntry.Bind(vm.Form.Fyne.Genre)
 	vm.UniqueGenres.AddListener(func() {
 		genreEntry.SetOptions(vm.UniqueGenres.Genres())
-	})
-
-	vm.Form.AddListener(func() {
-		titleEntry.SetText(vm.Form.GetTitle())
-		authorEntry.SetText(vm.Form.GetAuthor())
 	})
 
 	titleEntry.SetPlaceHolder("Title...")
@@ -76,9 +70,9 @@ func newBookEntry(vm *viewmodel.Window) *fyne.Container {
 
 func newLoanEntry(vm *viewmodel.Window) *fyne.Container {
 	dateEntry := widget.NewDateEntry()
-	dateEntry.OnChanged = vm.Form.SetLoanedAt
+	dateEntry.Bind(vm.Form.Fyne.LoanedAt)
 	nameEntry := widget.NewEntry()
-	nameEntry.OnChanged = vm.Form.SetBorrower
+	nameEntry.Bind(vm.Form.Fyne.Borrower)
 
 	nameEntry.SetPlaceHolder("Borrower...")
 	dateEntry.SetPlaceHolder("DD/MM/YYYY")
@@ -96,22 +90,18 @@ func newLoanEntry(vm *viewmodel.Window) *fyne.Container {
 			dateEntry.Disable()
 			nameEntry.Disable()
 		}
-
-		dateEntry.Date = vm.Form.GetLoanedAt()
-		dateEntry.Refresh()
-
-		nameEntry.SetText(vm.Form.GetBorrower())
 	}
-	vm.Form.AddListener(update)
+
+	vm.Form.Fyne.IsLoaned.AddListener(binding.NewDataListener(update))
 	update()
 
 	return c
 }
 
 func newReadEntry(vm *viewmodel.Window) *fyne.Container {
-	ratingEntry := widget.NewSelect(viewmodel.Ratings(), vm.Form.SetRating)
+	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), vm.Form.Fyne.Rating)
 	completedEntry := widget.NewDateEntry()
-	completedEntry.OnChanged = vm.Form.SetCompletedAt
+	completedEntry.Bind(vm.Form.Fyne.CompletedAt)
 
 	rattingStrings := viewmodel.Ratings()
 
@@ -131,15 +121,9 @@ func newReadEntry(vm *viewmodel.Window) *fyne.Container {
 			ratingEntry.Disable()
 			completedEntry.Disable()
 		}
-
-		// Don't use .SetSelected will create inf recursion.
-		ratingEntry.Selected = vm.Form.GetRating()
-		ratingEntry.Refresh()
-		completedEntry.Date = vm.Form.GetCompletedAt()
 	}
 
-	vm.Form.AddListener(update)
+	vm.Form.Fyne.IsCompleted.AddListener(binding.NewDataListener(update))
 	update()
-
 	return c
 }

@@ -13,19 +13,34 @@ import (
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := widget.NewEntry()
+	search.OnChanged = vm.Search
 	searchBy := widget.NewSelect(
-		vm.Searching.GetOptions(),
+		viewmodel.AllowedSearchOptions(
+			vm.Searching.GetOptions(),
+			vm.ColumnSettings.Headers(),
+		),
 		vm.Searching.SetBy,
 	)
 
 	searchBy.SetSelected(vm.Searching.GetOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
-	table := container.NewStack(newTable(vm))
-	body := container.NewBorder(top, nil,nil,nil, table)
+	table := container.NewStack(newTable(vm)) // wrapped with stack so table can be changed with out needing to know its location.
+	body := container.NewBorder(top, nil, nil, nil, table)
 
 	vm.ColumnSettings.AddListener(func() {
-		table.Objects[0] = newTable(vm)
+		var (
+			tableIdx    int = 0
+			searchByIdx int = 1
+		)
+
+		table.Objects[tableIdx] = newTable(vm)
+		top.Objects[searchByIdx].(*widget.Select).SetOptions(
+			viewmodel.AllowedSearchOptions(
+				vm.Searching.GetOptions(),
+				vm.ColumnSettings.Headers(),
+			))
+		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
 		table.Refresh()
 	})
 
@@ -42,6 +57,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	// By adding an invisable header with an empty column, allows the user to move
 	// the last visable header / column to be resized with the mouse. Down side is
 	// that there is an empty selectable item on the first entry of that last column.
+	// The selection system will ignore this selection of thoughs cells.
 
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
@@ -61,13 +77,15 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 				object.(*widget.Label).Show()
 				object.(*widget.Label).SetText(data)
 
-			} else { // (A) create empty column.
+			} else { // (A) create empty cell.
 				object.(*widget.Label).SetText("")
 			}
 		},
 	)
 
+	// Header Buttons
 	table.ShowHeaderColumn = false
+	table.ShowHeaderRow = true
 	header := NewHeader(vm)
 
 	table.CreateHeader = func() fyne.CanvasObject {
@@ -81,8 +99,8 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 		_, colLen := vm.DataTable.Size()
 		if cellID.Col < colLen {
-			vm.ColumnSettings.SetWidth(vm.ColumnSettings.Headers()[cellID.Col], object.Size().Width)
-			label := models.BookEntryFields()[cellID.Col]
+			label := vm.ColumnSettings.Headers()[cellID.Col]
+			vm.ColumnSettings.SetWidth(label, object.Size().Width)
 			by := vm.Sorting.GetOrderBy()
 			asc := vm.Sorting.GetAscending()
 			object.(*HeaderButton).Update(label, by, asc)
@@ -91,6 +109,9 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 			object.(*HeaderButton).Hide()
 		}
 	}
+
+
+
 
 	// Set the width of the columns.
 	for i, label := range models.BookEntryFields() {
@@ -110,7 +131,14 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	vm.Selected.AddListener(func() {
 		if vm.Selected.Has() {
 			row, col := vm.Selected.Get()
+			maxRow, maxCol := vm.DataTable.Size()
+			if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
+				id := widget.TableCellID{Row:row, Col:col}
+				table.Unselect(id)
+				return
+			}
 			table.Select(widget.TableCellID{Row: row, Col: col})
+
 		} else {
 			table.UnselectAll()
 		}
@@ -118,6 +146,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	// Listen for updates from table
 	vm.DataTable.AddListener(func() {
+		table.UnselectAll()
 		table.Refresh()
 	})
 

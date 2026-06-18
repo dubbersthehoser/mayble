@@ -53,8 +53,8 @@ func NewWindow(cfg *config.Config) *Window {
 		UniqueGenres: newUniqueGenres(serv),
 	}
 
-	w.Form = &BookForm{
-		OnUpdate: func() {
+	w.Form = newBookForm(
+		func() {
 			book, err := w.Form.GetBookEntry()
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -79,7 +79,7 @@ func NewWindow(cfg *config.Config) *Window {
 			w.Body.Set(BodyTable)
 		},
 
-		OnCreate: func() {
+		func() {
 			book, err := w.Form.GetBookEntry()
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -95,13 +95,22 @@ func NewWindow(cfg *config.Config) *Window {
 			w.StatusLine.sendSuccess("Created!")
 			w.Form.Reset()
 		},
-	}
+	)
 
 	w.Controls = &TableControl{
 		OnUnselect: func() {
 			w.Selected.Unselect()
 		},
 		OnEdit: func() {
+			row, _ := w.Selected.Get()
+			id := w.DataTable.rowToID[row]
+			book, err := serv.GetBookByID(id)
+			if err != nil {
+				log.Println("Error:", err)
+				w.StatusLine.sendError(err.Error())
+				return
+			}
+			w.Form.Set(&book)
 			w.Body.Set(BodyBookEdit)
 		},
 		OnCreate: func() {
@@ -187,7 +196,7 @@ func NewWindow(cfg *config.Config) *Window {
 				path += ".csv"
 			}
 
-			if err := serv.ImportFile(path); err != nil {
+			if err := serv.ExportFile(path); err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
 				return
@@ -212,7 +221,7 @@ func NewWindow(cfg *config.Config) *Window {
 			log.Println("Error:", err)
 			w.Body.Set(BodyNoData)
 		}
-		w.StatusLine.sendInfo(fmt.Sprintf("opened:", w.DBPath.Get()))
+		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
 	})
 
 	w.Sorting.AddListener(func() {

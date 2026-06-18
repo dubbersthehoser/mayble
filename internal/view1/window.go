@@ -11,11 +11,27 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/theme"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 )
 
-func NewWindow(w fyne.Window, vm *viewmodel.Window) *fyne.Container {
+type Fyne struct {
+	w fyne.Window
+	a fyne.App
+}
+
+func NewFyne(a fyne.App, w fyne.Window) *Fyne {
+	f := &Fyne{
+		w: w,
+		a: a,
+	}
+	return f
+}
+
+func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
+	
+	w := f.w
 
 	w.SetMainMenu(newMainMenu(vm, w))
 
@@ -87,44 +103,63 @@ func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 
-	unselect := widget.NewButton("Unselect", vm.Controls.OnUnselect)
-	create := widget.NewButton("Create", vm.Controls.OnCreate)
-	edit := widget.NewButton("Edit", vm.Controls.OnEdit)
-	
-	deleteFinal := widget.NewButton("Are You Sheer?", nil)
-	deleteFinal.Hide()
-	deleteInitial := widget.NewButton("Delete", nil)
+	unselect := widget.NewButtonWithIcon("", theme.CancelIcon(), vm.Controls.OnUnselect)
+	create := widget.NewButtonWithIcon("", theme.ContentAddIcon(), vm.Controls.OnCreate)
+	edit := widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), vm.Controls.OnEdit)
 
-	deleteInitial.OnTapped = func() {
-		deleteFinal.Show()
-		deleteInitial.Hide()
-		fyne.Do(func() {
-			timer := time.NewTimer(time.Second * 2)
-			<-timer.C
-			fyne.Do(func() {
-				deleteFinal.Hide()
-				deleteInitial.Show()
+	selectedBind := binding.NewString()
+	selectedLbl := widget.NewLabelWithData(selectedBind)
+
+	vm.Selected.AddListener(func() {
+		row, col := vm.Selected.Get()
+		if vm.Selected.Has() {
+			data := vm.DataTable.Get(row, col)
+			if data != "" {
+				data = " | " + data
+			}
+			format := fmt.Sprintf("%d:%d%s", row, col, data)
+			selectedBind.Set(format)
+		} else {
+			selectedBind.Set("")
+		}
+	})
+
+	var timer *time.Timer
+	duration := time.Second * 2
+	final := false
+
+	deleteBtn := widget.NewButtonWithIcon("", theme.DeleteIcon(), nil)
+	deleteBtn.OnTapped = func(){
+		if !final {
+			final = true
+			deleteBtn.SetText("?")
+			if timer != nil {
+				timer.Stop()
+			}
+			timer = time.AfterFunc(duration, func() {
+				fyne.Do(func() {
+					final = false
+					deleteBtn.SetText("")
+				})
 			})
-		})
+			return
+		}
 
-	}
+		timer.Stop()
+		timer = nil
 
-	deleteFinal.OnTapped = func() {
+		deleteBtn.SetText("")
+		final = false
 		vm.Controls.OnDelete()
-		deleteFinal.Hide()
-		deleteInitial.Show()
 	}
 
-	deleteView := container.NewStack(
-		deleteInitial,
-		deleteFinal,
-	)
-
+	
 	view := container.NewHBox(
 		create,
-		unselect,
 		edit,
-		deleteView,
+		deleteBtn,
+		unselect,
+		selectedLbl,
 	)
 
 	update := func() {
@@ -134,14 +169,11 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 			view.Show()
 		}
 		if vm.Selected.Has() {
-			println("yest")
-			deleteInitial.Enable()
-			deleteFinal.Enable()
+			deleteBtn.Enable()
 			edit.Enable()
 			unselect.Enable()
 		} else {
-			deleteInitial.Disable()
-			deleteFinal.Disable()
+			deleteBtn.Disable()
 			edit.Disable()
 			unselect.Disable()
 		}
@@ -175,7 +207,9 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 	}))
 	
 	vm.SetOnClear(func() {
-		label.SetText("")
+		fyne.Do(func() {
+			label.SetText("")
+		})
 	})
 
 	return label
@@ -239,30 +273,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		readIdx
 	)
 
-	table.Items[loanIdx].Action = func() {
-		if vm.ColumnSettings.IsLoanHidden() {
-			vm.ColumnSettings.SetLoanHidden(true)
-			table.Items[loanIdx].Checked = false
-		} else {
-			vm.ColumnSettings.SetLoanHidden(false)
-			table.Items[loanIdx].Checked = true
-		}
-		menu.Refresh()
-		fmt.Println("show/hide loaned columns")
-	}
-	table.Items[readIdx].Action = func() {
-		if vm.ColumnSettings.IsReadHidden() {
-			vm.ColumnSettings.SetReadHidden(true)
-			table.Items[readIdx].Checked = false
-		} else {
-			vm.ColumnSettings.SetReadHidden(false)
-			table.Items[readIdx].Checked = true
-		}
-		menu.Refresh()
-		fmt.Println("show/hide loaned columns")
-	}
-
-	update := func() {
+	bodyUpdate := func() {
 		if vm.Body.Value() != viewmodel.BodyTable {
 			table.Items[loanIdx].Disabled = true
 			table.Items[readIdx].Disabled = true
@@ -272,6 +283,45 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		}
 		menu.Refresh()
 	}
-	update()
+
+	updateCheck := func() {
+		if vm.ColumnSettings.IsLoanHidden() {
+			table.Items[loanIdx].Checked = false
+		} else {
+			table.Items[loanIdx].Checked = true
+		}
+		if vm.ColumnSettings.IsReadHidden() {
+			table.Items[readIdx].Checked = false
+		} else {
+			table.Items[readIdx].Checked = true
+		}
+		menu.Refresh()
+	}
+
+	table.Items[loanIdx].Action = func() {
+		if !vm.ColumnSettings.IsLoanHidden() {
+			vm.ColumnSettings.SetLoanHidden(true)
+		} else {
+			vm.ColumnSettings.SetLoanHidden(false)
+		}
+		updateCheck()
+	}
+
+	table.Items[readIdx].Action = func() {
+		if !vm.ColumnSettings.IsReadHidden() {
+			vm.ColumnSettings.SetReadHidden(true)
+		} else {
+			vm.ColumnSettings.SetReadHidden(false)
+		}
+		updateCheck()
+	}
+
+	vm.Body.AddListener(func() {
+		bodyUpdate()
+	})
+
+
+	bodyUpdate()
+	updateCheck()
 	return menu
 }
