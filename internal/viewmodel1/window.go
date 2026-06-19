@@ -129,6 +129,7 @@ func NewWindow(cfg *config.Config) *Window {
 	w.Search = func(s string) {
 		row, col, ok := w.Searching.search(w.DataTable.data, s)
 		if !ok {
+			w.Selected.Unselect()
 			return
 		}
 		w.Selected.Select(row, col)

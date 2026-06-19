@@ -3,6 +3,7 @@ package viewmodel
 import (
 	"slices"
 	"cmp"
+	"fmt"
 	
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/models"
@@ -43,11 +44,15 @@ func (s *Searching) search(data [][]string, search string) (int, int, bool){
 }
 
 func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool) {
+	dataCol := make([]string, 0)
+	for _, row := range data {
+		dataCol = append(dataCol, row[s.column])
+	}
 	type result struct{
 		row, score int
 	}
 	results := make([]result, 0)
-	s.cellSearch.Set(data[s.column], search)
+	s.cellSearch.Set(dataCol, search)
 	for !s.cellSearch.IsFinished() {
 		for s.cellSearch.Next() {
 			row := s.cellSearch.Pos()
@@ -67,11 +72,14 @@ func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool
 	slices.SortFunc(results, func(a, b result) int {
 		return cmp.Compare(a.score, b.score)
 	})
-	r := results[0]
+	r := results[len(results)-1]
 	return r.row, s.column, true
 }
 
 func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
+	if search == "" {
+		return 0, 0, false
+	}
 	type result struct{
 		row, col, score int
 	}
@@ -81,6 +89,9 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 		for s.tableSearch.Next() {
 			row, col := s.tableSearch.Pos()
 			score := s.tableSearch.Score()
+			if data[row][col] == "1984" {
+				println(score, search)
+			}
 			r := result{
 				row: row,
 				col: col,
@@ -89,7 +100,6 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 			results = append(results, r)
 		}
 	}
-
 	if len(results) == 0 {
 		return 0,0, false
 	}
@@ -97,8 +107,10 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 	slices.SortFunc(results, func(a, b result) int {
 		return cmp.Compare(a.score, b.score)
 	})
-
-	r := results[0]
+	for _, r := range results {
+		fmt.Printf("%d:%d %d '%s' -> '%s'\n",r.row, r.col, r.score, search, data[r.row][r.col])
+	}
+	r := results[len(results)-1]
 	return r.row, r.col, true
 }
 

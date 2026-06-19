@@ -44,10 +44,9 @@ func EditDist(s, t string) int {
 	return topbuf[width-1]
 }
 
-// searchCompare get the compare score for a search.
-//
-// Score goes from 0-n where 0 is the lowest and n is the highest.
-// No match returns -1.
+// searchCompare compare text to a search and get its score.
+// The score goes from 0-n where 0 is the lowest and n is the highest, highest being the closes match.
+// If there is no match it will return -1.
 func searchCompare(text, search string) int {
 
 	text = strings.ToLower(text)
@@ -100,7 +99,7 @@ type CellSearch struct {
 }
 
 func (cs *CellSearch) Pos() int {
-	return cs.curr
+	return cs.curr-1
 }
 
 func (cs *CellSearch) Score() int {
@@ -108,7 +107,7 @@ func (cs *CellSearch) Score() int {
 }
 
 func (cs *CellSearch) IsFinished() bool {
-	if len(cs.cells) >= cs.curr {
+	if len(cs.cells) <= cs.curr {
 		return true
 	}
 	return false
@@ -119,10 +118,10 @@ func (cs *CellSearch) Next() bool {
 		return false
 	}
 	cs.score = searchCompare(cs.cells[cs.curr], cs.search)
+	cs.curr += 1
 	if cs.score == -1 {
 		return false
 	}
-	cs.curr += 1
 	return true
 }
 
@@ -136,25 +135,25 @@ func (cs *CellSearch) Set(c []string, search string) {
 type TableSearch struct {
 	search string
 	table [][]string
-	row, col int
+	row   int
 	cellSearch *CellSearch
 }
 
 func (ts *TableSearch) Set(table [][]string, search string) {
 	ts.search = search
 	ts.table = table
-	ts.row, ts.col = 0, 0
+	ts.row = 0
 }
 
 func (ts *TableSearch) IsFinished() bool {
-	if len(ts.table) >= ts.row {
+	if len(ts.table) <= ts.row {
 		return true
 	}
 	return false
 }
 
 func (ts *TableSearch) Pos() (int, int) {
-	return ts.row, ts.cellSearch.curr
+	return ts.row, ts.cellSearch.curr - 1 
 }
 
 func (ts *TableSearch) Score() int {
@@ -171,6 +170,7 @@ func (ts *TableSearch) Next() bool {
 	}
 	
 	for !ts.cellSearch.Next() {
+		println(ts.Pos())
 		if ts.cellSearch.IsFinished() {
 			ts.row += 1
 			if ts.IsFinished() {
