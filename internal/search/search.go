@@ -5,6 +5,93 @@ import (
 	"unicode"
 )
 
+type CellSearch struct {
+	search string
+	cells []string
+	curr int
+	score int
+}
+
+func (cs *CellSearch) Pos() int {
+	return cs.curr-1
+}
+
+func (cs *CellSearch) Score() int {
+	return cs.score
+}
+
+func (cs *CellSearch) IsFinished() bool {
+	if len(cs.cells) <= cs.curr {
+		return true
+	}
+	return false
+}
+
+func (cs *CellSearch) Next() bool {
+	if cs.IsFinished() {
+		return false
+	}
+	cs.score = searchCompare(cs.cells[cs.curr], cs.search)
+	cs.curr += 1
+	return true
+}
+
+func (cs *CellSearch) Set(c []string, search string) {
+	cs.search = search
+	cs.cells = c
+	cs.score = -1
+	cs.curr = 0
+}
+
+type TableSearch struct {
+	search string
+	table [][]string
+	row   int
+	cellSearch *CellSearch
+}
+
+func (ts *TableSearch) Set(table [][]string, search string) {
+	ts.search = search
+	ts.table = table
+	ts.row = 0
+}
+
+func (ts *TableSearch) IsFinished() bool {
+	if len(ts.table) <= ts.row {
+		return true
+	}
+	return false
+}
+
+func (ts *TableSearch) Pos() (int, int) {
+	return ts.row, ts.cellSearch.curr - 1 
+}
+
+func (ts *TableSearch) Score() int {
+	return ts.cellSearch.score
+}
+
+func (ts *TableSearch) Next() bool {
+	if ts.IsFinished() {
+		return false
+	}
+	if ts.cellSearch == nil {
+		ts.cellSearch = &CellSearch{}
+		ts.cellSearch.Set(ts.table[ts.row], ts.search)
+	}
+	
+	for !ts.cellSearch.Next() {
+		if ts.cellSearch.IsFinished() {
+			ts.row += 1
+			if ts.IsFinished() {
+				return false
+			}
+			ts.cellSearch.Set(ts.table[ts.row], ts.search)
+		}
+	}
+	return true
+}
+
 // EditDist an Levenshtein distance function.
 //
 // Returns the total number edits to make s and t match.
@@ -91,93 +178,3 @@ func searchCompare(text, search string) int {
 	}
 }
 
-type CellSearch struct {
-	search string
-	cells []string
-	curr int
-	score int
-}
-
-func (cs *CellSearch) Pos() int {
-	return cs.curr-1
-}
-
-func (cs *CellSearch) Score() int {
-	return cs.score
-}
-
-func (cs *CellSearch) IsFinished() bool {
-	if len(cs.cells) <= cs.curr {
-		return true
-	}
-	return false
-}
-
-func (cs *CellSearch) Next() bool {
-	if cs.IsFinished() {
-		return false
-	}
-	cs.score = searchCompare(cs.cells[cs.curr], cs.search)
-	cs.curr += 1
-	if cs.score == -1 {
-		return false
-	}
-	return true
-}
-
-func (cs *CellSearch) Set(c []string, search string) {
-	cs.search = search
-	cs.cells = c
-	cs.score = -1
-	cs.curr = 0
-}
-
-type TableSearch struct {
-	search string
-	table [][]string
-	row   int
-	cellSearch *CellSearch
-}
-
-func (ts *TableSearch) Set(table [][]string, search string) {
-	ts.search = search
-	ts.table = table
-	ts.row = 0
-}
-
-func (ts *TableSearch) IsFinished() bool {
-	if len(ts.table) <= ts.row {
-		return true
-	}
-	return false
-}
-
-func (ts *TableSearch) Pos() (int, int) {
-	return ts.row, ts.cellSearch.curr - 1 
-}
-
-func (ts *TableSearch) Score() int {
-	return ts.cellSearch.score
-}
-
-func (ts *TableSearch) Next() bool {
-	if ts.IsFinished() {
-		return false
-	}
-	if ts.cellSearch == nil {
-		ts.cellSearch = &CellSearch{}
-		ts.cellSearch.Set(ts.table[ts.row], ts.search)
-	}
-	
-	for !ts.cellSearch.Next() {
-		println(ts.Pos())
-		if ts.cellSearch.IsFinished() {
-			ts.row += 1
-			if ts.IsFinished() {
-				return false
-			}
-			ts.cellSearch.Set(ts.table[ts.row], ts.search)
-		}
-	}
-	return true
-}
