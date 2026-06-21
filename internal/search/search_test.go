@@ -30,7 +30,9 @@ func TestSearchTable(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			ts.Set(table, test.search)
 			for !ts.Next() {
-				
+				if !ts.IsFinished() {
+					
+				}
 			}
 		})
 	}

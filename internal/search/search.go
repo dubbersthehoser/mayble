@@ -13,7 +13,7 @@ type CellSearch struct {
 }
 
 func (cs *CellSearch) Pos() int {
-	return cs.curr-1
+	return cs.curr - 1
 }
 
 func (cs *CellSearch) Score() int {
@@ -46,14 +46,16 @@ func (cs *CellSearch) Set(c []string, search string) {
 type TableSearch struct {
 	search string
 	table [][]string
-	row   int
-	cellSearch *CellSearch
+	row, col   int
+	score int
 }
 
 func (ts *TableSearch) Set(table [][]string, search string) {
 	ts.search = search
 	ts.table = table
 	ts.row = 0
+	ts.col = -1
+	ts.score = -1
 }
 
 func (ts *TableSearch) IsFinished() bool {
@@ -63,32 +65,31 @@ func (ts *TableSearch) IsFinished() bool {
 	return false
 }
 
+func (ts *TableSearch) IsRowFinished() bool {
+	if len(ts.table[0]) <= ts.col {
+		return true
+	}
+	return false
+}
+
 func (ts *TableSearch) Pos() (int, int) {
-	return ts.row, ts.cellSearch.curr - 1 
+	return ts.row, ts.col
 }
 
 func (ts *TableSearch) Score() int {
-	return ts.cellSearch.score
+	return ts.score
 }
 
 func (ts *TableSearch) Next() bool {
+	ts.col += 1
+	if ts.IsRowFinished() {
+		ts.row += 1
+		ts.col = 0
+	}
 	if ts.IsFinished() {
 		return false
 	}
-	if ts.cellSearch == nil {
-		ts.cellSearch = &CellSearch{}
-		ts.cellSearch.Set(ts.table[ts.row], ts.search)
-	}
-	
-	for !ts.cellSearch.Next() {
-		if ts.cellSearch.IsFinished() {
-			ts.row += 1
-			if ts.IsFinished() {
-				return false
-			}
-			ts.cellSearch.Set(ts.table[ts.row], ts.search)
-		}
-	}
+	ts.score = searchCompare(ts.table[ts.row][ts.col], ts.search)
 	return true
 }
 
@@ -145,6 +146,7 @@ func searchCompare(text, search string) int {
 
 		SubString     int = 5000 // Base sub-string search score.
 		BoundaryBonus int = 1000 // Sub-string bonus for being a prefix of a word.
+		PrefixBonus   int = 1000 // When search is the start of the text.
 
 		Fuzzy         int = 1000 // Base fuzzy search score
 		fuzzyTheshold int = 40   // Precentage theshold for the length of longest string to the edit distance.
@@ -159,8 +161,12 @@ func searchCompare(text, search string) int {
 		score := SubString
 		// check whether the search string is at the start of a word in text.
 		inBoundary := idx == 0 || !unicode.IsLetter(rune(text[idx-1]))
+		isPrefix   := strings.HasPrefix(text, search)
 		if inBoundary {
 			score += BoundaryBonus
+		}
+		if isPrefix {
+			score += PrefixBonus
 		}
 		return score
 	}

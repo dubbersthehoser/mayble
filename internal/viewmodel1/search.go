@@ -53,16 +53,17 @@ func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool
 	}
 	results := make([]result, 0)
 	s.cellSearch.Set(dataCol, search)
-	for !s.cellSearch.IsFinished() {
-		for s.cellSearch.Next() {
-			row := s.cellSearch.Pos()
-			score := s.cellSearch.Score()
-			r := result{
-				row: row,
-				score: score,
-			}
-			results = append(results, r)
+	for s.cellSearch.Next() {
+		row := s.cellSearch.Pos()
+		score := s.cellSearch.Score()
+		if score == -1 {
+			continue
 		}
+		r := result{
+			row: row,
+			score: score,
+		}
+		results = append(results, r)
 	}
 
 	if len(results) == 0 {
@@ -85,27 +86,29 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 	}
 	results := make([]result, 0)
 	s.tableSearch.Set(data, search)
-	for !s.tableSearch.IsFinished() {
-		for s.tableSearch.Next() {
-			row, col := s.tableSearch.Pos()
-			score := s.tableSearch.Score()
-			if data[row][col] == "1984" {
-				println(score, search)
-			}
-			r := result{
-				row: row,
-				col: col,
-				score: score,
-			}
-			results = append(results, r)
+	for s.tableSearch.Next() {
+		row, col := s.tableSearch.Pos()
+		score := s.tableSearch.Score()
+		if score == -1 {
+			continue
 		}
+		r := result{
+			row: row,
+			col: col,
+			score: score,
+		}
+		results = append(results, r)
 	}
 	if len(results) == 0 {
 		return 0,0, false
 	}
 
 	slices.SortFunc(results, func(a, b result) int {
-		return cmp.Compare(a.score, b.score)
+		r := cmp.Compare(a.score, b.score)
+		if r == 0 {
+			return cmp.Compare(a.row, b.row)
+		}
+		return r
 	})
 	for _, r := range results {
 		fmt.Printf("%d:%d %d '%s' -> '%s'\n",r.row, r.col, r.score, search, data[r.row][r.col])
