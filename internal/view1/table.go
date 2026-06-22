@@ -12,7 +12,14 @@ import (
 
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
-	search := widget.NewEntry()
+	search := NewSearchEntry(
+		func(){
+			vm.Searching.Next()
+		},
+		func(){
+			vm.Searching.Prev()
+		},
+	)
 	search.OnChanged = vm.Search
 	searchBy := widget.NewSelect(
 		viewmodel.AllowedSearchOptions(

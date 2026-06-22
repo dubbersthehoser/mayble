@@ -126,15 +126,6 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
-	w.Search = func(s string) {
-		row, col, ok := w.Searching.search(w.DataTable.data, s)
-		if !ok {
-			w.Selected.Unselect()
-			return
-		}
-		w.Selected.Select(row, col)
-	}
-
 	w.FileManage = &FileManage{
 		CreateDatabase: func(path string, err error) {
 			if err != nil {
@@ -151,6 +142,7 @@ func NewWindow(cfg *config.Config) *Window {
 				path += ".db"
 			}
 			w.DBPath.Set(path)
+			w.Body.Set(BodyTable)
 		},
 
 		OpenDatabase: func(path string, err error) {
@@ -163,6 +155,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			w.DBPath.Set(path)
+			w.Body.Set(BodyTable)
 		},
 
 		ImportFile: func(path string, err error) {
@@ -207,8 +200,25 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
-	w.Body.Set(BodyTable)
+	w.Search = func(s string) {
+		if s == "" {
+			w.Selected.Unselect()
+			return
+		}
+		w.Searching.search(w.DataTable.data, s)
+	}
 
+	w.Searching.AddListener(func() {
+		if w.Searching.Has() {
+			w.Selected.Select(
+				w.Searching.Selected(),
+			)
+		} else {
+			w.Selected.Unselect()
+		}
+	})
+
+	w.Body.Set(BodyTable)
 
 	if err := serv.LoadDatabase(); err != nil {
 		w.StatusLine.sendError(err.Error())
@@ -223,6 +233,11 @@ func NewWindow(cfg *config.Config) *Window {
 			w.Body.Set(BodyNoData)
 		}
 		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
+	})
+
+	w.ColumnSettings.AddListener(func() {
+		w.DataTable.load()
+		w.Selected.Unselect()
 	})
 
 	w.Sorting.AddListener(func() {

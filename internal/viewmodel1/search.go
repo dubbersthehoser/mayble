@@ -3,7 +3,6 @@ package viewmodel
 import (
 	"slices"
 	"cmp"
-	"fmt"
 	
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/models"
@@ -14,6 +13,11 @@ type Searching struct {
 
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
+
+	row int
+	scored [][]int
+
+	l []func()
 }
 
 func (s *Searching) GetOptions() []string {
@@ -23,6 +27,8 @@ func (s *Searching) GetOptions() []string {
 		models.BookEntryFields()[models.IdxAuthor],
 		models.BookEntryFields()[models.IdxGenre],
 		models.BookEntryFields()[models.IdxBorrower],
+		models.BookEntryFields()[models.IdxLoanedAt],
+		models.BookEntryFields()[models.IdxCompletedAt],
 	}
 }
 
@@ -35,15 +41,53 @@ func (s *Searching) SetBy(c string) {
 	s.column = slices.Index(models.BookEntryFields(), c)
 }
 
-func (s *Searching) search(data [][]string, search string) (int, int, bool){
-	if s.column == -1 {
-		return s.searchAll(data, search)
-	} else {
-		return s.searchColumn(data, search)
+func (s *Searching) Selected() (int, int) {
+	return s.scored[s.row][0], s.scored[s.row][1]
+}
+
+func (s *Searching) Has() bool {
+	return len(s.scored) != 0
+}
+
+func (s *Searching) Prev() {
+	s.row -= 1
+	if s.row < 0 {
+		s.row = len(s.scored) - 1
+	}
+	s.notify()
+}
+
+func (s *Searching) Next() {
+	s.row += 1
+	if s.row == len(s.scored) {
+		s.row = 0
+	}
+	s.notify()
+}
+
+func (s *Searching) AddListener(fn func()) {
+	if s.l == nil {
+		s.l = make([]func(), 0)
+	}
+	s.l = append(s.l, fn)
+}
+
+func (s *Searching) notify() {
+	for _, fn := range s.l {
+		fn()
 	}
 }
 
-func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool) {
+func (s *Searching) search(data [][]string, search string) {
+	if s.column == -1 {
+		s.searchAll(data, search)
+	} else {
+		s.searchColumn(data, search)
+	}
+	s.notify()
+}
+
+func (s *Searching) searchColumn(data [][]string, search string) {
 	dataCol := make([]string, 0)
 	for _, row := range data {
 		dataCol = append(dataCol, row[s.column])
@@ -67,20 +111,28 @@ func (s *Searching) searchColumn(data [][]string, search string) (int, int, bool
 	}
 
 	if len(results) == 0 {
-		return 0, 0, false
+		s.scored = s.scored[:0]
+		s.row = 0
+		return
 	}
-
 	slices.SortFunc(results, func(a, b result) int {
+		r := cmp.Compare(a.score, b.score)
+		if r == 0 {
+			return cmp.Compare(a.row, b.row)
+		}
 		return cmp.Compare(a.score, b.score)
 	})
-	r := results[len(results)-1]
-	return r.row, s.column, true
+	s.row = 0
+	s.scored = s.scored[:0]
+	for _, r := range results {
+		row := make([]int, 2)
+		row[0] = r.row
+		row[1] = s.column
+		s.scored = append(s.scored, row)
+	}
 }
 
-func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
-	if search == "" {
-		return 0, 0, false
-	}
+func (s *Searching) searchAll(data [][]string, search string) {
 	type result struct{
 		row, col, score int
 	}
@@ -100,7 +152,8 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 		results = append(results, r)
 	}
 	if len(results) == 0 {
-		return 0,0, false
+		s.row = 0
+		s.scored = s.scored[:0]
 	}
 
 	slices.SortFunc(results, func(a, b result) int {
@@ -108,13 +161,16 @@ func (s *Searching) searchAll(data [][]string, search string) (int, int, bool) {
 		if r == 0 {
 			return cmp.Compare(a.row, b.row)
 		}
-		return r
+		return r * -1
 	})
+	s.row = 0
+	s.scored = s.scored[:0]
 	for _, r := range results {
-		fmt.Printf("%d:%d %d '%s' -> '%s'\n",r.row, r.col, r.score, search, data[r.row][r.col])
+		row := make([]int, 2)
+		row[0] = r.row
+		row[1] = r.col
+		s.scored = append(s.scored, row)
 	}
-	r := results[len(results)-1]
-	return r.row, r.col, true
 }
 
 func AllowedSearchOptions(options, headers []string) []string {
@@ -126,4 +182,3 @@ func AllowedSearchOptions(options, headers []string) []string {
 	}
 	return o
 }
-

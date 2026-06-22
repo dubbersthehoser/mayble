@@ -3,6 +3,7 @@ package viewmodel
 import (
 	"log"
 	"slices"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
@@ -51,7 +52,6 @@ func (s *SortingTable) AddListener(fn func()) {
 	if s.l == nil {
 		s.l = make([]func(), 0)
 	}
-
 	s.l = append(s.l, fn)
 }
 
@@ -78,20 +78,10 @@ func (ts *ColumnSettings) MinWidth() float32 {
 }
 
 func (ts *ColumnSettings) Headers() []string {
-	fullFields := models.BookEntryFields()
-	if ts.IsLoanHidden() {
-		fullFields[models.IdxBorrower] = ""
-		fullFields[models.IdxLoanedAt] = ""
-	}
-	if ts.IsReadHidden() {
-		fullFields[models.IdxCompletedAt] = ""
-		fullFields[models.IdxRating] = ""
-	}
-	headers := make([]string, 0)
-	for _, h := range fullFields {
-		if h != "" {
-			headers = append(headers, h)
-		}
+	headers := models.BookEntryFields()
+	removeIdxs := removeHiddenColumns(ts.cfg)
+	for _, idx := range removeIdxs {
+		headers = slices.Delete(headers, idx, idx+1)
 	}
 	return headers
 }
@@ -104,25 +94,42 @@ func (ts *ColumnSettings) IsReadHidden() bool {
 	return isReadHidden(ts.cfg)
 }
 
+func (ts *ColumnSettings) IsIDHidden() bool {
+	return isIDHidden(ts.cfg)
+}
+
+func (ts *ColumnSettings) SetIDHidden(t bool) {
+	println(t)
+	header := ts.cfg.UI.Headers[models.IdxID]
+	header.IsHidden = t
+	ts.cfg.UI.Headers[models.IdxID] = header
+	ts.notify()
+}
+
 func (ts *ColumnSettings) SetLoanHidden(t bool) {
-	for idx, h := range ts.cfg.UI.Headers {
-		switch idx {
-		case models.IdxLoanedAt, models.IdxBorrower:
-			h.IsHidden = t
-			ts.cfg.UI.Headers[idx] = h
-		}
-	}
+	
+	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
+	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
+
+	loaned.IsHidden = t
+	borrower.IsHidden = t
+
+	ts.cfg.UI.Headers[models.IdxLoanedAt] = loaned
+	ts.cfg.UI.Headers[models.IdxBorrower] = borrower
+
 	ts.notify()
 }
 
 func (ts *ColumnSettings) SetReadHidden(t bool) {
-	for idx, h := range ts.cfg.UI.Headers {
-		switch idx {
-		case models.IdxCompletedAt, models.IdxRating:
-			h.IsHidden = t
-			ts.cfg.UI.Headers[idx] = h
-		}
-	}
+	rating := ts.cfg.UI.Headers[models.IdxRating]
+	completed := ts.cfg.UI.Headers[models.IdxCompletedAt]
+
+	rating.IsHidden = t
+	completed.IsHidden = t
+
+	ts.cfg.UI.Headers[models.IdxRating] = rating
+	ts.cfg.UI.Headers[models.IdxCompletedAt] = completed
+
 	ts.notify()
 }
 
@@ -142,8 +149,8 @@ func (ts *ColumnSettings) SetWidth(label string, width float32) {
 	}
 	h.Width = width
 	ts.cfg.UI.Headers[idx] = h
-
 }
+
 func (ts *ColumnSettings) GetWidth(label string) float32 {
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
@@ -241,23 +248,16 @@ func newDataTable(cfg *config.Config, s *app.Service) *DataTable {
 }
 
 func (dt *DataTable) Size() (length, width int) {
-	length = len(dt.data)
-	width = len(models.BookEntryFields())
-	if isLoanHidden(dt.cfg) {
-		width -= 2
-	} 
-	if isReadHidden(dt.cfg) {
-		width -= 2
+	fields := models.BookEntryFields()
+	for _, idx := range removeHiddenColumns(dt.cfg) {
+		fields = slices.Delete(fields, idx, idx+1)
 	}
+	length = len(dt.data)
+	width = len(fields)
 	return length, width
 }
 
 func (dt *DataTable) Get(row, col int) string {
-	col = calcOffset(
-		isLoanHidden(dt.cfg),
-		isReadHidden(dt.cfg),
-		col,
-	)
 	return dt.data[row][col]
 }
 
@@ -297,57 +297,31 @@ func (dt *DataTable) load() {
 	for row, book := range books {
 		dt.rowToID[row] = book.ID
 		values := entryValues(&book)
+		for _, idx := range removeHiddenColumns(dt.cfg) {
+			values = slices.Delete(values, idx, idx+1)
+		}
 		dt.data = append(dt.data, values)
 	}
 
 	dt.notify()
 }
 
-func calcOffset(loanHidden, readHidden bool, col int) int {
-	var (
-		hasLoan bool = !loanHidden
-		hasRead bool = !readHidden
-	)
-	if col <= models.IdxGenre {
-		return col
-	}
+func isLoanHidden(cfg *config.Config) bool {
+	loaned := cfg.UI.Headers[models.IdxLoanedAt]
+	borrower := cfg.UI.Headers[models.IdxBorrower]
+	return loaned.IsHidden && borrower.IsHidden
 
-	if hasLoan && !hasRead {
-		return col + 2
-	}
-	return col
 }
 
-func isLoanHidden(cfg *config.Config) bool {
-	var (
-		loaned bool
-		borrower bool
-	)
-	for idx, h := range cfg.UI.Headers {
-		switch idx {
-		case models.IdxLoanedAt:
-			loaned = h.IsHidden
-		case models.IdxBorrower:
-			borrower = h.IsHidden
-		}
-	}
-	return loaned && borrower
+func isIDHidden(cfg *config.Config) bool {
+	header := cfg.UI.Headers[models.IdxID]
+	return header.IsHidden
 }
 
 func isReadHidden(cfg *config.Config) bool {
-	var (
-		rating bool
-		completed bool
-	)
-	for idx, h := range cfg.UI.Headers {
-		switch idx {
-		case models.IdxRating:
-			rating = h.IsHidden
-		case models.IdxCompletedAt:
-			completed = h.IsHidden
-		}
-	}
-	return rating && completed
+	rating := cfg.UI.Headers[models.IdxRating]
+	completed := cfg.UI.Headers[models.IdxCompletedAt]
+	return rating.IsHidden && completed.IsHidden
 }
 
 func entryValues(e *models.BookEntry) []string {
@@ -357,6 +331,8 @@ func entryValues(e *models.BookEntry) []string {
 
 	for i, header := range headers {
 		switch i {
+		case models.IdxID:
+			values[i] = fmt.Sprintf("%d", e.ID)
 		case models.IdxTitle:
 			values[i] = e.Title
 		case models.IdxAuthor:
@@ -377,3 +353,18 @@ func entryValues(e *models.BookEntry) []string {
 	}
 	return values
 }
+
+func removeHiddenColumns(cfg *config.Config) []int {
+	indexs := make([]int, 0)
+	if isLoanHidden(cfg) {
+		indexs = append(indexs, models.IdxBorrower, models.IdxLoanedAt)
+	}
+	if isReadHidden(cfg) {
+		indexs = append(indexs, models.IdxRating, models.IdxCompletedAt)
+	}
+	if isIDHidden(cfg) {
+		indexs = append(indexs, models.IdxID)
+	}
+	return indexs
+}
+

@@ -1,8 +1,10 @@
 package view
 
 import (
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
 )
@@ -50,5 +52,34 @@ func (eb *EnterButton) TypedKey(ev *fyne.KeyEvent) {
 	switch ev.Name {
 	case fyne.KeyReturn, fyne.KeyEnter:
 		eb.OnTapped()
+	}
+}
+
+type SearchEntry struct {
+	widget.Entry
+	OnNext func()
+	OnPrev func()
+}
+func NewSearchEntry(next func(), prev func()) *SearchEntry {
+	se := &SearchEntry{
+		OnNext: next,
+		OnPrev: prev,
+	}
+	se.ExtendBaseWidget(se)
+	se.OnSubmitted = func(_ string) {se.OnNext()}
+	return se
+}
+
+func (eb *SearchEntry) TypedShortcut(cut fyne.Shortcut) {
+	short, ok := cut.(*desktop.CustomShortcut)
+	if !ok {
+		eb.Entry.TypedShortcut(cut)
+		return
+	}
+	switch short.Mod() {
+	case fyne.KeyModifierControl:
+		if short.Key() == fyne.KeyReturn {
+			eb.OnPrev()
+		}
 	}
 }

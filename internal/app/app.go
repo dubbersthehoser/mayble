@@ -181,7 +181,7 @@ func (as *Service) notify() {
 // SortBooks sort slice of book entries.
 func SortBooks(books []models.BookEntry, index int, ascending bool) error {
 
-	if !(models.IdxTitle <= index && models.IdxBorrower >= index) {
+	if !(models.IdxID <= index && models.IdxBorrower >= index) {
 		return fmt.Errorf("sort_books: invalid index '%d'", index)
 	}
 

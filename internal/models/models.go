@@ -143,7 +143,8 @@ func (b *BookEntryBuilder) SetRating(r string) *BookEntryBuilder {
 
 
 const (
-	IdxTitle int = iota
+	IdxID    int = iota
+	IdxTitle
 	IdxAuthor
 	IdxGenre
 	IdxCompletedAt
@@ -155,6 +156,7 @@ const (
 // BookEntryFields returns the names of each field name of BookEntry
 func BookEntryFields() []string {
 	return []string{
+		"ID",
 		"Title",
 		"Author",
 		"Genre",

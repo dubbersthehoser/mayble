@@ -264,6 +264,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	table := fyne.NewMenu("Table", 
 		fyne.NewMenuItem("Show Loaned", nil),
 		fyne.NewMenuItem("Show Read", nil),
+		fyne.NewMenuItem("Show ID", nil),
 	)
 
 	menu := fyne.NewMainMenu(file, table)
@@ -271,15 +272,18 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	const (
 		loanIdx int = iota
 		readIdx
+		idIdx
 	)
 
 	bodyUpdate := func() {
 		if vm.Body.Value() != viewmodel.BodyTable {
 			table.Items[loanIdx].Disabled = true
 			table.Items[readIdx].Disabled = true
+			table.Items[idIdx].Disabled = true
 		} else {
 			table.Items[loanIdx].Disabled = false
 			table.Items[readIdx].Disabled = false
+			table.Items[idIdx].Disabled = false
 		}
 		menu.Refresh()
 	}
@@ -294,6 +298,11 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			table.Items[readIdx].Checked = false
 		} else {
 			table.Items[readIdx].Checked = true
+		}
+		if vm.ColumnSettings.IsIDHidden() {
+			table.Items[idIdx].Checked = false
+		} else {
+			table.Items[idIdx].Checked = true
 		}
 		menu.Refresh()
 	}
@@ -316,10 +325,19 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		updateCheck()
 	}
 
+	table.Items[idIdx].Action = func() {
+		if !vm.ColumnSettings.IsIDHidden() {
+			vm.ColumnSettings.SetIDHidden(true)
+		} else {
+			vm.ColumnSettings.SetIDHidden(false)
+		}
+		println("hello?")
+		updateCheck()
+	}
+
 	vm.Body.AddListener(func() {
 		bodyUpdate()
 	})
-
 
 	bodyUpdate()
 	updateCheck()

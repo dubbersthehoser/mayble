@@ -17,6 +17,16 @@ var (
 	ErrInvalidFormat error = errors.New("invalid format")
 )
 
+const (
+	idxTitle int = iota
+	idxAuthor
+	idxGenre
+	idxCompletedAt
+	idxRating
+	idxLoanedAt
+	idxBorrower
+)
+
 func Import(r io.Reader) ([]models.BookEntry, error) {
 	
 	reader := csv.NewReader(r)
@@ -68,28 +78,27 @@ func Export(w io.Writer, entries []models.BookEntry) error {
 }
 
 func fieldLength() int {
-	return len(models.BookEntryFields())
+	return len(models.BookEntryFields())-1 // neg one to avoid ID Field
 }
 
 func entryToFields(book *models.BookEntry) []string {
 	f := make([]string, fieldLength())
 
-	f[models.IdxTitle] = book.Title
-	f[models.IdxAuthor] = book.Author
-	f[models.IdxGenre] = book.Genre
+	f[idxTitle] = book.Title
+	f[idxAuthor] = book.Author
+	f[idxGenre] = book.Genre
 
 	if book.IsCompleted {
-		f[models.IdxCompletedAt] = book.CompletedAt.Format(time.DateOnly)
+		f[idxCompletedAt] = book.CompletedAt.Format(time.DateOnly)
 		rating := strconv.Itoa(book.Rating)
-		f[models.IdxRating] = rating
+		f[idxRating] = rating
 	}
 
 	if book.IsLoaned {
-		f[models.IdxLoanedAt] = book.LoanedAt.Format(time.DateOnly)
-		f[models.IdxBorrower] = book.Borrower
+		f[idxLoanedAt] = book.LoanedAt.Format(time.DateOnly)
+		f[idxBorrower] = book.Borrower
 	}
 	return f
-
 }
 
 func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
@@ -119,7 +128,9 @@ func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
 func schemaHeaders() []string {
 	headers := models.BookEntryFields()
 	for i := range headers {
-		headers[i] = strings.ToUpper(headers[i])
+		if i != 0 {
+			headers[i] = strings.ToUpper(headers[i])
+		}
 	}
 	return headers
 }

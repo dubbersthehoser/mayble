@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	repo "github.com/dubbersthehoser/mayble/internal/models"
 )
 
 func compareBookEntry(e, a *repo.BookEntry) error {
