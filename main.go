@@ -4,6 +4,7 @@ import (
 	"os"
 	"log"
 	"errors"
+	"runtime/debug"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -59,16 +60,6 @@ func main() {
 	window.Resize(fyne.NewSize(900, 600))
 	window.CenterOnScreen()
 	window.SetMaster()
-
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println(err)
-			// This code maybe bad for fyne. Needs testing.
-			// And the err.(string) most likely an bad idea.
-			body := view.NewFatal("Crash", "Unexpected crash.", err.(string))
-			window.SetContent(body)
-		}
-	}()
 
 	vm := viewmodel.NewWindow(cfg)
 	f := view.NewFyne(a, window)

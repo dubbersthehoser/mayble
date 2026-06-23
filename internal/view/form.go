@@ -3,57 +3,57 @@ package view
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-
+	"fyne.io/fyne/v2/data/binding"
+	
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
+func newEdit(vm *viewmodel.Window) fyne.CanvasObject {
+	return newBookForm(vm, "Update", vm.Form.OnUpdate)
+}
 
-func NewBookSubmissionForm(vm *viewmodel.BookSubmissionForm) fyne.CanvasObject {
+func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
+	return newBookForm(vm, "Create", vm.Form.OnCreate)
+}
 
-	loanCheck := widget.NewCheckWithData("Is on loan.", vm.IsLoaned)
-	readCheck := widget.NewCheckWithData("Has been completed.", vm.IsRead)
+func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
-	submit := NewEnterButton("Submit", vm.Submit)
-	add := NewEnterButton("Add Form", vm.AddSubmission)
+	loanCheck := widget.NewCheckWithData("Is on loan.", vm.Form.Fyne.IsLoaned)
+	readCheck := widget.NewCheckWithData("Has been completed.", vm.Form.Fyne.IsCompleted)
 
-	submit.Alignment = widget.ButtonAlignLeading
-	add.Alignment = widget.ButtonAlignLeading
+	submitBtn := NewEnterButton(label, submit)
+	submitBtn.Alignment = widget.ButtonAlignLeading
 
-	limit := widget.NewLabel("PLACEHOLDER")
-	limit.Bind(vm.SubmissionList().Limit)
+	closeBtn := NewEnterButton("Cancel", func() {
+		vm.Form.Reset()
+		vm.Body.Set(viewmodel.BodyTable)
+	})
 
-	bookEntry := newBookEntry(vm.Title, vm.Author, vm.Genre, vm.Genres)
+	bookEntry := newBookEntry(vm)
 
 	top := container.NewVBox(
 		bookEntry,
 		loanCheck,
-		newLoanEntry(vm.IsLoaned, vm.Date, vm.Borrower),
+		newLoanEntry(vm),
 		readCheck,
-		newReadEntry(vm.IsRead, vm.Completed, vm.Rating),
-		container.NewHBox(add, submit, limit),
+		newReadEntry(vm),
+		container.NewHBox(submitBtn, closeBtn),
 	)
 
-	return container.NewHBox(
-		top,
-		newSubmitionList(vm.SubmissionList()),
-	)
+	return top
 }
 
-func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.UniqueGenres) *fyne.Container {
+func newBookEntry(vm *viewmodel.Window) *fyne.Container {
 
-	titleEntry := widget.NewEntryWithData(title)
-	authorEntry := widget.NewEntryWithData(author)
+	titleEntry := widget.NewEntryWithData(vm.Form.Fyne.Title)
+	authorEntry := widget.NewEntryWithData(vm.Form.Fyne.Author)
 
-	genres := uniqueGenres.Get()
+	genres := vm.UniqueGenres.Genres()
 	genreEntry := widget.NewSelectEntry(genres)
-	genreEntry.Bind(genre)
-
-	uniqueGenres.AddListener(binding.NewDataListener(func() {
-		genres := uniqueGenres.Get()
-		genreEntry.SetOptions(genres)
-	}))
+	genreEntry.Bind(vm.Form.Fyne.Genre)
+	vm.UniqueGenres.AddListener(func() {
+		genreEntry.SetOptions(vm.UniqueGenres.Genres())
+	})
 
 	titleEntry.SetPlaceHolder("Title...")
 	authorEntry.SetPlaceHolder("Author...")
@@ -68,12 +68,11 @@ func newBookEntry(title, author, genre binding.String, uniqueGenres *viewmodel.U
 
 }
 
-func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.String) *fyne.Container {
+func newLoanEntry(vm *viewmodel.Window) *fyne.Container {
 	dateEntry := widget.NewDateEntry()
+	dateEntry.Bind(vm.Form.Fyne.LoanedAt)
 	nameEntry := widget.NewEntry()
-
-	dateEntry.Bind(date)
-	nameEntry.Bind(borrower)
+	nameEntry.Bind(vm.Form.Fyne.Borrower)
 
 	nameEntry.SetPlaceHolder("Borrower...")
 	dateEntry.SetPlaceHolder("DD/MM/YYYY")
@@ -83,33 +82,29 @@ func newLoanEntry(isLoaned binding.Bool, date binding.String, borrower binding.S
 		dateEntry,
 	)
 
-	ok, _ := isLoaned.Get()
-	if !ok {
-		dateEntry.Disable()
-		nameEntry.Disable()
-	}
-
-	isLoaned.AddListener(binding.NewDataListener(func() {
-		ok, _ := isLoaned.Get()
-		if ok {
+	update := func() {
+		if vm.Form.IsLoaned() {
 			dateEntry.Enable()
 			nameEntry.Enable()
 		} else {
 			dateEntry.Disable()
 			nameEntry.Disable()
 		}
-	}))
+	}
+
+	vm.Form.Fyne.IsLoaned.AddListener(binding.NewDataListener(update))
+	update()
+
 	return c
 }
 
-func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.String) *fyne.Container {
-	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), rating)
+func newReadEntry(vm *viewmodel.Window) *fyne.Container {
+	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), vm.Form.Fyne.Rating)
 	completedEntry := widget.NewDateEntry()
-
-	ratingEntry.Bind(rating)
-	completedEntry.Bind(completed)
+	completedEntry.Bind(vm.Form.Fyne.CompletedAt)
 
 	rattingStrings := viewmodel.Ratings()
+
 	ratingEntry.PlaceHolder = rattingStrings[0]
 	completedEntry.SetPlaceHolder("DD/MM/YYYY")
 
@@ -118,63 +113,17 @@ func newReadEntry(isRead binding.Bool, completed binding.String, rating binding.
 		ratingEntry,
 	)
 
-	ok, _ := isRead.Get()
-	if !ok {
-		ratingEntry.Disable()
-		completedEntry.Disable()
-	}
-
-	isRead.AddListener(binding.NewDataListener(func() {
-		ok, _ := isRead.Get()
-		if ok {
+	update := func() {
+		if vm.Form.IsCompleted() {
 			ratingEntry.Enable()
 			completedEntry.Enable()
 		} else {
 			ratingEntry.Disable()
 			completedEntry.Disable()
 		}
-	}))
-	return c
-}
-
-func newSubmitionList(sl *viewmodel.SubmissionList) fyne.CanvasObject {
-	
-	content := container.NewVBox()
-	update := func() {
-		content.RemoveAll()
-		for i := range sl.Length() {
-			v := sl.GetView(i)
-			del := widget.NewButtonWithIcon(
-				"",
-				theme.DeleteIcon(),
-				func(id int) func() {
-					return func() {
-						sl.Remove(id)
-					}
-				}(i),
-			)
-			edt := widget.NewButtonWithIcon(
-				"",
-				theme.DocumentCreateIcon(),
-				func(id int) func() {
-					return func() {
-						sl.Edit(id)
-					}
-				}(i),
-			)
-
-			btns := container.NewHBox(edt, del)
-
-			object := container.NewHBox(btns, widget.NewLabel(v))
-			content.Add(object)
-		}
-
 	}
-	sl.AddListener(binding.NewDataListener(func() {
-		update()
-	}))
-	update()
 
-	list := container.NewVScroll(content)
-	return list
+	vm.Form.Fyne.IsCompleted.AddListener(binding.NewDataListener(update))
+	update()
+	return c
 }

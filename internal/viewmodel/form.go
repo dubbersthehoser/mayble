@@ -2,68 +2,156 @@ package viewmodel
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"slices"
+	"time"
 
 	"fyne.io/fyne/v2/data/binding"
-
-	"github.com/dubbersthehoser/mayble/internal/bus"
-	"github.com/dubbersthehoser/mayble/internal/viewmodel/submissions"
+	
 	"github.com/dubbersthehoser/mayble/internal/models"
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/app"
 )
 
-// A BookForm the view model for book editing and creation.
-type BookForm struct {
-	id     int64
-	Title  binding.String
-	Author binding.String
-	Genre  binding.String
+type BookForm struct{
 
-	IsLoaned binding.Bool
-	Borrower binding.String
-	Date     binding.String
+	s *app.Service
 
-	IsRead    binding.Bool
-	Rating    binding.String
-	Completed binding.String
+	Fyne struct{
+		Title binding.String
+		Author binding.String
+		Genre binding.String
+
+		IsLoaned binding.Bool
+		Borrower binding.String
+		LoanedAt binding.String
+
+		IsCompleted binding.Bool
+		CompletedAt   binding.String
+		Rating      binding.String
+
+	}
+
+	SubmitLabel string
+	OnUpdate func()
+	OnCreate func()
 }
 
-func NewBookForm() *BookForm {
-	return &BookForm{
-		id:     -1,
-		Title:  binding.NewString(),
-		Author: binding.NewString(),
-		Genre:  binding.NewString(),
+func newBookForm(onUpdate, onCreate func()) *BookForm {
+	bf := &BookForm{
+		OnUpdate: onUpdate,
+		OnCreate: onCreate,
+		Fyne: struct{
+			Title binding.String
+			Author binding.String
+			Genre binding.String
 
-		IsRead:    binding.NewBool(),
-		Rating:    binding.NewString(),
-		Completed: binding.NewString(),
+			IsLoaned binding.Bool
+			Borrower binding.String
+			LoanedAt binding.String
 
-		IsLoaned: binding.NewBool(),
-		Borrower: binding.NewString(),
-		Date:     binding.NewString(),
+			IsCompleted binding.Bool
+			CompletedAt   binding.String
+			Rating      binding.String
+		}{
+			Title: binding.NewString(),
+			Author: binding.NewString(),
+			Genre: binding.NewString(),
+
+			IsLoaned: binding.NewBool(),
+			Borrower: binding.NewString(),
+			LoanedAt: binding.NewString(),
+
+			IsCompleted: binding.NewBool(),
+			Rating:      binding.NewString(),
+			CompletedAt: binding.NewString(),
+		},
+	}
+	return bf
+}
+
+func (bf *BookForm) Reset() {
+	_ = bf.Fyne.Title.Set("")
+	_ = bf.Fyne.Author.Set("")
+	_ = bf.Fyne.Genre.Set("")
+	_ = bf.Fyne.CompletedAt.Set("")
+	_ = bf.Fyne.Rating.Set("")
+	_ = bf.Fyne.LoanedAt.Set("")
+	_ = bf.Fyne.Borrower.Set("")
+	_ = bf.Fyne.IsCompleted.Set(false)
+	_ = bf.Fyne.IsLoaned.Set(false)
+}
+
+func (bf *BookForm) Set(book *models.BookEntry) {
+	_ = bf.Fyne.Title.Set(book.Title)
+	_ = bf.Fyne.Author.Set(book.Author)
+	_ = bf.Fyne.Genre.Set(book.Genre)
+
+	_ = bf.Fyne.IsCompleted.Set(book.IsCompleted)
+	if book.IsCompleted {
+		_ = bf.Fyne.CompletedAt.Set(book.CompletedAt.Format(dateFormat))
+		_ = bf.Fyne.Rating.Set(Ratings()[book.Rating])
+	}
+
+	bf.Fyne.IsLoaned.Set(book.IsLoaned)
+	if book.IsLoaned {
+		_ = bf.Fyne.LoanedAt.Set(book.LoanedAt.Format(dateFormat))
+		_ = bf.Fyne.Borrower.Set(book.Borrower)
 	}
 }
 
-func (bf *BookForm) reset() {
-	bf.id = -1
-	_ = bf.Title.Set("")
-	_ = bf.Author.Set("")
-	_ = bf.Genre.Set("")
-	_ = bf.Borrower.Set("")
-	_ = bf.Date.Set("")
-	_ = bf.Completed.Set("")
-	_ = bf.Rating.Set(Ratings()[0])
-	_ = bf.IsLoaned.Set(false)
-	_ = bf.IsRead.Set(false)
+func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
+	
+	if err := bf.validate(); err != nil {
+		return nil, err
+	}
+	
+	book := models.BookEntry{}
+
+	book.Title, _ = bf.Fyne.Title.Get()
+	book.Author, _ = bf.Fyne.Author.Get()
+	book.Genre, _ = bf.Fyne.Genre.Get()
+
+	book.IsLoaned, _ = bf.Fyne.IsLoaned.Get()
+	if book.IsLoaned {
+		var err error
+		date, _ := bf.Fyne.LoanedAt.Get()
+		book.LoanedAt, err = time.Parse(dateFormat, date)
+		if err != nil {
+			return nil, err
+		}
+		book.Borrower, _ = bf.Fyne.Borrower.Get()
+	}
+
+	book.IsCompleted, _ = bf.Fyne.IsCompleted.Get()
+	if book.IsCompleted {
+		var err error
+		date, _ := bf.Fyne.CompletedAt.Get()
+		book.CompletedAt, err = time.Parse(dateFormat, date)
+		if err != nil {
+			return nil, err
+		}
+		rs, _ := bf.Fyne.Rating.Get()
+		rating, err := parseRating(rs)
+		if err != nil {
+			return nil, err
+		}
+		book.Rating = rating
+	}
+	return &book, nil
+}
+
+func (bf *BookForm) IsLoaned() bool {
+	ok, _ := bf.Fyne.IsLoaned.Get()
+	return ok
+}
+func (bf *BookForm) IsCompleted() bool {
+	ok, _ := bf.Fyne.IsCompleted.Get()
+	return ok
 }
 
 func (bf *BookForm) validate() error {
-	title, _ := bf.Title.Get()
-	author, _ := bf.Author.Get()
-	genre, _ := bf.Genre.Get()
+	title, _ := bf.Fyne.Title.Get()
+	author, _ := bf.Fyne.Author.Get()
+	genre, _ := bf.Fyne.Genre.Get()
 
 	if title == "" {
 		return errors.New("missing title")
@@ -75,40 +163,44 @@ func (bf *BookForm) validate() error {
 		return errors.New("missing genre")
 	}
 
-	isLoaned, _ := bf.IsLoaned.Get()
-	isRead, _ := bf.IsRead.Get()
+	isLoaned, _ := bf.Fyne.IsLoaned.Get()
+	isRead, _ := bf.Fyne.IsCompleted.Get()
 
 	if isLoaned {
-		date, _ := bf.Date.Get()
-		borrower, _ := bf.Borrower.Get()
+		date, _ := bf.Fyne.LoanedAt.Get()
+		borrower, _ := bf.Fyne.Borrower.Get()
 
 		if borrower == "" {
 			return errors.New("missing borrower")
 		}
+
 		if date == "" {
 			return errors.New("missing borrower date")
 		}
-		_, err := parseDate(date)
+
+		_, err := time.Parse(dateFormat, date)
 		if err != nil {
-			return errors.New("invalid borrower date")
+			return errors.New("invalid date for loaned")
 		}
 	}
 
 	if isRead {
-		completed, _ := bf.Completed.Get()
-		rating, _ := bf.Rating.Get()
+		date, _ := bf.Fyne.CompletedAt.Get()
+		rating, _ := bf.Fyne.Rating.Get()
 
-		if completed == "" {
+		if date == "" {
 			return errors.New("missing completion date")
 		}
-		_, err := parseDate(completed)
+
+		_, err := time.Parse(dateFormat, date)
 		if err != nil {
-			return errors.New("invalid completion date")
+			return errors.New("invalid date for completion")
 		}
+
 		ratings := Ratings()
 		rank := slices.Index(ratings, rating)
 		if rank == 0 {
-			return errors.New("ratting not selected")
+			return errors.New("rating not selected")
 		}
 		if rank == -1 {
 			return errors.New("invalid rating")
@@ -116,250 +208,5 @@ func (bf *BookForm) validate() error {
 		}
 	}
 	return nil
-}
-
-func (bf *BookForm) Set(book *models.BookEntry) {
-	bf.reset()
-	bf.id = book.ID
-	_ = bf.Title.Set(book.Title)
-	_ = bf.Author.Set(book.Author)
-	_ = bf.Genre.Set(book.Genre)
-
-	if book.IsLoaned {
-		_ = bf.IsLoaned.Set(true)
-		_ = bf.Date.Set(formatDate(&book.LoanedAt))
-		_ = bf.Borrower.Set(book.Borrower)
-	}
-
-	if book.IsCompleted {
-		_ = bf.IsRead.Set(true)
-		_ = bf.Rating.Set(formatRating(book.Rating))
-		_ = bf.Completed.Set(formatDate(&book.CompletedAt))
-	}
-}
-
-func (bf *BookForm) ToBookEntry() *models.BookEntry {
-	book := &models.BookEntry{ID: bf.id}
-
-	isOnLoan, _ := bf.IsLoaned.Get()
-	isRead, _ := bf.IsRead.Get()
-
-	if isOnLoan {
-		book.IsLoaned = true
-		date, _ := bf.Date.Get()
-		timeDate, _ := parseDate(date)
-		book.LoanedAt = *timeDate
-		book.Borrower, _ = bf.Borrower.Get()
-	}
-
-	if isRead {
-		book.IsCompleted = true
-		sdate, _ := bf.Completed.Get()
-		srating, _ := bf.Rating.Get()
-
-		date, _ := parseDate(sdate)
-		rating := slices.Index(Ratings(), srating)
-
-		book.CompletedAt = *date
-		book.Rating = rating
-	}
-
-	book.Title, _ = bf.Title.Get()
-	book.Author, _ = bf.Author.Get()
-	book.Genre, _ = bf.Genre.Get()
-	return book
-}
-
-// A SubmissionList view model of list of form submissions.
-type SubmissionList struct {
-	form        *BookForm
-	bus         *bus.Bus
-	l           *listener
-	sub         *submissions.List
-	Limit       binding.String
-}
-
-func fmtFormLimit(count, max int) string {
-	return fmt.Sprintf("Limit %d/%d", count, max)
-}
-
-func NewSubmissionList(bus *bus.Bus, form *BookForm) *SubmissionList {
-
-	FormLimit := 16
-
-	sl := &SubmissionList{
-		l:           &listener{},
-		bus:         bus,
-		sub:         submissions.NewList(FormLimit),
-		form:        form,
-		Limit:       binding.NewString(),
-	}
-	sl.updateLimit()
-	return sl
-}
-
-func (s *SubmissionList) updateLimit() {
-	_ = s.Limit.Set(fmtFormLimit(s.sub.Length(), s.sub.Cap()))
-}
-
-func (s *SubmissionList) Clear() {
-	s.sub.Clear()
-	s.updateLimit()
-}
-
-func (s *SubmissionList) pop() (*models.BookEntry, error) {
-	top := s.sub.Pop()
-	if top == nil {
-		return top, errors.New("empty submission list")
-	}
-	s.updateLimit()
-	s.l.notify()
-	return top, nil
-}
-
-func (s *SubmissionList) add(bf *BookForm) error {
-	book := bf.ToBookEntry()
-	err := s.sub.Append(*book)
-	if err != nil {
-		return err
-	}
-	s.updateLimit()
-	s.l.notify()
-	return nil
-}
-
-func (s *SubmissionList) Length() int {
-	return s.sub.Length()
-}
-
-func (s *SubmissionList) GetView(idx int) string {
-	book, err := s.sub.Get(idx)
-	if err != nil {
-		return "STUB: out of range"
-	}
-	prefix := fmt.Sprintf("%s, %s, %s", book.Title, book.Author, book.Genre)
-	switch {
-	case book.IsLoaned && book.IsCompleted:
-		return fmt.Sprintf("%s (loaned) (completed)", prefix)
-	case book.IsLoaned:
-		return fmt.Sprintf("%s (loaned)", prefix)
-	case book.IsCompleted:
-		return fmt.Sprintf("%s (completed)", prefix)
-	default:
-		return prefix
-	}
-}
-
-func (s *SubmissionList) Remove(idx int) {
-	s.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Form removed",
-	})
-	err := s.sub.Remove(idx)
-	if err == nil {
-		s.l.notify()
-	}
-}
-
-func (s *SubmissionList) Edit(idx int) {
-	if s.form == nil {
-		log.Println("submission_list.edit: nil form")
-		return
-	}
-	book, err := s.sub.Get(idx)
-	if err != nil {
-		log.Println("submission_list.edit: index out of range")
-		return
-	}
-	s.form.Set(book)
-	s.Remove(idx)
-}
-
-func (s *SubmissionList) AddListener(l binding.DataListener) {
-	s.l.AddListener(l)
-}
-
-
-// A BookSubmissionForm is the view model of submission page.
-type BookSubmissionForm struct {
-	bus    *bus.Bus
-	sl     *SubmissionList
-	repo   repo.BookCreator
-	Genres *UniqueGenres
-	BookForm
-}
-
-func NewBookSubmissionForm(b *bus.Bus, c repo.BookCreator, g *UniqueGenres) *BookSubmissionForm {
-	bf := &BookSubmissionForm{
-		bus:      b,
-		Genres:   g,
-		repo:     c,
-		BookForm: *NewBookForm(),
-	}
-	bf.sl = NewSubmissionList(b, &bf.BookForm)
-	return bf
-}
-
-func (bf *BookSubmissionForm) AddSubmission() {
-	err := bf.BookForm.validate()
-	if err != nil {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserError,
-			Data: err.Error(),
-		})
-		return
-	}
-
-	err = bf.sl.add(&bf.BookForm)
-	if err != nil {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserError,
-			Data: "At form limit. Please submit",
-		})
-		return 
-	}
-	
-
-	bf.bus.Notify(bus.Event{
-		Name: msgUserInfo,
-		Data: "Added Form",
-	})
-	bf.reset()
-}
-
-func (bf *BookSubmissionForm) SubmissionList() *SubmissionList {
-	return bf.sl
-}
-
-func (bf *BookSubmissionForm) Submit() {
-
-	if bf.repo == nil {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "Not implemented.",
-		})
-		return
-	}
-
-	if bf.sl.Length() == 0 {
-		bf.bus.Notify(bus.Event{
-			Name: msgUserInfo,
-			Data: "No submissions to submit",
-		})
-		return
-	}
-
-	for {
-		book, err := bf.sl.pop()
-		if err != nil {
-			break
-		}
-		_, err = bf.repo.CreateBook(book)
-		if err != nil {
-			log.Println(fmt.Errorf("form.Submit: %w", err))
-			return
-		}
-	}
-	bf.sl.Clear()
 }
 

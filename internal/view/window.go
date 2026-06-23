@@ -13,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 
-	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 type Fyne struct {
