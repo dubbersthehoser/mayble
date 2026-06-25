@@ -5,16 +5,15 @@ import (
 	"strconv"
 	"errors"
 	"time"
+	"fmt"
 
 	"database/sql"
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
-	"github.com/dubbersthehoser/mayble/internal/status"
 )
 
 // CreateBook insert b into database.
 func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
-	const op status.Op = "database.create_book"
 
 	params := database.CreateBookParams{
 		Title:  b.Title,
@@ -24,7 +23,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 
 	row, err := db.Queries.CreateBook(context.Background(), params)
 	if err != nil {
-		return -1, status.E(op, status.LevelWarn, err)
+		return -1, fmt.Errorf("database: %w", err)
 	}
 	bookID := row.ID
 
@@ -37,7 +36,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 		}
 		_, err := db.Queries.CreateLoan(context.Background(), params)
 		if err != nil {
-			return -1, status.E(op, status.LevelWarn, err)
+			return -1, fmt.Errorf("database: %w", err)
 		}
 	}
 
@@ -50,7 +49,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 		}
 		_, err := db.Queries.CreateRead(context.Background(), params)
 		if err != nil {
-			return -1, status.E(op, status.LevelWarn, err)
+			return -1, fmt.Errorf("database: %w", err)
 		}
 	}
 	return bookID, nil
@@ -58,24 +57,23 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 
 // DeleteBook remove book from database errors a database related error.
 func (db *Database) DeleteBook(id int64) error {
-	const op status.Op = "database.delete_book"
 
 	err := db.Queries.DeleteBook(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 	}
 	err = db.Queries.DeleteLoan(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 	}
 	err = db.Queries.DeleteRead(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 	}
 	return nil
@@ -83,7 +81,6 @@ func (db *Database) DeleteBook(id int64) error {
 
 // UpdateBook update book from database.
 func (db *Database) UpdateBook(b *models.BookEntry) error {
-	const op status.Op = "database.update_book"
 
 	var (
 		hasLoaned bool = true
@@ -93,14 +90,14 @@ func (db *Database) UpdateBook(b *models.BookEntry) error {
 	_, err := db.Queries.GetLoanByBookID(context.Background(), b.ID)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 		hasLoaned = false
 	}
 	_, err = db.Queries.GetReadByBookID(context.Background(), b.ID)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 		hasRead = false
 	}
@@ -122,19 +119,19 @@ func (db *Database) UpdateBook(b *models.BookEntry) error {
 		if hasLoaned {
 			_, err := db.Queries.UpdateLoan(context.Background(), loanUpdateParams)
 			if err != nil {
-				return status.E(op, status.LevelError, err)
+				return fmt.Errorf("database: %w", err)
 			}
 		} else {
 			_, err := db.Queries.CreateLoan(context.Background(), loanCreateParams)
 			if err != nil {
-				return status.E(op, status.LevelError, err)
+				return fmt.Errorf("database: %w", err)
 			}
 		}
 	}
 	if hasLoaned && !b.IsLoaned {
 		err := db.Queries.DeleteLoan(context.Background(), b.ID)
 		if err != nil {
-			return status.E(op, status.LevelError, err)
+			return fmt.Errorf("database: %w", err)
 		}
 	}
 
@@ -155,19 +152,19 @@ func (db *Database) UpdateBook(b *models.BookEntry) error {
 		if hasRead {
 			_, err := db.Queries.UpdateRead(context.Background(), readUpdateParams)
 			if err != nil {
-				return status.E(op, status.LevelError, err)
+				return fmt.Errorf("database: %w", err)
 			}
 		} else {
 			_, err := db.Queries.CreateRead(context.Background(), readCreateParams)
 			if err != nil {
-				return status.E(op, status.LevelError, err)
+				return fmt.Errorf("database: %w", err)
 			}
 		}
 	} else {
 		if hasRead {
 			err := db.Queries.DeleteRead(context.Background(), b.ID)
 			if err != nil {
-				return status.E(op, status.LevelError, err)
+				return fmt.Errorf("database: %w", err)
 			}
 		}
 	}
@@ -181,18 +178,17 @@ func (db *Database) UpdateBook(b *models.BookEntry) error {
 
 	_, err = db.Queries.UpdateBook(context.Background(), updateBookParams)
 	if err != nil {
-		return status.E(op, status.LevelError, err)
+		return fmt.Errorf("database: %w", err)
 	}
 	return nil
 }
 
 // GetAllBooks returns all books from database when v is zero, otherwise filters for variant.
 func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
-	const op status.Op = "database.get_all_books"
 
 	books, err := db.Queries.GetAllBooks(context.Background())
 	if err != nil {
-		return nil, status.E(op, status.LevelWarn, err)
+		return nil, fmt.Errorf("database: %w", err)
 	}
 	var entries []models.BookEntry
 	for _, book := range books {
@@ -201,14 +197,14 @@ func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
 		loan, err := db.Queries.GetLoanByBookID(context.Background(), book.ID)
 		if err != nil { // only return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
-				return nil, status.E(op, status.LevelWarn, err)
+				return nil, fmt.Errorf("database: %w", err)
 			}
 			hasLoaned = false
 		}
 		read, err := db.Queries.GetReadByBookID(context.Background(), book.ID)
 		if err != nil { // only return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
-				return nil, status.E(op, status.LevelWarn, err)
+				return nil, fmt.Errorf("database: %w", err)
 			}
 			hasRead = false
 		}
@@ -231,7 +227,7 @@ func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
 		}
 		book, err := builder.Build()
 		if err != nil {
-			return nil, status.E(op, status.LevelWarn, err)
+			return nil, fmt.Errorf("database: %w", err)
 		}
 		entries = append(entries, *book)
 	}
@@ -240,18 +236,17 @@ func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
 
 // GetBookByID returns book entry by id.
 func (db *Database) GetBookByID(id int64) (models.BookEntry, error) {
-	const op status.Op = "database.get_book_by_id"
 
 	bookRow, err := db.Queries.GetBookByID(context.Background(), id)
 	if err != nil {
-		return models.BookEntry{}, status.E(op, status.LevelError, err)
+		return models.BookEntry{}, fmt.Errorf("database: %w", err)
 	}
 
 	hasLoan := true
 	loanRow, err := db.Queries.GetLoanByBookID(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return models.BookEntry{}, status.E(op, status.LevelError, err)
+			return models.BookEntry{}, fmt.Errorf("database: %w", err)
 		}
 		hasLoan = false
 	}
@@ -260,7 +255,7 @@ func (db *Database) GetBookByID(id int64) (models.BookEntry, error) {
 	readRow, err := db.Queries.GetReadByBookID(context.Background(), id)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return models.BookEntry{}, status.E(op, status.LevelError, err)
+			return models.BookEntry{}, fmt.Errorf("database: %w", err)
 		}
 		hasRead = false
 	}
@@ -284,7 +279,7 @@ func (db *Database) GetBookByID(id int64) (models.BookEntry, error) {
 
 	book, err := builder.Build()
 	if err != nil {
-		return models.BookEntry{}, status.E(op, status.LevelError, err)
+		return models.BookEntry{}, fmt.Errorf("database: %w", err)
 	}
 
 	return *book, nil
@@ -292,10 +287,9 @@ func (db *Database) GetBookByID(id int64) (models.BookEntry, error) {
 
 // GetUniqueGenres return unique set of genres from database.
 func (db *Database) GetUniqueGenres() ([]string, error) {
-	const op status.Op = "database.get_unique_genres"
 	genres, err := db.Queries.GetUniqueGenres(context.Background())
 	if err != nil {
-		return nil, status.E(op, status.LevelError, err)
+		return nil, fmt.Errorf("database: %w", err)
 	}
 	return genres, nil
 }

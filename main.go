@@ -4,14 +4,13 @@ import (
 	"os"
 	"log"
 	"errors"
-	"runtime/debug"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/view1"
-	"github.com/dubbersthehoser/mayble/internal/viewmodel1"
+	"github.com/dubbersthehoser/mayble/internal/view"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func fatalLaunch(w fyne.Window, err error) {

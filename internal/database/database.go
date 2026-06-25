@@ -7,7 +7,6 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
-	"github.com/dubbersthehoser/mayble/internal/status"
 )
 
 const version int64 = 5
@@ -20,19 +19,17 @@ type Database struct {
 // OpenMem create a memory base database.
 func OpenMem() (*Database, error) {
 
-	const op status.Op = "database.open_mem"
-
 	db := &Database{}
 	conn, err := sqlite.OpenDB("")
 	if err != nil {
-		return nil, status.E(op, status.Unexpected, status.LevelError, err)
+		return nil, fmt.Errorf("database: %w", err)
 	}
 	db.Conn = conn
 	db.Queries = sqlite.GetQueries(db.Conn)
 
 	err = sqlite.MigrateUpTo(conn, version)
 	if err != nil {
-		return nil, status.E(op, status.Unexpected, status.LevelError, err)
+		return nil, fmt.Errorf("database: %w", err)
 	}
 
 	return db, nil
@@ -41,13 +38,11 @@ func OpenMem() (*Database, error) {
 // Open open database from path.
 func Open(path string) (*Database, error) {
 
-	const op status.Op = "database.open"
-
 	db := &Database{}
 
 	conn, err := sqlite.OpenDB(path)
 	if err != nil {
-		return nil, status.E(op, status.Unexpected, status.LevelError, err)
+		return nil, fmt.Errorf("database: %w", err)
 	}
 	db.Conn = conn
 	db.Queries = sqlite.GetQueries(db.Conn)
@@ -55,7 +50,7 @@ func Open(path string) (*Database, error) {
 	if checkIsV1(db.Conn) {
 		err := migrate(path, db.Conn)
 		if err != nil {
-			return nil, fmt.Errorf("open migrate: %w", err)
+			return nil, fmt.Errorf("datbase: migrate: %w", err)
 		}
 	}
 
