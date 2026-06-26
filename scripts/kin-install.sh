@@ -1,6 +1,6 @@
 #!/bin/sh
 
-
+# remove the old version from kin's chrome book linux env.
 mayble_installed="$(apt-cache pkgnames | grep 'mayble')"
 if [ -n "$mayble_installed" ]; then
 	sudo apt remove mayble 
@@ -14,6 +14,10 @@ if [ -n "$mayble_installed" ]; then
 fi
 
 echo "continue install"
-# install to the user directory.
 
+# 1. download release.
+# 2. extract it.
+# 3. check arch.
+# 4. install the binary and dot desktop file.
+# 5. clean up.
 
