@@ -2,51 +2,22 @@ package csv
 
 import (
 	"bytes"
-	"slices"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
-	repo "github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
-func compareBookEntry(e, a *repo.BookEntry) error {
-
-	if e.Variant != a.Variant {
-		return fmt.Errorf("expect variant '%s', got '%s'", e.Variant, a.Variant)
-	}
-
-	if e.Title != a.Title {
-		return fmt.Errorf("expect title '%s', got '%s'", e.Title, a.Title)
-	}
-
-	if e.Author != a.Author {
-		return fmt.Errorf("expect author '%s', got '%s'", e.Author, a.Author)
-	}
-
-	if e.Genre != a.Genre {
-		return fmt.Errorf("expect genre '%s', got '%s'", e.Genre, a.Genre)
-	}
-
-	if e.Read != a.Read {
-		return fmt.Errorf("expect read '%s', got '%s'", e.Read, a.Read)
-	}
-
-	if e.Rating != a.Rating {
-		return fmt.Errorf("expect rating %d, got %d", e.Rating, a.Rating)
-	}
-
-	if e.Loaned != a.Loaned {
-		return fmt.Errorf("expect loaned '%s', got '%s'", e.Loaned, a.Loaned)
-	}
-
-	if e.Borrower != a.Borrower {
-		return fmt.Errorf("expect borrower '%s', got '%s'", e.Borrower, a.Borrower)
+func compareBookEntries(e, a *models.BookEntry) error {
+	if e != a {
+		return fmt.Errorf("expect:\n  %#v\ngot:  %#v\n", e, a)
 	}
 	return nil
-
 }
+
 
 func TestImportAndExport(t *testing.T) {
 	csvStr := strings.TrimSpace(`
@@ -56,38 +27,55 @@ Title,Author,Genre,2021-02-19,3,,
 Title,Author,Genre,,,2021-02-19,Lane
 Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 `)
-	books := []repo.BookEntry{
+	books := []models.BookEntry{
 		{
-			Variant: repo.Book,
-			Title:   "Title",
-			Author:  "Author",
-			Genre:   "Genre",
+			Book: models.Book{
+				Title:   "Title",
+				Author:  "Author",
+				Genre:   "Genre",
+			},
 		},
 		{
-			Variant: repo.Book | repo.Read,
-			Title:   "Title",
-			Author:  "Author",
-			Genre:   "Genre",
-			Read:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating:  3,
+			Book: models.Book{
+				Title:   "Title",
+				Author:  "Author",
+				Genre:   "Genre",
+			},
+			Completed: models.Completed{
+				CompletedAt:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:  3,
+			},
+			IsCompleted: true,
 		},
 		{
-			Variant:  repo.Book | repo.Loaned,
-			Title:    "Title",
-			Author:   "Author",
-			Genre:    "Genre",
-			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Borrower: "Lane",
+			Book: models.Book{
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+			},
+			IsLoaned: true,
+			Loaned: models.Loaned{
+				LoanedAt:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Borrower: "Lane",
+			},
 		},
 		{
-			Variant:  repo.Book | repo.Loaned | repo.Read,
-			Title:    "Title",
-			Author:   "Author",
-			Genre:    "Genre",
-			Loaned:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Borrower: "Lane",
-			Read:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-			Rating:   3,
+			Book: models.Book{
+				Title:    "Title",
+				Author:   "Author",
+				Genre:    "Genre",
+			},
+			IsLoaned: true,
+			IsCompleted: true,
+
+			Loaned: models.Loaned{
+				LoanedAt:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Borrower: "Lane",
+			},
+			Completed: models.Completed{
+				CompletedAt:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:   3,
+			},
 		},
 	}
 
@@ -106,7 +94,7 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 		for i := range expect {
 			e := &expect[i]
 			a := &actual[i]
-			if err := compareBookEntry(e, a); err != nil {
+			if err := compareBookEntries(e, a); err != nil {
 				t.Fatalf("[%d] %s", i, err)
 			}
 		}

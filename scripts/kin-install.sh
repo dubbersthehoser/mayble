@@ -20,4 +20,3 @@ echo "continue install"
 # 3. check arch.
 # 4. install the binary and dot desktop file.
 # 5. clean up.
-
