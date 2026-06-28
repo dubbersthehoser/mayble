@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"fmt"
 	"errors"
 	"path/filepath"
 )
@@ -12,17 +11,12 @@ const (
 )
 
 func GetDefaultConfigFile(appName string) (string, error) {
-	path, found := findConfigDir(appName)
-	if path == "" {
-		return "", errors.New("config: could not find config directory")
+	dir, ok := findConfigDir(appName)
+	if !ok {
+		return "", errors.New("config: could not find default config directory")
+
 	}
-	if !found {
-		err := os.Mkdir(path, 0755)
-		if err != nil {
-			return "", fmt.Errorf("config: %w", err)
-		}
-	}
-	path = filepath.Join(path, filename)
+	path := filepath.Join(dir, filename)
 	return path, nil
 }
 

@@ -46,11 +46,7 @@ type UI struct {
 }
 
 // NewConfigWithDefaults returns a fresh configuration for application.
-func NewConfigWithDefaults(appName string) (*Config, error) {
-	configFile, err := GetDefaultConfigFile(appName)
-	if err != nil {
-		return nil, err
-	}
+func NewConfigWithDefaults(configFile string) *Config {
 	cfg := &Config{
 		Version: Version,
 		ConfigFile: configFile,
@@ -67,7 +63,7 @@ func NewConfigWithDefaults(appName string) (*Config, error) {
 		cfg.UI.Headers[i] = header
 	}
 
-	return cfg, nil
+	return cfg
 }
 
 // Save to config file.
@@ -113,13 +109,9 @@ func Load(path string) (*Config, error) {
 }
 
 // Migrate old config to current config.
-func Migrate(path, appName string) (*Config, error) {
-	cfg, err := NewConfigWithDefaults(appName)
-	if err != nil {
-		return nil, err
-	}
-	cfg.ConfigFile = path
-	err = backup(path)
+func Migrate(path string) (*Config, error) {
+	cfg := NewConfigWithDefaults(path)
+	err := backup(path)
 	return cfg, err
 }
 

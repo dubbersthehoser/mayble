@@ -109,13 +109,13 @@ func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
 
 	builder := models.NewBookEntryBuilder()
 
-	builder.SetTitle(f[m[models.IdxTitle]]).
-		SetAuthor(f[m[models.IdxAuthor]]).
-		SetGenre(f[m[models.IdxGenre]]).
-		SetBorrower(f[m[models.IdxBorrower]]).
-		SetLoaned(f[m[models.IdxLoanedAt]]).
-		SetCompleted(f[m[models.IdxCompletedAt]]).
-		SetRating(f[m[models.IdxRating]]).
+	builder.SetTitle(f[m[idxTitle]]).
+		SetAuthor(f[m[idxAuthor]]).
+		SetGenre(f[m[idxGenre]]).
+		SetBorrower(f[m[idxBorrower]]).
+		SetLoaned(f[m[idxLoanedAt]]).
+		SetCompleted(f[m[idxCompletedAt]]).
+		SetRating(f[m[idxRating]]).
 		SetID(0)
 
 	book, err := builder.Build()
@@ -126,11 +126,9 @@ func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
 }
 
 func schemaHeaders() []string {
-	headers := models.BookEntryFields()
+	headers := models.BookEntryFields()[1:]
 	for i := range headers {
-		if i != 0 {
-			headers[i] = strings.ToUpper(headers[i])
-		}
+		headers[i] = strings.ToUpper(headers[i])
 	}
 	return headers
 }

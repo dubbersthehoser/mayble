@@ -35,14 +35,15 @@ func main() {
 	cfg, err := config.Load(cfgPath)
 	switch {
 	case errors.Is(err, config.ErrIsOldConfig):
-		cfg, err = config.Migrate(cfgPath, appName)
+		cfg, err = config.Migrate(cfgPath)
 		if err != nil {
 			fatalLaunch(window, err)
 			return
 		}
 
 	case errors.Is(err, os.ErrNotExist):
-		cfg, err = config.NewConfigWithDefaults(appName)
+		configFile, err := config.GetDefaultConfigFile(appName)
+		cfg = config.NewConfigWithDefaults(configFile)
 		if err != nil {
 			fatalLaunch(window, err)
 			return

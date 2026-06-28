@@ -4,7 +4,41 @@ import (
 	"testing"
 	"os"
 	"io"
+	"path/filepath"
+	"errors"
 )
+
+func TestLoadDefaultAndSave(t *testing.T) {
+	tmpDir := os.TempDir()
+	configPath := filepath.Join(tmpDir, "mayble-test-config.json")
+	defer func() {
+		if !t.Failed() {
+			os.Remove(configPath)
+		} else {
+			t.Log("file:", configPath)
+		}
+	}()
+	_, err := Load(configPath)
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("unexpected error:", err)
+	}
+	cfg := NewConfigWithDefaults(configPath)
+
+	if cfg.ConfigFile != configPath {
+		t.Fatalf("expect '%s', got '%s'", configPath, cfg.ConfigFile)
+	}
+
+	if err := cfg.Save(); err != nil {
+		t.Fatal("unexpected error:", err)
+	}
+
+	if cfg.ConfigFile != configPath {
+		t.Fatalf("expect '%s', got '%s'", configPath, cfg.ConfigFile)
+	}
+
+
+
+}
 
 func Test_backup(t *testing.T) {
 
