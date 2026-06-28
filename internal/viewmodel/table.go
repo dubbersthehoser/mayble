@@ -99,7 +99,6 @@ func (ts *ColumnSettings) IsIDHidden() bool {
 }
 
 func (ts *ColumnSettings) SetIDHidden(t bool) {
-	println(t)
 	header := ts.cfg.UI.Headers[models.IdxID]
 	header.IsHidden = t
 	ts.cfg.UI.Headers[models.IdxID] = header

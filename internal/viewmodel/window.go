@@ -36,6 +36,7 @@ type Window struct {
 	Searching      *Searching
 	Search         func(string)
 	Form           *BookForm
+	NoData         *NoDataBody
 }
 
 func NewWindow(cfg *config.Config) *Window {
@@ -51,6 +52,7 @@ func NewWindow(cfg *config.Config) *Window {
 		Searching: &Searching{},
 		Selected: newEntrySelected(),
 		UniqueGenres: newUniqueGenres(serv),
+		NoData: &NoDataBody{},
 	}
 
 	w.Form = newBookForm(
@@ -208,6 +210,7 @@ func NewWindow(cfg *config.Config) *Window {
 		w.Searching.search(w.DataTable.data, s)
 	}
 
+	// select entry when searched.
 	w.Searching.AddListener(func() {
 		if w.Searching.Has() {
 			w.Selected.Select(
@@ -218,32 +221,47 @@ func NewWindow(cfg *config.Config) *Window {
 		}
 	})
 
+
+	// start with table view at start up.
 	w.Body.Set(BodyTable)
 
+	// only when body can change to NoData is with NoData calls.
+	w.NoData.AddListener(func() {
+		w.Body.Set(BodyNoData) // the only place this line should be called!!!
+	})
+
+	// try and load database at first start.
 	if err := serv.LoadDatabase(); err != nil {
-		w.StatusLine.sendError(err.Error())
 		log.Println("Warning:", err)
-		w.Body.Set(BodyNoData)
+		if w.cfg.DBFile == "" {
+			w.NoData.SetNoDB()
+		} else {
+			w.StatusLine.sendError(err.Error())
+			w.NoData.SetDataErr(w.DBPath.Get(), err)
+		}
 	}
 
+	// load database at database file path change.
 	w.DBPath.AddListener(func(){
 		if err := serv.LoadDatabase(); err != nil {
 			w.StatusLine.sendError(err.Error())
 			log.Println("Error:", err)
-			w.Body.Set(BodyNoData)
+			w.NoData.SetDataErr(w.DBPath.Get(), err)
+			return
 		}
 		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
 	})
 
+	// unselect when the columns are hidden or been shown.
 	w.ColumnSettings.AddListener(func() {
 		w.DataTable.load()
 		w.Selected.Unselect()
 	})
 
+	// reload database when sorting changed.
 	w.Sorting.AddListener(func() {
 		w.DataTable.load()
 	})
-
 	return w
 }
 
@@ -261,6 +279,10 @@ type FileManage struct {
 	ImportFile func(path string, err error)
 	ExportFile func(path string, err error)
 }
+
+
+// I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
+
 
 func WrapFyneFileOpen(fn func(string, error)) func(fyne.URIReadCloser, error) {
 	return func(r fyne.URIReadCloser, err error) {

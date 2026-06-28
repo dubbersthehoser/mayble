@@ -35,9 +35,6 @@ func TestLoadDefaultAndSave(t *testing.T) {
 	if cfg.ConfigFile != configPath {
 		t.Fatalf("expect '%s', got '%s'", configPath, cfg.ConfigFile)
 	}
-
-
-
 }
 
 func Test_backup(t *testing.T) {

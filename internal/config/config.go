@@ -13,6 +13,16 @@ import (
 // Current config version.
 const Version string = "2.0.0"
 
+// default values for config.
+const (
+	windowHeight         float32 = 600
+	windowWidth          float32 = 900
+	windowFullScreen     bool = false
+	windowCenterOnScreen bool = true
+	minColumnSize        float32 = 100
+	tableSortByIdx       int = models.IdxTitle               
+)
+
 var (
 	ErrIsOldConfig error = errors.New("old config")
 )
@@ -39,10 +49,14 @@ type Config struct{
 }
 
 type UI struct {
-	Headers map[int]Header `json:"headers"`
-	TableSortBy int        `json:"table_sort_by"`
-	TableAscending bool    `json:"table_ascending"`
-	TableMinWidth  float32 `json:"table_min_width"`
+	Headers              map[int]Header `json:"headers"`
+	TableSortBy          int            `json:"table_sort_by"`
+	TableAscending       bool           `json:"table_ascending"`
+	TableMinWidth        float32        `json:"table_min_width"`
+	WindowHeight         float32        `json:"window_height"`
+	WindowWidth          float32        `json:"window_width"`
+	WindowFullScreen     bool           `json:"window_fullscreen"`
+	WindowCenterOnScreen bool           `json:"window_center_on_screen"`
 }
 
 // NewConfigWithDefaults returns a fresh configuration for application.
@@ -52,13 +66,22 @@ func NewConfigWithDefaults(configFile string) *Config {
 		ConfigFile: configFile,
 		UI: UI{
 			Headers: make(map[int]Header),
-			TableMinWidth:  100.0,
+			TableMinWidth:  minColumnSize,
+			TableSortBy:  tableSortByIdx,
+			WindowHeight: windowHeight,
+			WindowWidth: windowWidth,
+			WindowFullScreen: windowFullScreen,
+			WindowCenterOnScreen: windowCenterOnScreen,
 		},
 	}
 
-	for i, label := range models.BookEntryFields() {
+	headerLables := models.BookEntryFields()
+	for i, label := range headerLables {
 		header := Header{
 			Name: label,
+		}
+		if label == headerLables[models.IdxID] {
+			header.IsHidden = true
 		}
 		cfg.UI.Headers[i] = header
 	}

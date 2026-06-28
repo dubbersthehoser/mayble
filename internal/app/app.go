@@ -162,8 +162,8 @@ func (as *Service) OpenDatabase(path string) error {
 		as.db.Conn = db.Conn
 		as.db.Queries = db.Queries
 	}
-	as.notify()
 	as.cfg.DBFile = path
+	as.notify()
 	return nil
 }
 

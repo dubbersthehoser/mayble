@@ -1,7 +1,6 @@
 package viewmodel
 
 import (
-	"log"
 	"time"
 
 	"fyne.io/fyne/v2/data/binding"
@@ -15,25 +14,18 @@ const (
 
 type StatusLine struct {
 	Text  binding.String
+	DoOnClear func()
 	Type    int
-	clear   func() 
 	clrTimer *time.Timer
 	start chan struct{}
 }
 
 func newStatusLine() *StatusLine {
 	sl := &StatusLine{
-		clear: func() {
-			log.Println("Warning: on clear not set")
-		},
 		clrTimer: time.NewTimer(0),
 		start: make(chan struct{}),
 
 		Text: binding.NewString(),
-	}
-
-	sl.clear = func() {
-		sl.Text.Set("")
 	}
 
 	countDown := time.Duration(time.Minute / 10)
@@ -44,7 +36,7 @@ func newStatusLine() *StatusLine {
 			case _ = <- sl.start:
 				_ = sl.clrTimer.Reset(countDown)
 			case _ = <- sl.clrTimer.C:
-				sl.clear()
+				sl.Clear()
 			}
 		}
 	}()
@@ -52,28 +44,31 @@ func newStatusLine() *StatusLine {
 	return sl
 }
 
-func (sl *StatusLine) SetOnClear(fn func()) {
-	sl.clear = fn
+func (sl *StatusLine) Clear() {
+	sl.Text.Set("")
+	if sl.DoOnClear != nil {
+		sl.DoOnClear()
+	}
 }
 
-func (sl *StatusLine) startClear() {
+func (sl *StatusLine) startClearTimer() {
 	sl.start <- struct{}{}
 }
 
 func (sl *StatusLine) sendError(msg string) {
 	sl.Type = StatusError
 	_ = sl.Text.Set(msg)
-	sl.startClear()
+	sl.startClearTimer()
 }
 
 func (sl *StatusLine) sendInfo(msg string) {
 	sl.Type = StatusInfo
 	_ = sl.Text.Set(msg)
-	sl.startClear()
+	sl.startClearTimer()
 }
 
 func (sl *StatusLine) sendSuccess(msg string) {
 	sl.Type = StatusSuccess
 	_ = sl.Text.Set(msg)
-	sl.startClear()
+	sl.startClearTimer()
 }

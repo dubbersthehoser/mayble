@@ -14,11 +14,12 @@ import (
 )
 
 func fatalLaunch(w fyne.Window, err error) {
-	// Todo: create window to display fatal error.
 	log.Fatal(err)
 	body := view.NewFatal("Fatal", "Failed to launch application.", err.Error())
 
 	w.SetContent(body)
+	w.ShowAndRun()
+	os.Exit(1)
 }
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 	a := app.NewWithID("com.dubbersthehoser." + appName)
 	window := a.NewWindow(appName)
 
+	// open config
 	cfgPath, err := config.GetDefaultConfigFile(appName)
 	if err != nil {
 		fatalLaunch(window, err)
@@ -56,11 +58,20 @@ func main() {
 	defer cfg.Save()
 
 
-	// Todo: add window size to config.
-	window.Resize(fyne.NewSize(900, 600))
-	window.CenterOnScreen()
+	// window set up
+	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))
 	window.SetMaster()
+	if cfg.UI.WindowCenterOnScreen {
+		window.CenterOnScreen()
+	}
+	defer func() {
+		size := window.Content().Size()
+		cfg.UI.WindowWidth = size.Width
+		cfg.UI.WindowHeight = size.Height
+		cfg.UI.WindowFullScreen = window.FullScreen()
+	}()
 
+	// create and show content
 	vm := viewmodel.NewWindow(cfg)
 	f := view.NewFyne(a, window)
 	content := view.NewWindow(f, vm)

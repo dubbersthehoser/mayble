@@ -97,7 +97,17 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 	// todo: needs more work.
-	view := widget.NewLabel(fmt.Sprintf("database not found '%s'", vm.DBPath.Get()))
+	view := widget.NewLabel("")
+	view.Wrapping = fyne.TextWrapWord
+	view.TextStyle = fyne.TextStyle{
+		Bold: true,
+	}
+	if vm.DBPath.Get() == "" {
+		view.SetText("Create or open a new database to work on.")
+		vm.StatusLine.Clear()
+	} else {
+		view.SetText(fmt.Sprintf("Something when wrong when opening database: \"%s\"", vm.DBPath.Get()))
+	}
 	return view
 }
 
@@ -206,11 +216,11 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 		label.SetText(text)
 	}))
 	
-	vm.SetOnClear(func() {
+	vm.DoOnClear = func() {
 		fyne.Do(func() {
 			label.SetText("")
 		})
-	})
+	}
 
 	return label
 }

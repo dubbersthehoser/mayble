@@ -33,7 +33,7 @@ func (ug *UniqueGenres) Genres() []string {
 
 func (ug *UniqueGenres) AddListener(fn func()) {
 
-	if ug == nil {
+	if ug.l == nil {
 		ug.l = make([]func(), 0)
 	}
 
@@ -61,12 +61,18 @@ func (p *DBPath) Get() string {
 }
 func (p *DBPath) Set(s string) {
 	p.cfg.DBFile = s
+	p.notify()
 }
 func (p *DBPath) AddListener(fn func()) {
 	if p.l == nil {
 		p.l = make([]func(), 0)
 	}
 	p.l = append(p.l, fn)
+}
+func (p *DBPath) notify() {
+	for _, fn := range p.l {
+		fn()
+	}
 }
 
 type Body struct {
