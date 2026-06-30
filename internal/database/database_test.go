@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	repo "github.com/dubbersthehoser/mayble/internal/repository"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 func TestOpenMem(t *testing.T) {
@@ -15,10 +15,12 @@ func TestOpenMem(t *testing.T) {
 		t.Fatalf("unexpected error: '%s'", err)
 	}
 
-	book := repo.BookEntry{
-		Title:  "title",
-		Author: "author",
-		Genre:  "genre",
+	book := models.BookEntry{
+		Book: models.Book{
+			Title:  "title",
+			Author: "author",
+			Genre:  "genre",
+		},
 	}
 
 	id, err := db.CreateBook(&book)
@@ -57,10 +59,12 @@ func TestOpen(t *testing.T) {
 	}
 	defer os.Remove(path + ".bak")
 
-	book := repo.BookEntry{
-		Title:  "title",
-		Author: "author",
-		Genre:  "genre",
+	book := models.BookEntry{
+		Book: models.Book{
+			Title:  "title",
+			Author: "author",
+			Genre:  "genre",
+		},
 	}
 
 	id, err := db.CreateBook(&book)

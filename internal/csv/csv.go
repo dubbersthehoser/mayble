@@ -109,13 +109,21 @@ func fieldsToEntry(f []string, m []int) (*models.BookEntry, error) {
 
 	builder := models.NewBookEntryBuilder()
 
+	rating, err := strconv.Atoi(f[m[idxRating]])
+	if err != nil {
+		if f[m[idxRating]] != "" {
+			return nil, fmt.Errorf("format error: %w", err)
+		}
+		rating = 0
+	}
+
 	builder.SetTitle(f[m[idxTitle]]).
 		SetAuthor(f[m[idxAuthor]]).
 		SetGenre(f[m[idxGenre]]).
 		SetBorrower(f[m[idxBorrower]]).
 		SetLoaned(f[m[idxLoanedAt]]).
 		SetCompleted(f[m[idxCompletedAt]]).
-		SetRating(f[m[idxRating]]).
+		SetRating(rating).
 		SetID(0)
 
 	book, err := builder.Build()

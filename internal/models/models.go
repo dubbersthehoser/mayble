@@ -3,9 +3,31 @@ package models
 import (
 	"time"
 	"errors"
-	"strconv"
-	"fmt"
 )
+const (
+	IdxID    int = iota
+	IdxTitle
+	IdxAuthor
+	IdxGenre
+	IdxCompletedAt
+	IdxRating
+	IdxLoanedAt
+	IdxBorrower
+)
+
+// BookEntryFields returns the names of each field name of BookEntry.
+func BookEntryFields() []string {
+	return []string{
+		"ID",
+		"Title",
+		"Author",
+		"Genre",
+		"Completed",
+		"Rating",
+		"Loaned",
+		"Borrower",
+	}
+}
 
 type Book struct {
 	Title  string
@@ -41,7 +63,7 @@ type BookEntryBuilder struct {
 	completed string
 	loaned    string
 	borrower  string
-	rating    string
+	rating    int
 }
 
 func NewBookEntryBuilder() *BookEntryBuilder {
@@ -85,7 +107,7 @@ func (b *BookEntryBuilder) Build() (*BookEntry, error) {
 		book.Loaned.Borrower = b.borrower
 	}
 
-	if b.completed != "" && b.rating != "" && b.rating != "0" {
+	if b.completed != "" && b.rating != 0 {
 		book.IsCompleted = true
 		date, err := time.Parse(time.DateOnly, b.completed)
 		if err != nil {
@@ -93,10 +115,7 @@ func (b *BookEntryBuilder) Build() (*BookEntry, error) {
 		}
 
 		book.Completed.CompletedAt = date
-		book.Completed.Rating, err = strconv.Atoi(b.rating)
-		if err != nil {
-			return nil, fmt.Errorf("invalid rating '%s'", b.rating)
-		}
+		book.Completed.Rating = b.rating
 	}
 	return book, nil
 }
@@ -136,33 +155,13 @@ func (b *BookEntryBuilder) SetBorrower(n string) *BookEntryBuilder {
 	return b
 }
 
-func (b *BookEntryBuilder) SetRating(r string) *BookEntryBuilder {
+func (b *BookEntryBuilder) SetRating(r int) *BookEntryBuilder {
 	b.rating = r
 	return b
 }
 
 
-const (
-	IdxID    int = iota
-	IdxTitle
-	IdxAuthor
-	IdxGenre
-	IdxCompletedAt
-	IdxRating
-	IdxLoanedAt
-	IdxBorrower
-)
 
-// BookEntryFields returns the names of each field name of BookEntry
-func BookEntryFields() []string {
-	return []string{
-		"ID",
-		"Title",
-		"Author",
-		"Genre",
-		"Completed",
-		"Rating",
-		"Loaned",
-		"Borrower",
-	}
-}
+
+
+

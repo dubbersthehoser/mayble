@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"strconv"
 	"errors"
 	"time"
 	"fmt"
@@ -223,7 +222,7 @@ func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
 
 		if hasRead {
 			builder.SetCompleted(read.DateCompleted).
-				SetRating(strconv.Itoa(int(read.Rating)))
+				SetRating(int(read.Rating))
 		}
 		book, err := builder.Build()
 		if err != nil {
@@ -274,7 +273,7 @@ func (db *Database) GetBookByID(id int64) (models.BookEntry, error) {
 
 	if hasRead {
 		builder.SetCompleted(readRow.DateCompleted).
-			SetRating(strconv.Itoa(int(readRow.Rating)))
+			SetRating(int(readRow.Rating))
 	}
 
 	book, err := builder.Build()
