@@ -10,11 +10,7 @@ I was asked by a family member of mine, whom has a collection of physical books,
 
 ## Quick Start
 
-1. Pull down repo.
-
-``` sh
-git pull github.com/dubbersthehoser/mayble
-```
+1. Clone down repo: `git clone github.com/dubbersthehoser/mayble`
 
 2. Install Fyne Framework's dependencies.
 
@@ -22,9 +18,9 @@ git pull github.com/dubbersthehoser/mayble
 
 - [Other Platforms](https://docs.fyne.io/started/quick/)
 
-*Note on platforms:* Mayble was created for desktop usage only in mind, so avoid the phone OS versions.
+*Note:* Mayble was created for desktop usage only in mind, so avoid the phone OS versions.
 
-3. Build and Run `go run .` to try it out.
+3. Build and run `go run .` and try it out.
 
 ## Usage
 
