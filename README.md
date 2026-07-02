@@ -24,12 +24,9 @@ git pull github.com/dubbersthehoser/mayble
 
 *Note on platforms:* Mayble was created for desktop usage only in mind, so avoid the phone OS versions.
 
-3. Build and Run
-
-Now you can run `go run .` to try it out.
+3. Build and Run `go run .` to try it out.
 
 ## Usage
-
 
 ## Contributing
 
