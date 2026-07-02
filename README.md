@@ -2,7 +2,7 @@
 
 A simple desktop book management application.
 
-[[ todo: add screenshot ]]
+![Mable Screen Shot](./images/Screenshot.png)
 
 ## Motivation
 
