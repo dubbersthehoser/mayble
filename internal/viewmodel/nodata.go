@@ -5,6 +5,7 @@ import (
 )
 
 type NoDataState int
+
 const (
 	DataNoDB NoDataState = iota
 	DataErr
@@ -21,8 +22,8 @@ func (nb *NoDataBody) State() NoDataState {
 }
 
 func (nb *NoDataBody) SetDataErr(path string, err error) {
-	nb.s = DataErr 
-	nb.m = fmt.Sprintf("Something when wrong when opening database: \"%s\"\nError: %s", path, err)	
+	nb.s = DataErr
+	nb.m = fmt.Sprintf("Something when wrong when opening database: \"%s\"\nError: %s", path, err)
 	nb.notify()
 }
 

@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"errors"
-	"time"
 	"fmt"
+	"time"
 
 	"database/sql"
 	"github.com/dubbersthehoser/mayble/internal/models"

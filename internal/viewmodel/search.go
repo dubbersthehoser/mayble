@@ -1,11 +1,11 @@
 package viewmodel
 
 import (
-	"slices"
 	"cmp"
-	
-	"github.com/dubbersthehoser/mayble/internal/search"
+	"slices"
+
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/search"
 )
 
 type Searching struct {
@@ -14,7 +14,7 @@ type Searching struct {
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
 
-	row int
+	row    int
 	scored [][]int
 
 	l []func()
@@ -36,7 +36,7 @@ func (s *Searching) SetBy(c string) {
 	if c == "All" {
 		s.column = -1
 		return
-	} 
+	}
 
 	s.column = slices.Index(models.BookEntryFields(), c)
 }
@@ -92,7 +92,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	for _, row := range data {
 		dataCol = append(dataCol, row[s.column])
 	}
-	type result struct{
+	type result struct {
 		row, score int
 	}
 	results := make([]result, 0)
@@ -104,7 +104,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 			continue
 		}
 		r := result{
-			row: row,
+			row:   row,
 			score: score,
 		}
 		results = append(results, r)
@@ -133,7 +133,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 }
 
 func (s *Searching) searchAll(data [][]string, search string) {
-	type result struct{
+	type result struct {
 		row, col, score int
 	}
 	results := make([]result, 0)
@@ -145,8 +145,8 @@ func (s *Searching) searchAll(data [][]string, search string) {
 			continue
 		}
 		r := result{
-			row: row,
-			col: col,
+			row:   row,
+			col:   col,
 			score: score,
 		}
 		results = append(results, r)

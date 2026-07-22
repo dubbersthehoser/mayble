@@ -6,55 +6,53 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/data/binding"
-	
-	"github.com/dubbersthehoser/mayble/internal/models"
+
 	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
-type BookForm struct{
-
+type BookForm struct {
 	s *app.Service
 
-	Fyne struct{
-		Title binding.String
+	Fyne struct {
+		Title  binding.String
 		Author binding.String
-		Genre binding.String
+		Genre  binding.String
 
 		IsLoaned binding.Bool
 		Borrower binding.String
 		LoanedAt binding.String
 
 		IsCompleted binding.Bool
-		CompletedAt   binding.String
+		CompletedAt binding.String
 		Rating      binding.String
-
 	}
 
 	SubmitLabel string
-	OnUpdate func()
-	OnCreate func()
+	OnUpdate    func()
+	OnCreate    func()
 }
 
 func newBookForm(onUpdate, onCreate func()) *BookForm {
 	bf := &BookForm{
 		OnUpdate: onUpdate,
 		OnCreate: onCreate,
-		Fyne: struct{
-			Title binding.String
+		Fyne: struct {
+			Title  binding.String
 			Author binding.String
-			Genre binding.String
+			Genre  binding.String
 
 			IsLoaned binding.Bool
 			Borrower binding.String
 			LoanedAt binding.String
 
 			IsCompleted binding.Bool
-			CompletedAt   binding.String
+			CompletedAt binding.String
 			Rating      binding.String
 		}{
-			Title: binding.NewString(),
+			Title:  binding.NewString(),
 			Author: binding.NewString(),
-			Genre: binding.NewString(),
+			Genre:  binding.NewString(),
 
 			IsLoaned: binding.NewBool(),
 			Borrower: binding.NewString(),
@@ -99,11 +97,11 @@ func (bf *BookForm) Set(book *models.BookEntry) {
 }
 
 func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
-	
+
 	if err := bf.validate(); err != nil {
 		return nil, err
 	}
-	
+
 	book := models.BookEntry{}
 
 	book.Title, _ = bf.Fyne.Title.Get()
@@ -209,4 +207,3 @@ func (bf *BookForm) validate() error {
 	}
 	return nil
 }
-

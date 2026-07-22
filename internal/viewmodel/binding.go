@@ -48,9 +48,10 @@ func (ug *UniqueGenres) notify() {
 
 type DBPath struct {
 	cfg *config.Config
-	l []func()
+	l   []func()
 }
-func newDBPath(cfg *config.Config) *DBPath{
+
+func newDBPath(cfg *config.Config) *DBPath {
 	dbp := &DBPath{
 		cfg: cfg,
 	}
@@ -77,7 +78,7 @@ func (p *DBPath) notify() {
 
 type Body struct {
 	value int
-	l []func()
+	l     []func()
 }
 
 func (b *Body) Value() int {

@@ -1,11 +1,10 @@
 package viewmodel
 
 import (
-	"time"
 	"fmt"
 	"slices"
+	"time"
 )
-
 
 const dateFormat = "02/01/2006"
 
@@ -57,4 +56,3 @@ func parseRating(r string) (int, error) {
 	}
 	return idx, nil
 }
-

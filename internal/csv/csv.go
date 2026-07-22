@@ -2,12 +2,12 @@ package csv
 
 import (
 	"encoding/csv"
-	"slices"
-	"strings"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	models "github.com/dubbersthehoser/mayble/internal/models"
@@ -28,7 +28,7 @@ const (
 )
 
 func Import(r io.Reader) ([]models.BookEntry, error) {
-	
+
 	reader := csv.NewReader(r)
 	reader.FieldsPerRecord = 7
 
@@ -78,7 +78,7 @@ func Export(w io.Writer, entries []models.BookEntry) error {
 }
 
 func fieldLength() int {
-	return len(models.BookEntryFields())-1 // neg one to avoid ID Field
+	return len(models.BookEntryFields()) - 1 // neg one to avoid ID Field
 }
 
 func entryToFields(book *models.BookEntry) []string {

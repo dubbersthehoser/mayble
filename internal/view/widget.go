@@ -1,10 +1,9 @@
 package view
 
 import (
-
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
@@ -13,7 +12,7 @@ type RatingSelect struct {
 	widget.Select
 }
 
-func NewRatingSelect(fn func(s string)) *RatingSelect{
+func NewRatingSelect(fn func(s string)) *RatingSelect {
 	rs := &RatingSelect{}
 	rs.Options = viewmodel.Ratings()
 	rs.OnChanged = fn
@@ -24,12 +23,13 @@ func NewRatingSelect(fn func(s string)) *RatingSelect{
 type GenreEntry struct {
 	widget.SelectEntry
 }
+
 func NewGenreEntry(gs *viewmodel.UniqueGenres, fn func(s string)) *GenreEntry {
 	ge := &GenreEntry{}
 	ge.OnChanged = fn
 	ge.ExtendBaseWidget(ge)
 
-	ge.SetOptions(gs.Genres())	
+	ge.SetOptions(gs.Genres())
 	gs.AddListener(func() {
 		ge.SetOptions(gs.Genres())
 	})
@@ -60,13 +60,14 @@ type SearchEntry struct {
 	OnNext func()
 	OnPrev func()
 }
+
 func NewSearchEntry(next func(), prev func()) *SearchEntry {
 	se := &SearchEntry{
 		OnNext: next,
 		OnPrev: prev,
 	}
 	se.ExtendBaseWidget(se)
-	se.OnSubmitted = func(_ string) {se.OnNext()}
+	se.OnSubmitted = func(_ string) { se.OnNext() }
 	return se
 }
 

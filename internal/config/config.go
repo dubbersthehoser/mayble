@@ -3,9 +3,9 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
@@ -17,10 +17,10 @@ const Version string = "2.0.0"
 const (
 	windowHeight         float32 = 600
 	windowWidth          float32 = 900
-	windowFullScreen     bool = false
-	windowCenterOnScreen bool = true
+	windowFullScreen     bool    = false
+	windowCenterOnScreen bool    = true
 	minColumnSize        float32 = 100
-	tableSortByIdx       int = models.IdxTitle               
+	tableSortByIdx       int     = models.IdxTitle
 )
 
 var (
@@ -41,7 +41,7 @@ type Header struct {
 }
 
 // Config contains all configuration for the application.
-type Config struct{
+type Config struct {
 	Version    string `json:"version"`
 	ConfigFile string `json:"config_file"`
 	DBFile     string `json:"db_file"`
@@ -62,15 +62,15 @@ type UI struct {
 // NewConfigWithDefaults returns a fresh configuration for application.
 func NewConfigWithDefaults(configFile string) *Config {
 	cfg := &Config{
-		Version: Version,
+		Version:    Version,
 		ConfigFile: configFile,
 		UI: UI{
-			Headers: make(map[int]Header),
-			TableMinWidth:  minColumnSize,
-			TableSortBy:  tableSortByIdx,
-			WindowHeight: windowHeight,
-			WindowWidth: windowWidth,
-			WindowFullScreen: windowFullScreen,
+			Headers:              make(map[int]Header),
+			TableMinWidth:        minColumnSize,
+			TableSortBy:          tableSortByIdx,
+			WindowHeight:         windowHeight,
+			WindowWidth:          windowWidth,
+			WindowFullScreen:     windowFullScreen,
 			WindowCenterOnScreen: windowCenterOnScreen,
 		},
 	}
@@ -104,7 +104,7 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// Load config file form file path. 
+// Load config file form file path.
 func Load(path string) (*Config, error) {
 
 	file, err := os.Open(path)

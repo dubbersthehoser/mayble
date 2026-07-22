@@ -13,17 +13,17 @@ const (
 )
 
 type StatusLine struct {
-	Text  binding.String
+	Text      binding.String
 	DoOnClear func()
-	Type    int
-	clrTimer *time.Timer
-	start chan struct{}
+	Type      int
+	clrTimer  *time.Timer
+	start     chan struct{}
 }
 
 func newStatusLine() *StatusLine {
 	sl := &StatusLine{
 		clrTimer: time.NewTimer(0),
-		start: make(chan struct{}),
+		start:    make(chan struct{}),
 
 		Text: binding.NewString(),
 	}
@@ -33,9 +33,9 @@ func newStatusLine() *StatusLine {
 	go func() {
 		for {
 			select {
-			case _ = <- sl.start:
+			case _ = <-sl.start:
 				_ = sl.clrTimer.Reset(countDown)
-			case _ = <- sl.clrTimer.C:
+			case _ = <-sl.clrTimer.C:
 				sl.Clear()
 			}
 		}

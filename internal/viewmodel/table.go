@@ -1,9 +1,9 @@
 package viewmodel
 
 import (
+	"fmt"
 	"log"
 	"slices"
-	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
@@ -12,7 +12,7 @@ import (
 
 type SortingTable struct {
 	cfg *config.Config
-	
+
 	l []func()
 }
 
@@ -63,7 +63,7 @@ func (s *SortingTable) notify() {
 
 type ColumnSettings struct {
 	cfg *config.Config
-	l []func()
+	l   []func()
 }
 
 func newColumnSettings(cfg *config.Config) *ColumnSettings {
@@ -106,7 +106,7 @@ func (ts *ColumnSettings) SetIDHidden(t bool) {
 }
 
 func (ts *ColumnSettings) SetLoanHidden(t bool) {
-	
+
 	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
 	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
 
@@ -181,7 +181,7 @@ func (ts *ColumnSettings) notify() {
 type EntrySelected struct {
 	row int
 	col int
-	l []func()
+	l   []func()
 }
 
 func newEntrySelected() *EntrySelected {
@@ -228,7 +228,7 @@ type DataTable struct {
 	data    [][]string
 	rowToID map[int]int64
 
-	cfg     *config.Config
+	cfg *config.Config
 
 	l []func()
 }
@@ -236,7 +236,7 @@ type DataTable struct {
 func newDataTable(cfg *config.Config, s *app.Service) *DataTable {
 	dt := &DataTable{
 		service: s,
-		cfg: cfg,
+		cfg:     cfg,
 		rowToID: make(map[int]int64),
 	}
 	dt.service.AddListener(func() {
@@ -292,7 +292,7 @@ func (dt *DataTable) load() {
 
 	dt.data = dt.data[:0]
 	clear(dt.rowToID)
-	
+
 	for row, book := range books {
 		dt.rowToID[row] = book.ID
 		values := entryValues(&book)
@@ -324,9 +324,9 @@ func isReadHidden(cfg *config.Config) bool {
 }
 
 func entryValues(e *models.BookEntry) []string {
-	
+
 	headers := models.BookEntryFields()
-	values  := make([]string, len(headers))
+	values := make([]string, len(headers))
 
 	for i, header := range headers {
 		switch i {
@@ -366,4 +366,3 @@ func removeHiddenColumns(cfg *config.Config) []int {
 	}
 	return indexs
 }
-

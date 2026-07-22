@@ -11,7 +11,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
-
 func Test_schemaHeaders(t *testing.T) {
 	expect := []string{
 		"TITLE", "AUTHOR", "GENRE", "COMPLETED", "RATING", "LOANED", "BORROWER",
@@ -23,10 +22,9 @@ func Test_schemaHeaders(t *testing.T) {
 	}
 }
 
-
 func Test_mapSchema(t *testing.T) {
-	
-	tests := []struct{
+
+	tests := []struct {
 		name   string
 		input  []string
 		expect []int
@@ -40,7 +38,7 @@ func Test_mapSchema(t *testing.T) {
 			expect: []int{
 				idxTitle, idxAuthor, idxGenre, idxCompletedAt, idxRating, idxLoanedAt, idxBorrower,
 			},
-			ok: true, 
+			ok: true,
 		},
 		{
 			name: "swaped READ and RATING",
@@ -48,9 +46,9 @@ func Test_mapSchema(t *testing.T) {
 				"TITLE", "AUTHOR", "GENRE", "COMPLETED", "RATING", "BORROWER", "LOANED",
 			},
 			expect: []int{
-				idxTitle,idxAuthor ,idxGenre, idxCompletedAt, idxRating, idxBorrower, idxLoanedAt,
+				idxTitle, idxAuthor, idxGenre, idxCompletedAt, idxRating, idxBorrower, idxLoanedAt,
 			},
-			ok: true, 
+			ok: true,
 		},
 		{
 			name: "lower case header",
@@ -58,7 +56,7 @@ func Test_mapSchema(t *testing.T) {
 				"title", "AUTHOR", "GENRE", "READ", "RATING", "BORROWER", "LOANED",
 			},
 			expect: nil,
-			ok: false, 
+			ok:     false,
 		},
 		{
 			name: "missing header",
@@ -66,10 +64,9 @@ func Test_mapSchema(t *testing.T) {
 				"AUTHOR", "GENRE", "READ", "RATING", "BORROWER", "LOANED",
 			},
 			expect: nil,
-			ok: false, 
+			ok:     false,
 		},
 	}
-
 
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
@@ -96,51 +93,51 @@ Title,Author,Genre,2021-02-19,3,2021-02-19,Lane
 	books := []models.BookEntry{
 		{
 			Book: models.Book{
-				Title:   "Title",
-				Author:  "Author",
-				Genre:   "Genre",
+				Title:  "Title",
+				Author: "Author",
+				Genre:  "Genre",
 			},
 		},
 		{
 			Book: models.Book{
-				Title:   "Title",
-				Author:  "Author",
-				Genre:   "Genre",
+				Title:  "Title",
+				Author: "Author",
+				Genre:  "Genre",
 			},
 			Completed: models.Completed{
-				CompletedAt:    time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating:  3,
+				CompletedAt: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:      3,
 			},
 			IsCompleted: true,
 		},
 		{
 			Book: models.Book{
-				Title:    "Title",
-				Author:   "Author",
-				Genre:    "Genre",
+				Title:  "Title",
+				Author: "Author",
+				Genre:  "Genre",
 			},
 			IsLoaned: true,
 			Loaned: models.Loaned{
-				LoanedAt:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				LoanedAt: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
 			},
 		},
 		{
 			Book: models.Book{
-				Title:    "Title",
-				Author:   "Author",
-				Genre:    "Genre",
+				Title:  "Title",
+				Author: "Author",
+				Genre:  "Genre",
 			},
-			IsLoaned: true,
+			IsLoaned:    true,
 			IsCompleted: true,
 
 			Loaned: models.Loaned{
-				LoanedAt:   time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				LoanedAt: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
 				Borrower: "Lane",
 			},
 			Completed: models.Completed{
-				CompletedAt:     time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
-				Rating:   3,
+				CompletedAt: time.Date(2021, 2, 19, 0, 0, 0, 0, time.UTC),
+				Rating:      3,
 			},
 		},
 	}
@@ -192,5 +189,3 @@ func compareBookEntries(e, a *models.BookEntry) error {
 	}
 	return nil
 }
-
-

@@ -1,11 +1,12 @@
 package models
 
 import (
-	"time"
 	"errors"
+	"time"
 )
+
 const (
-	IdxID    int = iota
+	IdxID int = iota
 	IdxTitle
 	IdxAuthor
 	IdxGenre
@@ -37,17 +38,16 @@ type Book struct {
 
 type Loaned struct {
 	Borrower string
-	LoanedAt   time.Time
+	LoanedAt time.Time
 }
 
 type Completed struct {
-	Rating    int
+	Rating      int
 	CompletedAt time.Time
 }
 
-
 type BookEntry struct {
-	ID      int64
+	ID int64
 	Book
 	Loaned
 	Completed
@@ -89,8 +89,8 @@ func (b *BookEntryBuilder) Build() (*BookEntry, error) {
 	}
 
 	book := &BookEntry{
-		ID:     b.id,
-		Book: Book{ 
+		ID: b.id,
+		Book: Book{
 			Title:  b.title,
 			Author: b.author,
 			Genre:  b.genre,
@@ -159,9 +159,3 @@ func (b *BookEntryBuilder) SetRating(r int) *BookEntryBuilder {
 	b.rating = r
 	return b
 }
-
-
-
-
-
-

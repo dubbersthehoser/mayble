@@ -8,10 +8,10 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
@@ -30,7 +30,7 @@ func NewFyne(a fyne.App, w fyne.Window) *Fyne {
 }
 
 func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
-	
+
 	w := f.w
 
 	w.SetMainMenu(newMainMenu(vm, w))
@@ -94,7 +94,6 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	return body
 }
 
-
 func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 	// todo: needs more work.
 	view := widget.NewLabel("")
@@ -139,7 +138,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	final := false
 
 	deleteBtn := widget.NewButtonWithIcon("", theme.DeleteIcon(), nil)
-	deleteBtn.OnTapped = func(){
+	deleteBtn.OnTapped = func() {
 		if !final {
 			final = true
 			deleteBtn.SetText("?")
@@ -163,7 +162,6 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		vm.Controls.OnDelete()
 	}
 
-	
 	view := container.NewHBox(
 		create,
 		edit,
@@ -195,10 +193,9 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	return view
 }
 
-
 func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 	label := widget.NewLabel("")
-	
+
 	vm.Text.AddListener(binding.NewDataListener(func() {
 		text, _ := vm.Text.Get()
 		var importance widget.Importance
@@ -215,7 +212,7 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 		label.Importance = importance
 		label.SetText(text)
 	}))
-	
+
 	vm.DoOnClear = func() {
 		fyne.Do(func() {
 			label.SetText("")
@@ -236,7 +233,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			d.SetTitleText("Open Database")
 			d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))
 			d.Show()
-		}), 
+		}),
 
 		fyne.NewMenuItem("Create", func() {
 			d := dialog.NewFileSave(
@@ -247,7 +244,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			d.SetTitleText("Create Database")
 			d.SetFilter(storage.NewExtensionFileFilter([]string{".db", ".sqlite", ".sqlite3"}))
 			d.Show()
-			
+
 		}),
 
 		fyne.NewMenuItem("Import", func() {
@@ -271,7 +268,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			d.Show()
 		}),
 	)
-	table := fyne.NewMenu("Table", 
+	table := fyne.NewMenu("Table",
 		fyne.NewMenuItem("Show Loaned", nil),
 		fyne.NewMenuItem("Show Read", nil),
 		fyne.NewMenuItem("Show ID", nil),

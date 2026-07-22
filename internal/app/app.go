@@ -1,18 +1,17 @@
 package app
 
-
 import (
-	"os"
-	"errors"
-	"slices"
-	"fmt"
 	"cmp"
+	"errors"
+	"fmt"
+	"os"
+	"slices"
 	"strings"
 
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/csv"
 	"github.com/dubbersthehoser/mayble/internal/database"
 	"github.com/dubbersthehoser/mayble/internal/models"
-	"github.com/dubbersthehoser/mayble/internal/csv"
 )
 
 type Service struct {
@@ -26,7 +25,7 @@ type Service struct {
 func NewService(cfg *config.Config) *Service {
 	as := &Service{
 		cfg: cfg,
-		db: nil,
+		db:  nil,
 
 		listeners: make([]func(), 0),
 	}
@@ -210,7 +209,7 @@ func SortBooks(books []models.BookEntry, index int, ascending bool) error {
 				return -1
 			}
 		}
-		
+
 		r := -1
 		switch index {
 		case models.IdxTitle:

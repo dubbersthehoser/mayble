@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
-	"log"
 	"errors"
+	"log"
+	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -56,7 +56,6 @@ func main() {
 		return
 	}
 	defer cfg.Save()
-
 
 	// window set up
 	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))

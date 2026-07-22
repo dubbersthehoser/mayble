@@ -12,26 +12,26 @@ func TestSearchTable(t *testing.T) {
 		},
 	}
 
-	tests := []struct{
+	tests := []struct {
 		name     string
 		search   string
 		row, col int
 	}{
 		{
-			name: "hunt for 1984 bug",
+			name:   "hunt for 1984 bug",
 			search: "1",
-			row: 0, col: 0,
+			row:    0, col: 0,
 		},
 	}
 
 	ts := TableSearch{}
-	
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ts.Set(table, test.search)
 			for !ts.Next() {
 				if !ts.IsFinished() {
-					
+
 				}
 			}
 		})

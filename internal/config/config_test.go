@@ -1,11 +1,11 @@
 package config
 
 import (
-	"testing"
-	"os"
-	"io"
-	"path/filepath"
 	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 func TestLoadDefaultAndSave(t *testing.T) {
@@ -103,7 +103,3 @@ func Test_isOld(t *testing.T) {
 		t.Fatalf("expect %t, got %t", false, true)
 	}
 }
-
-
-
-

@@ -10,8 +10,8 @@ func TestEnterButton(t *testing.T) {
 
 	count := 0
 	expect := 2
-	
-	eb := NewEnterButton("Test", func(){ count += 1})
+
+	eb := NewEnterButton("Test", func() { count += 1 })
 
 	evReturn := &fyne.KeyEvent{
 		Name: fyne.KeyReturn,

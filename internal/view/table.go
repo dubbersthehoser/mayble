@@ -1,22 +1,21 @@
 package view
 
 import (
-
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := NewSearchEntry(
-		func(){
+		func() {
 			vm.Searching.Next()
 		},
-		func(){
+		func() {
 			vm.Searching.Prev()
 		},
 	)
@@ -54,7 +53,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	return body
 }
 
-//func newTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *viewmodel.TableSelect) fyne.CanvasObject {
+// func newTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *viewmodel.TableSelect) fyne.CanvasObject {
 func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	//
@@ -117,9 +116,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		}
 	}
 
-
-
-
 	// Set the width of the columns.
 	for i, label := range models.BookEntryFields() {
 		width := vm.ColumnSettings.GetWidth(label)
@@ -140,7 +136,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 			row, col := vm.Selected.Get()
 			maxRow, maxCol := vm.DataTable.Size()
 			if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
-				id := widget.TableCellID{Row:row, Col:col}
+				id := widget.TableCellID{Row: row, Col: col}
 				table.Unselect(id)
 				return
 			}
@@ -164,12 +160,11 @@ type Header struct {
 	vm      *viewmodel.Window
 	buttons []*HeaderButton
 	minSize fyne.Size
-
 }
 
 func NewHeader(vm *viewmodel.Window) *Header {
 	h := &Header{
-		vm: vm,
+		vm:      vm,
 		buttons: make([]*HeaderButton, 0),
 	}
 	return h
@@ -208,14 +203,14 @@ func (h *Header) Pressed(label string) {
 
 type HeaderButton struct {
 	widget.Button
-	header *Header
+	header  *Header
 	minSize fyne.Size
 	label   string
 }
 
 func NewHeaderButton(h *Header, minSize fyne.Size) *HeaderButton {
 	hb := &HeaderButton{
-		header: h,
+		header:  h,
 		minSize: minSize,
 	}
 

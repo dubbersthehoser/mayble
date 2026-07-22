@@ -74,7 +74,7 @@ func testBuilderBuild(t *testing.T) {
 				genre:  "A Genre",
 			},
 			expect: BookEntry{
-				ID:     132,
+				ID: 132,
 				Book: Book{
 					Title:  "A Title",
 					Author: "A Author",
@@ -96,12 +96,12 @@ func testBuilderBuild(t *testing.T) {
 				IsLoaned: true,
 				ID:       132,
 				Book: Book{
-					Title:    "A Title",
-					Author:   "A Author",
-					Genre:    "A Genre",
+					Title:  "A Title",
+					Author: "A Author",
+					Genre:  "A Genre",
 				},
 				Loaned: Loaned{
-					LoanedAt:time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+					LoanedAt: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
 					Borrower: "Lane",
 				},
 			},
@@ -117,7 +117,7 @@ func testBuilderBuild(t *testing.T) {
 				rating:   3,
 			},
 			expect: BookEntry{
-				ID:      132,
+				ID:          132,
 				IsCompleted: true,
 
 				Book: Book{
@@ -126,8 +126,8 @@ func testBuilderBuild(t *testing.T) {
 					Genre:  "A Genre",
 				},
 				Completed: Completed{
-					CompletedAt:   time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
-					Rating: 3,
+					CompletedAt: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+					Rating:      3,
 				},
 			},
 		},
@@ -144,24 +144,23 @@ func testBuilderBuild(t *testing.T) {
 				borrower: "Lane",
 			},
 			expect: BookEntry{
-				ID:       132,
+				ID:          132,
 				IsCompleted: true,
-				IsLoaned: true,
+				IsLoaned:    true,
 
 				Book: Book{
-					Title:    "A Title",
-					Author:   "A Author",
-					Genre:    "A Genre",
+					Title:  "A Title",
+					Author: "A Author",
+					Genre:  "A Genre",
 				},
 				Completed: Completed{
-					CompletedAt:     time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
-					Rating:   3,
+					CompletedAt: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+					Rating:      3,
 				},
 				Loaned: Loaned{
-					LoanedAt:   time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
+					LoanedAt: time.Date(2020, time.February, 3, 0, 0, 0, 0, time.UTC),
 					Borrower: "Lane",
 				},
-
 			},
 		},
 	}
@@ -193,4 +192,3 @@ func testBuilderBuild(t *testing.T) {
 		})
 	}
 }
-

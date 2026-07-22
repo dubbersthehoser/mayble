@@ -3,11 +3,12 @@ package view
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/data/binding"
-	
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
+
 func newEdit(vm *viewmodel.Window) fyne.CanvasObject {
 	return newBookForm(vm, "Update", vm.Form.OnUpdate)
 }

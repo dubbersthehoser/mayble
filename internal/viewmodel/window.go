@@ -1,10 +1,10 @@
 package viewmodel
 
 import (
-	"log"
-	"strings"
-	"os"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 
 	"fyne.io/fyne/v2"
 
@@ -20,8 +20,8 @@ const (
 )
 
 type Window struct {
-	cfg            *config.Config
-	service        *app.Service
+	cfg     *config.Config
+	service *app.Service
 
 	Body           *Body
 	StatusLine     *StatusLine
@@ -42,17 +42,17 @@ type Window struct {
 func NewWindow(cfg *config.Config) *Window {
 	serv := app.NewService(cfg)
 	w := &Window{
-		cfg: cfg,
-		Body: &Body{},
-		StatusLine: newStatusLine(),
+		cfg:            cfg,
+		Body:           &Body{},
+		StatusLine:     newStatusLine(),
 		ColumnSettings: newColumnSettings(cfg),
-		DBPath: newDBPath(cfg),
-		DataTable: newDataTable(cfg, serv),
-		Sorting: newSortingTable(cfg),
-		Searching: &Searching{},
-		Selected: newEntrySelected(),
-		UniqueGenres: newUniqueGenres(serv),
-		NoData: &NoDataBody{},
+		DBPath:         newDBPath(cfg),
+		DataTable:      newDataTable(cfg, serv),
+		Sorting:        newSortingTable(cfg),
+		Searching:      &Searching{},
+		Selected:       newEntrySelected(),
+		UniqueGenres:   newUniqueGenres(serv),
+		NoData:         &NoDataBody{},
 	}
 
 	w.Form = newBookForm(
@@ -139,8 +139,8 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			if !strings.HasSuffix(path, ".db") &&
-			   !strings.HasSuffix(path, ".sqlite") &&
-			   !strings.HasSuffix(path, ".sqlite3") {
+				!strings.HasSuffix(path, ".sqlite") &&
+				!strings.HasSuffix(path, ".sqlite3") {
 				path += ".db"
 			}
 			w.DBPath.Set(path)
@@ -187,7 +187,7 @@ func NewWindow(cfg *config.Config) *Window {
 			if path == "" {
 				return
 			}
-			
+
 			if !strings.HasSuffix(path, ".csv") {
 				path += ".csv"
 			}
@@ -221,7 +221,6 @@ func NewWindow(cfg *config.Config) *Window {
 		}
 	})
 
-
 	// start with table view at start up.
 	w.Body.Set(BodyTable)
 
@@ -242,7 +241,7 @@ func NewWindow(cfg *config.Config) *Window {
 	}
 
 	// load database at database file path change.
-	w.DBPath.AddListener(func(){
+	w.DBPath.AddListener(func() {
 		if err := serv.LoadDatabase(); err != nil {
 			w.StatusLine.sendError(err.Error())
 			log.Println("Error:", err)
@@ -280,9 +279,7 @@ type FileManage struct {
 	ExportFile func(path string, err error)
 }
 
-
 // I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
-
 
 func WrapFyneFileOpen(fn func(string, error)) func(fyne.URIReadCloser, error) {
 	return func(r fyne.URIReadCloser, err error) {

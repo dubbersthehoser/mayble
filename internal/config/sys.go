@@ -1,8 +1,8 @@
 package config
 
 import (
-	"os"
 	"errors"
+	"os"
 	"path/filepath"
 )
 
@@ -22,7 +22,7 @@ func GetDefaultConfigFile(appName string) (string, error) {
 
 func findConfigDir(appName string) (string, bool) {
 	var (
-		hasHomeDir bool
+		hasHomeDir   bool
 		hasConfigDir bool
 	)
 	userConfig, err := os.UserConfigDir()
@@ -48,4 +48,3 @@ func findConfigDir(appName string) (string, bool) {
 	}
 	return "", false
 }
-

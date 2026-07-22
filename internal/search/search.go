@@ -7,9 +7,9 @@ import (
 
 type CellSearch struct {
 	search string
-	cells []string
-	curr int
-	score int
+	cells  []string
+	curr   int
+	score  int
 }
 
 func (cs *CellSearch) Pos() int {
@@ -44,10 +44,10 @@ func (cs *CellSearch) Set(c []string, search string) {
 }
 
 type TableSearch struct {
-	search string
-	table [][]string
-	row, col   int
-	score int
+	search   string
+	table    [][]string
+	row, col int
+	score    int
 }
 
 func (ts *TableSearch) Set(table [][]string, search string) {
@@ -161,7 +161,7 @@ func searchCompare(text, search string) int {
 		score := SubString
 		// check whether the search string is at the start of a word in text.
 		inBoundary := idx == 0 || !unicode.IsLetter(rune(text[idx-1]))
-		isPrefix   := strings.HasPrefix(text, search)
+		isPrefix := strings.HasPrefix(text, search)
 		if inBoundary {
 			score += BoundaryBonus
 		}
@@ -183,4 +183,3 @@ func searchCompare(text, search string) int {
 		return score
 	}
 }
-

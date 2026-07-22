@@ -81,7 +81,7 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "a simple book",
 			input: models.BookEntry{
-				ID:     1,
+				ID: 1,
 				Book: models.Book{
 					Title:  "a_title_update",
 					Author: "a_author_update",
@@ -97,12 +97,12 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 				ID:       2,
 				IsLoaned: true,
 				Book: models.Book{
-					Title:    "a_title_update",
-					Author:   "a_author_update",
-					Genre:    "a_genre_update",
+					Title:  "a_title_update",
+					Author: "a_author_update",
+					Genre:  "a_genre_update",
 				},
 				Loaned: models.Loaned{
-					LoanedAt:   time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+					LoanedAt: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
 					Borrower: "Bob",
 				},
 			},
@@ -111,16 +111,16 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "a read book",
 			input: models.BookEntry{
-				ID:      3,
+				ID:          3,
 				IsCompleted: true,
 				Book: models.Book{
-					Title:   "a_title_update",
-					Author:  "a_author_update",
-					Genre:   "a_genre_update",
+					Title:  "a_title_update",
+					Author: "a_author_update",
+					Genre:  "a_genre_update",
 				},
 				Completed: models.Completed{
-					CompletedAt:    time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
-					Rating:  1,
+					CompletedAt: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+					Rating:      1,
 				},
 			},
 			willErr: false,
@@ -128,11 +128,11 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "remove loaned and read from book",
 			input: models.BookEntry{
-				ID:      4,
+				ID: 4,
 				Book: models.Book{
-					Title:   "a_title_update",
-					Author:  "a_author_update",
-					Genre:   "a_genre_update",
+					Title:  "a_title_update",
+					Author: "a_author_update",
+					Genre:  "a_genre_update",
 				},
 			},
 			willErr: false,
@@ -140,21 +140,21 @@ func testDatabaseUpdateBook(db *Database, t *testing.T) {
 		{
 			name: "add loaned and read back book",
 			input: models.BookEntry{
-				ID:       4,
-				IsLoaned: true,
+				ID:          4,
+				IsLoaned:    true,
 				IsCompleted: true,
-				
+
 				Book: models.Book{
-					Title:    "a_title_update",
-					Author:   "a_author_update",
-					Genre:    "a_genre_update",
+					Title:  "a_title_update",
+					Author: "a_author_update",
+					Genre:  "a_genre_update",
 				},
 				Completed: models.Completed{
-					CompletedAt:     time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
-					Rating:   1,
+					CompletedAt: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+					Rating:      1,
 				},
 				Loaned: models.Loaned{
-					LoanedAt:   time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
+					LoanedAt: time.Date(2025, time.March, 10, 0, 0, 0, 0, time.UTC),
 					Borrower: "Bob",
 				},
 			},
@@ -214,12 +214,12 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 			input: models.BookEntry{
 				IsLoaned: true,
 				Book: models.Book{
-					Title:    "A_Title",
-					Author:   "A_Author",
-					Genre:    "A_Genre",
+					Title:  "A_Title",
+					Author: "A_Author",
+					Genre:  "A_Genre",
 				},
 				Loaned: models.Loaned{
-					LoanedAt:   time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+					LoanedAt: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
 					Borrower: "Lane",
 				},
 			},
@@ -230,14 +230,14 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 			name: "a read book",
 			input: models.BookEntry{
 				IsCompleted: true,
-				Book:models.Book{
-					Title:   "A_Title",
-					Author:  "A_Author",
-					Genre:   "A_Genre",
+				Book: models.Book{
+					Title:  "A_Title",
+					Author: "A_Author",
+					Genre:  "A_Genre",
 				},
-				Completed:models.Completed{
-					CompletedAt:    time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
-					Rating:  5,
+				Completed: models.Completed{
+					CompletedAt: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+					Rating:      5,
 				},
 			},
 			expect:  3,
@@ -247,19 +247,19 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 			name: "a loaned and read book",
 			input: models.BookEntry{
 				IsCompleted: true,
-				IsLoaned: true,
-				Book:models.Book{
-					Title:    "A_Title",
-					Author:   "A_Author",
-					Genre:    "A_Genre",
+				IsLoaned:    true,
+				Book: models.Book{
+					Title:  "A_Title",
+					Author: "A_Author",
+					Genre:  "A_Genre",
 				},
-				Loaned:models.Loaned{
-					LoanedAt:   time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+				Loaned: models.Loaned{
+					LoanedAt: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
 					Borrower: "Lane",
 				},
-				Completed:models.Completed{
-					CompletedAt:     time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
-					Rating:   5,
+				Completed: models.Completed{
+					CompletedAt: time.Date(2020, time.February, 2, 0, 0, 0, 0, time.UTC),
+					Rating:      5,
 				},
 			},
 			expect:  4,
