@@ -20,7 +20,7 @@ const (
 )
 
 type Window struct {
-	cfg     *config.Config
+	cfg *config.Config
 	//service *app.Service
 
 	Body           *Body
