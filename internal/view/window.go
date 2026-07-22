@@ -341,7 +341,6 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		} else {
 			vm.ColumnSettings.SetIDHidden(false)
 		}
-		println("hello?")
 		updateCheck()
 	}
 
