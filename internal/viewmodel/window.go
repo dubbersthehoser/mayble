@@ -21,7 +21,7 @@ const (
 
 type Window struct {
 	cfg     *config.Config
-	service *app.Service
+	//service *app.Service
 
 	Body           *Body
 	StatusLine     *StatusLine

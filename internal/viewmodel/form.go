@@ -7,12 +7,11 @@ import (
 
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 type BookForm struct {
-	s *app.Service
+	//s *app.Service
 
 	Fyne struct {
 		Title  binding.String

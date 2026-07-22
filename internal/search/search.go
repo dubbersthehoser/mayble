@@ -21,10 +21,7 @@ func (cs *CellSearch) Score() int {
 }
 
 func (cs *CellSearch) IsFinished() bool {
-	if len(cs.cells) <= cs.curr {
-		return true
-	}
-	return false
+	return len(cs.cells) <= cs.curr
 }
 
 func (cs *CellSearch) Next() bool {
@@ -59,17 +56,11 @@ func (ts *TableSearch) Set(table [][]string, search string) {
 }
 
 func (ts *TableSearch) IsFinished() bool {
-	if len(ts.table) <= ts.row {
-		return true
-	}
-	return false
+	return len(ts.table) <= ts.row
 }
 
 func (ts *TableSearch) IsRowFinished() bool {
-	if len(ts.table[0]) <= ts.col {
-		return true
-	}
-	return false
+	return len(ts.table[0]) <= ts.col
 }
 
 func (ts *TableSearch) Pos() (int, int) {

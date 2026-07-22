@@ -33,9 +33,9 @@ func newStatusLine() *StatusLine {
 	go func() {
 		for {
 			select {
-			case _ = <-sl.start:
+			case  <-sl.start:
 				_ = sl.clrTimer.Reset(countDown)
-			case _ = <-sl.clrTimer.C:
+			case  <-sl.clrTimer.C:
 				sl.Clear()
 			}
 		}

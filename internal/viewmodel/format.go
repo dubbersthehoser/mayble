@@ -44,10 +44,10 @@ func formatRating(r int) string {
 	}
 }
 
-func parseDate(t string) (*time.Time, error) {
-	ret, err := time.Parse(dateFormat, t)
-	return &ret, err
-}
+//func parseDate(t string) (*time.Time, error) {
+//	ret, err := time.Parse(dateFormat, t)
+//	return &ret, err
+//}
 
 func parseRating(r string) (int, error) {
 	idx := slices.Index(Ratings(), r)

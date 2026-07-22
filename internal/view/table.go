@@ -159,7 +159,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 type Header struct {
 	vm      *viewmodel.Window
 	buttons []*HeaderButton
-	minSize fyne.Size
 }
 
 func NewHeader(vm *viewmodel.Window) *Header {
