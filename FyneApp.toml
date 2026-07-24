@@ -4,7 +4,7 @@ Website = "https://github.com/dubbersthehoser/mayble"
   Icon = "Icon.png"
   Name = "mayble"
   ID = "com.dubbersthehoser.mayble"
-  Version = "2.0.1"
+  Version = "2.0.2" # modified by ./scripts/version.sh
   Build = 38
 
 [LinuxAndBSD]

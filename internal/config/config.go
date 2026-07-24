@@ -11,7 +11,7 @@ import (
 )
 
 // Current config version.
-const Version string = "2.0.0"
+const Version string = "2.0.2" // modified by ./scripts/version.sh
 
 // default values for config.
 const (

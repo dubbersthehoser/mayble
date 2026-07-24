@@ -1,0 +1,2 @@
+The line below is used by ./script/version.sh to set version number of the application.
+2.0.2
