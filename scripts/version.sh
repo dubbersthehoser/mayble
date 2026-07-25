@@ -17,13 +17,21 @@ VERSION_FILE="version.txt"
 
 VERSION="$(grep '^[0-9]\+\.[0-9]\+\.[0-9]\+$' "$VERSION_FILE")" || die "grep failed: $?"
 
-# Print out the version with flag argument.
-if [ "$ARG" = "-v" ] || [ "$ARG" = "--version" ]; then
-	printf "%s\n" "$VERSION"
-	exit 0
-fi
+case $ARG in
 
-# Error when invalid argument was given.
+	# Print out the version with flag argument.
+	-v | --version)
+		printf "%s\n" "$VERSION"
+		exit 0
+		;;
+	# Git tag current .
+	-t | --tag)
+		git tag -a "v${VERSION}" -m "application version ${VERSION}"
+		exit 0
+		;;
+esac
+
+# Error when invalid flag argument was given.
 if [ -n "$ARG" ]; then
 	die "invalid argument flag '$ARG'"
 fi
