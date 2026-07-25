@@ -28,8 +28,14 @@ jobs:
         with:
           go-version: "1.24.0"
 
-      - name: Install Fyne dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
+      - name: Apt Update
+        run: sudo apt update
+
+      - name: Install Linux Graphics Dependencies
+        run: sudo apt install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Install Fyne Binary
+        run: go install fyne.io/tools/cmd/fyne@latest
 
       - name: Build (${{ matrix.arch }})
         shell: bash
@@ -42,10 +48,8 @@ jobs:
           OUT_DIR="./dist"
           mkdir -p "$OUT_DIR"
 
-          GOOS=linux                  \
-          GOARCH=${{ matrix.goarch }} \
-          CGO_ENABLED=1               \
-          go build -v -o "$OUT_DIR/${APP_NAME}_linux_${{ matrix.arch }}" "$MAIN_PKG"
+          fyne package -name "${APP_NAME}" -os linux -release
+          mv -v "${APP_NAME}.tar.xz" "${OUT_DIR}/${APP_NAME}_linux_${{ matrix.arch }}.tar.xz"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -81,5 +85,3 @@ jobs:
             dist/amd64/*
             dist/arm64/*
           generateReleaseNotes: true
-
-
