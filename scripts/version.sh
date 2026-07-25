@@ -8,29 +8,14 @@ die() {
 	exit 1
 }
 
-ARG="${1:-}"
-
-
 VERSION_FILE="version.txt"
 
 [ -f "$VERSION_FILE" ] || die "missing version file: '${VERSION_FILE}'"
 
 VERSION="$(grep '^[0-9]\+\.[0-9]\+\.[0-9]\+$' "$VERSION_FILE")" || die "grep failed: $?"
 
-# Print out the version with flag argument.
-if [ "$ARG" = "-v" ] || [ "$ARG" = "--version" ]; then
-	printf "%s\n" "$VERSION"
-	exit 0
-fi
-
-# Error when invalid argument was given.
-if [ -n "$ARG" ]; then
-	die "invalid argument flag '$ARG'"
-fi
-
 [ -z "$VERSION" ] && die "could not find version"
 
-# Add version to FyneApp file.
 FYNE_TOML="FyneApp.toml"
 if [ -f "$FYNE_TOML" ]; then 
 	TMP=$(mktemp)
@@ -41,7 +26,6 @@ else
 	echo "$FYNE_TOML not found." 1>&2
 fi
 
-# Add version to package config to config.go file.
 APP_CONFIG="./internal/config/config.go"
 if [ -f "$APP_CONFIG" ]; then 
 	TMP=$(mktemp)
