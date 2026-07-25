@@ -9,15 +9,16 @@ jobs:
 
   build:
     name: Build (${{ matrix.arch }})
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: 
         include:
           - arch: amd64
-            goarch: amd64
+            runner: ubuntu-latest
           - arch: arm64
-            goarch: arm64
+            runner: ubuntu-22.04-arm
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
