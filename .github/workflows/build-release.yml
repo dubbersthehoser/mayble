@@ -30,7 +30,7 @@ jobs:
           - arch: amd64
             os: windows
             runner: windows-latest
-            exec: "fyne -os windows -name mayble_windows_amd64"
+            exec: "fyne package -os windows -name mayble_windows_amd64"
             upload: "mayble_windows_amd64.exe"
 
     runs-on: ${{ matrix.runner }}
