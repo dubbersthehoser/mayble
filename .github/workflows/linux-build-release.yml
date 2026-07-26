@@ -47,7 +47,7 @@ jobs:
           FYNE_CROSS_OUT="fyne-cross/dist/${{ matrix.os }}-${{ matrix.arch }}"
 
           fyne-cross linux -release -arch=${{ matrix.arch }} -name "${NAME}"
-          mv -v "${FYNE_CROSS_OUT}/${APP_NAME}.tar.xz" "${OUT_DIR}/"
+          mv -v "${FYNE_CROSS_OUT}/${NAME}.tar.xz" "${OUT_DIR}/"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
