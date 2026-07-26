@@ -48,8 +48,9 @@ jobs:
       - name: Build (${{ matrix.os }}/${{ matrix.arch }})
         #run: ${{ matrix.exec }}
         shell: bash
-        runt: |
+        run: |
           set -euo pipefail
+
           APP_NAME="mayble"
           VERSION="v$(./scripts/version.sh --version)"
           
