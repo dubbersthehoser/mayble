@@ -43,27 +43,13 @@ jobs:
         run: go install github.com/fyne-io/fyne-cross@latest
 
       - name: Build (${{ matrix.os }}/${{ matrix.arch }})
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          APP_NAME="mayble"
-          NAME="${APP_NAME}_${{ matrix.os }}_${{ matrix.arch }}"
-
-          OUT_DIR="./dist"
-          mkdir -p "$OUT_DIR"
-
-          FYNE_CROSS_OUT="fyne-cross/dist/${{ matrix.os }}-${{ matrix.arch }}"
-
-          fyne-cross ${{ matrix.os }} -release -arch=${{ matrix.arch }} -name "${NAME}"
-
-          mv -v "${FYNE_CROSS_OUT}/${NAME}.${{ matrix.ext }}" "${OUT_DIR}/"
+        run: fyne-cross ${{ matrix.os }} -release -arch=${{ matrix.arch }} -name "mayble_${{ matrix.os }}_${{ matrix.arch }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os}}-${{ matrix.arch }}-dist
-          path: dist/
+          name: ${{ matrix.os}}-${{ matrix.arch }}
+          path: fyne-cross/dist/${{ matrix.os }}-${{ matrix.arch }}/*
 
   release:
     name: Create Release
