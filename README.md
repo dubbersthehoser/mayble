@@ -30,15 +30,15 @@ Then build from source.
 
 When the application first starts, you need to create a database which can be done in the *File* menu bar drop down.
 
-Once open, press the **+** (plus) button to open the create book entry view. Once there, You can continually add entires to the database, and will be notify of actions that succeed, or failed in the top blank spot of the view. Press `Cancel` to go back to the table view, to see your additions.
+**Create entries** press the **➕** (plus) button to open the create book entry view. Once there, You can continually add entires to the database, and will be notify of actions that succeed, or failed in the top blank spot of the view. Press `Cancel` to go back to the table view, to see your additions.
 
-The table view dose not show all the columns in the table and can be changed in the *Table* menu bar drop down. You can show, and hide the ID, loaned, and read columns from the table. These do not filter out entires, and just hides those columns from the table.
+**Hide, and show columns** by opening the *Table* menu bar drop down, and pick ID, loaned, and read columns from the table. These do not filter out entires, and just hides those columns from the table.
 
 **Sort table** by pressing one of the column header labels you desire to sort by. Starting as *descending* order, and then *ascending* when pressed again, and toggled back and forth. When sorted, any none / empty values will always be forced to the bottom of the table when sorted. Keeping all actual value to the top of the sorted table.
 
 **Edit an entry** by selecting any cell in that row entry. Then press the **✏️** (pencil) button to open the edit view. This view behaves similar to the create entries view, but closes the view once submitted.
 
-**Delete an entry** by selecting an entry, then pressing the **🗑️** twice, do to the first click being a warning.
+**Delete an entry** by selecting an entry, then pressing the **🗑️** (garbage can) twice, do to the first click being a warning.
 
 ## Contributing
 
