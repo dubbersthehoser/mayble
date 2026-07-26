@@ -14,11 +14,11 @@ jobs:
       matrix: 
         include:
           - arch: amd64
-            runner: ubuntu-latest
+            os: linux
           - arch: arm64
-            runner: ubuntu-22.04-arm
+            os: linux
 
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -29,28 +29,23 @@ jobs:
         with:
           go-version: "1.24.0"
 
-      - name: Apt Update
-        run: sudo apt update
+      - name: Install Fyne Cross
+        run: go install github.com/fyne-io/fyne-cross@latest
 
-      - name: Install Linux Graphics Dependencies
-        run: sudo apt install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
-
-      - name: Install Fyne Binary
-        run: go install fyne.io/tools/cmd/fyne@latest
-
-      - name: Build (${{ matrix.arch }})
+      - name: Build (${{ matrix.os }}/${{ matrix.arch }})
         shell: bash
         run: |
           set -euo pipefail
 
           APP_NAME="mayble"
           MAIN_PKG="."
+          NAME="${APP_NAME}_linux_${{ matrix.arch }}"
 
           OUT_DIR="./dist"
           mkdir -p "$OUT_DIR"
 
-          fyne package -name "${APP_NAME}" -os linux -release
-          mv -v "${APP_NAME}.tar.xz" "${OUT_DIR}/${APP_NAME}_linux_${{ matrix.arch }}.tar.xz"
+          fyne-cross linux -release -arch=${{ matrix.arch }} -name "${NAME}"
+          mv -v "${APP_NAME}.tar.xz" "${OUT_DIR}/"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
