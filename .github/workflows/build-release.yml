@@ -43,7 +43,10 @@ jobs:
         run: go install github.com/fyne-io/fyne-cross@latest
 
       - name: Build (${{ matrix.os }}/${{ matrix.arch }})
+        if: ${{ matrix.os != windows }}
         run: fyne-cross ${{ matrix.os }} -release -arch=${{ matrix.arch }} -name mayble_${{ matrix.os }}_${{ matrix.arch }}
+        if: ${{ matrix.os == windows }}
+        run: fyne-cross ${{ matrix.os }} -release -name mayble_${{ matrix.os }}_${{ matrix.arch }}
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
