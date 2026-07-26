@@ -16,16 +16,19 @@ jobs:
           - arch: amd64
             os: linux
             runner: ubuntu-latest
+            exec: "fyne-cross -os linux --release --arch amd64"
             upload: "fyne-cross/dist/linux-amd64/*"
 
           - arch: arm64
             os: linux
             runner: ubuntu-latest
-            upload: "*.tar.xz" 
+            exec: "fyne-cross -os linux --release --arch arm64"
+            upload: "fyne-cross/dist/linux-arm64/*"
 
           - arch: amd64
             os: windows
             runner: windows-latest
+            exec: "fyne package -os windows --release"
             upload: "*.exe"
 
     runs-on: ${{ matrix.runner }}
@@ -59,11 +62,7 @@ jobs:
             NAME="${APP_NAME}-${VERSION}"
           fi
 
-          if [[ ${{ matrix.arch }} = 'amd64' ]]; then
-            fyne package -os ${{ matrix.os }} --release -name "${NAME}"
-          else 
-            fyne-cross ${{ matrix.os }} -release -arch ${{ matrix.arch }} -name "${NAME}"
-          fi
+          ${{ matrix.exec }} -name "${NAME}"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
