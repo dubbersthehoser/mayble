@@ -1,4 +1,4 @@
-name: Linux Build and Release
+name: Build and Release
 
 on:
   push:
@@ -15,10 +15,15 @@ jobs:
         include:
           - arch: amd64
             os: linux
+            runner: ubuntu-latest
           - arch: arm64
             os: linux
+            runner: ubuntu-latest
+          - arch: amd64
+            os: windows
+            runner: window-latest
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
@@ -46,7 +51,7 @@ jobs:
 
           FYNE_CROSS_OUT="fyne-cross/dist/${{ matrix.os }}-${{ matrix.arch }}"
 
-          fyne-cross linux -release -arch=${{ matrix.arch }} -name "${NAME}"
+          fyne-cross ${{ matrix.os }} -release -arch=${{ matrix.arch }} -name "${NAME}"
           mv -v "${FYNE_CROSS_OUT}/${NAME}.tar.xz" "${OUT_DIR}/"
 
       - name: Upload Build Artifact
