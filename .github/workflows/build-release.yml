@@ -21,7 +21,7 @@ jobs:
             runner: ubuntu-latest
           - arch: amd64
             os: windows
-            runner: window-latest
+            runner: windows-latest
 
     runs-on: ${{ matrix.runner }}
 
