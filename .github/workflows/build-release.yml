@@ -8,7 +8,7 @@ on:
 jobs:
 
   build:
-    name: Build (${{ matrix.arch }})
+    name: Build (${{ matrix.os }}-${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix: 
