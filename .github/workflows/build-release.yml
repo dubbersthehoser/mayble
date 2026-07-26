@@ -57,7 +57,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.arch }}-dist
+          name: ${{ matrix.os}}-${{ matrix.arch }}-dist
           path: dist/
 
   release:
@@ -66,16 +66,22 @@ jobs:
     needs: build
 
     steps:
-      - name: Download amd64 Artifact
+      - name: Download Linux amd64 Artifact
         uses: actions/download-artifact@v4
         with:
-          name: amd64-dist
+          name: linux-amd64-dist
+          path: dist/amd64
+
+      - name: Download Windows amd64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-amd64-dist
           path: dist/amd64
 
       - name: Download arm64 Artifact
         uses: actions/download-artifact@v4
         with:
-          name: arm64-dist
+          name: linux-arm64-dist
           path: dist/arm64
 
       - name: Create Github Release and Upload Binaries
