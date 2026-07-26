@@ -16,22 +16,17 @@ jobs:
           - arch: amd64
             os: linux
             runner: ubuntu-latest
-            exec: "fyne-cross linux -release -arch amd64 -name mayble_linux_amd64"
-            dist: "fyne-cross/dist/linux-amd64"
             upload: "fyne-cross/dist/linux-amd64/*"
 
           - arch: arm64
             os: linux
             runner: ubuntu-latest
-            exec: "fyne-cross linux -release -arch arm64 -name mayble_linux_arm64"
-            dist: "fyne-cross/dist/linux-arm64"
-            upload: "fyne-cross/dist/linux-arm64/*" 
+            upload: "*.tar.xz" 
 
           - arch: amd64
             os: windows
             runner: windows-latest
-            exec: "fyne package -os windows -name mayble_windows_amd64"
-            upload: "mayble_windows_amd64.exe"
+            upload: "*.exe"
 
     runs-on: ${{ matrix.runner }}
 
@@ -51,7 +46,23 @@ jobs:
         run: go install github.com/fyne-io/fyne-cross@latest
 
       - name: Build (${{ matrix.os }}/${{ matrix.arch }})
-        run: ${{ matrix.exec }}
+        #run: ${{ matrix.exec }}
+        shell: bash
+        runt: |
+          set -euo pipefail
+          APP_NAME="mayble"
+          VERSION="v$(./scripts/version.sh --version)"
+          
+          NAME="${APP_NAME}-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          if [[ ${{ matrix.os }} = 'windows' ]]; then
+            NAME="${APP_NAME}-${VERSION}"
+          fi
+
+          if [[ ${{ matrix.arch }} = 'amd64' ]]; then
+            fyne package -os ${{ matrix.os }} --release -name "${NAME}"
+          else 
+            fyne-cross ${{ matrix.os }} -release -arch ${{ matrix.arch }} -name "${NAME}"
+          fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
