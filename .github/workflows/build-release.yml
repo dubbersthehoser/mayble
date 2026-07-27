@@ -25,11 +25,11 @@ jobs:
             exec: "fyne-cross linux --release --pull --arch arm64"
             upload: "fyne-cross/dist/linux-arm64/*"
 
-          - arch: amd64
-            os: windows
-            runner: windows-latest
-            exec: "fyne-cross windows --release --pull --arch amd64"
-            upload: "fyne-cross/dist/windows-amd64/*"
+          #- arch: amd64
+          #  os: windows
+          #  runner: windows-latest
+          #  exec: "fyne-cross windows --release --pull --arch amd64"
+          #  upload: "fyne-cross/dist/windows-amd64/*"
 
     runs-on: ${{ matrix.runner }}
 
@@ -87,11 +87,11 @@ jobs:
           name: linux-arm64
           path: dist/
 
-      - name: Download Windows amd64 Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-amd64
-          path: dist/
+      #- name: Download Windows amd64 Artifact
+      #  uses: actions/download-artifact@v4
+      #  with:
+      #    name: windows-amd64
+      #    path: dist/
 
 
       - name: Create Github Release and Upload Binaries
