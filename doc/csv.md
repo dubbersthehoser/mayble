@@ -2,15 +2,11 @@
 
 Mayble Version 2.0.2
 
-## Schema
+The schema header is `Title,Author,Genre,Completed,Rating,Loaned,Borrower`.
 
-The default schema header is `Title,Author,Genre,Completed,Rating,Loaned,Borrower`, but the order dose not matter when the header schema is present with correct labels. When the imported file has no schema header the default schema will be used. 
+With `Completed` and `Loaned` columns, value must be in a YYYY-MM-DD format, and for `Rating` values can only be from 1-5. The rating 0 and blank are the same.  
 
-It is **recommend** to use default schema header, and to use the default header order, when modifying, or creating a CSV file.
+With `Title`, `Author`, and `Genre` column values **MUST** be filled in, and not left blank.
 
-**Values**
-
-For `Completed` and `Loaned` value must be in a YYYY-MM-DD format, and for `Rating` values can only be from 0-5. 
-
-With `Title`, `Author`, `Genre` values **MUST** be filled in, and not left blank. When one of the two, either `Completed`, and `Rating`, or `Loaned`, and `Borrower`, are both will be considered empty. e.g. If `Completed` is empty and `Rating` is filled as 1, both will be consider empty, and `Rating` will be imported as empty / zero.
+When one of the two, either `Completed`, and `Rating`, or `Loaned`, and `Borrower`, will be considered not filled if one is blank. e.g. If `Completed` is empty and `Rating` is filled as 1, both will be consider empty, and `Rating` will be imported as empty / zero.
 
