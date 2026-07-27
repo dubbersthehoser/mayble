@@ -268,14 +268,24 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			d.Show()
 		}),
 	)
+
 	table := fyne.NewMenu("Table",
 		fyne.NewMenuItem("Show Loaned", nil),
 		fyne.NewMenuItem("Show Read", nil),
 		fyne.NewMenuItem("Show ID", nil),
 	)
 
-	menu := fyne.NewMainMenu(file, table)
+	help := fyne.NewMenu("Help",
+		fyne.NewMenuItem("About", nil),
+		fyne.NewMenuItem("Manual", nil),
+	)
 
+	// Create the menu bar.
+	menu := fyne.NewMainMenu(file, table, help)
+
+
+	// Managing the state of when table should be enabled or disabled, and change
+	// to change the check satus of it's items
 	const (
 		loanIdx int = iota
 		readIdx
@@ -347,5 +357,6 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 
 	bodyUpdate()
 	updateCheck()
+
 	return menu
 }
