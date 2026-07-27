@@ -16,20 +16,20 @@ jobs:
           - arch: amd64
             os: linux
             runner: ubuntu-latest
-            exec: "fyne-cross linux --release --arch amd64"
+            exec: "fyne-cross linux --release --pull --arch amd64"
             upload: "fyne-cross/dist/linux-amd64/*"
 
           - arch: arm64
             os: linux
             runner: ubuntu-latest
-            exec: "fyne-cross linux --release --arch arm64"
+            exec: "fyne-cross linux --release --pull --arch arm64"
             upload: "fyne-cross/dist/linux-arm64/*"
 
           - arch: amd64
             os: windows
             runner: windows-latest
-            exec: "fyne package -os windows --release"
-            upload: "*.exe"
+            exec: "fyne-cross windows --release --pull --arch amd64"
+            upload: "fyne-cross/dist/windows-amd64/*"
 
     runs-on: ${{ matrix.runner }}
 

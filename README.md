@@ -34,6 +34,8 @@ When the application first starts, you need to create a database which can be do
 
 **Hide, and show columns** by opening the *Table* menu bar drop down, and pick ID, loaned, and read columns from the table. These do not filter out entires, and just hides those columns from the table.
 
+**Column widths** are adjustable, by mousing in between two column headers, hold left click an move to resize.
+
 **Sort table** by pressing one of the column header labels you desire to sort by. Starting as *descending* order, and then *ascending* when pressed again, and toggled back and forth. When sorted, any none / empty values will always be forced to the bottom of the table when sorted. Keeping all actual value to the top of the sorted table.
 
 **Edit an entry** by selecting any cell in that row entry. Then press the **✏️** (pencil) button to open the edit view. This view behaves similar to the create entries view, but closes the view once submitted.
@@ -43,5 +45,4 @@ When the application first starts, you need to create a database which can be do
 ## Contributing
 
 I'm not looking for contributors for this project. My aim was to help one person, but I'll consider any issue reports or request if they pop up.
-
 
