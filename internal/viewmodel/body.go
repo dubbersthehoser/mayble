@@ -41,7 +41,14 @@ func (b *Body) Set(v int) {
 	if b.showHandlers != nil {
 		b.showHandlers[v]()
 	}
-	b.prev = b.value
+
+	// prevent a cycle of menu and info.
+	switch b.value {
+	case BodyManual, BodyInfo:
+	default:
+		b.prev = b.value
+	}
+
 	b.value = v
 	b.notify()
 }

@@ -7,5 +7,5 @@ import (
 //go:embed manual.md
 var Manual string
 
-////go:embed info.md
-//var DocInfo string
+//go:embed info.md
+var Info string

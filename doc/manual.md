@@ -1,6 +1,8 @@
 # Manual
 
-Mayble Version 2.0.2
+Mayble v2.0.2
+
+## Search
 
 ## CSV Format
 

@@ -8,8 +8,21 @@ die() {
 	exit 1
 }
 
-ARG="${1:-}"
+apply_line() {
+	FILE="$1"; shift
+	PATT="$1"; shift
+	LINE="$1"; shift
 
+	if [ -f "$FILE" ]; then 
+		TMP=$(mktemp)
+		sed "s:$PATT:$LINE:" "$FILE" >> "$TMP"
+		mv -v "$TMP" "$FILE"
+	else 
+		echo "$FILE not found." 1>&2
+	fi
+}
+
+ARG="${1:-}"
 
 VERSION_FILE="version.txt"
 
@@ -38,24 +51,22 @@ fi
 
 [ -z "$VERSION" ] && die "could not find version"
 
-# Add version to FyneApp file.
-FYNE_TOML="FyneApp.toml"
-if [ -f "$FYNE_TOML" ]; then 
-	TMP=$(mktemp)
-	line="  Version = \"$VERSION\" # modified by $0"
-	sed "s:^  Version = .*$:$line:" "$FYNE_TOML" >> "$TMP"
-	mv -v $TMP "$FYNE_TOML"
-else 
-	echo "$FYNE_TOML not found." 1>&2
-fi
+apply_line "FyneApp.toml"      \
+	    "^  Version = .*$"  \
+	    "  Version = \"$VERSION\" # modified by $0" 
 
 # Add version to package config to config.go file.
-APP_CONFIG="./internal/config/config.go"
-if [ -f "$APP_CONFIG" ]; then 
-	TMP=$(mktemp)
-	line="const Version string = \"$VERSION\" // modified by $0"
-	sed "s:^const Version string = .*:$line:" "$APP_CONFIG" >> "$TMP"
-	mv -v "$TMP" "$APP_CONFIG"
-else 
-	echo "$APP_CONFIG not found." 1>&2
-fi
+apply_line "./internal/config/config.go"  \
+	    "^const Version string = .*"   \
+	    "const Version string = \"$VERSION\" // modified by $0"
+
+# change version to info file.
+apply_line "./doc/info.md"  \
+	    "^Mayble v.*"  \
+	    "Mayble v$VERSION"
+
+# change version to manual file.
+apply_line "./doc/manual.md"  \
+	    "^Mayble v.*"  \
+	    "Mayble v$VERSION"
+
