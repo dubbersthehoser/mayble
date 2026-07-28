@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/doc"
 )
 
 type Fyne struct {
@@ -53,24 +54,43 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	edit := newEdit(vm)
 	create := newCreate(vm)
 	//info := newInfo(vm)
-	//manual := newManual(vm)
+	manual := newManual(vm)
 
 	vm.Body.RegisterHandlers(viewmodel.BodyNoData, noData.Hide, noData.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyTable, table.Hide, table.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyBookCreate, create.Hide, create.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyBookEdit, edit.Hide, edit.Show)
+	vm.Body.RegisterHandlers(viewmodel.BodyManual, manual.Hide, manual.Show)
+	//vm.Body.RegisterHandlers(viewmodel.BodyInfo, info.Hide, info.Show)
 
-	vm.Body.Set(vm.Body.Value()) // allow the handlers to be called.
+	 // allow the handlers to be called.
+	vm.Body.Set(vm.Body.Value())
 
 	body := container.NewStack(
 		noData,
 		table,
 		edit,
 		create,
+		manual,
+		//info
 	)
 
 	return body
 }
+
+func newManual(w *viewmodel.Window) fyne.CanvasObject {
+	rt := widget.NewRichTextFromMarkdown(doc.Manual)
+	closeBtn := widget.NewButton("Close", w.Body.Back)
+	content := container.NewBorder(nil, closeBtn, nil, nil, closeBtn, rt)
+	return content
+}
+
+//func newInfo(w *viewmodel.Window) fyne.CanvasObject {
+//	rt := widget.NewRichTextFromMarkdown(doc.Info)
+//	closeBtn := widget.NewButton("Close", w.Body.Back)
+//	content := container.NewBorder(nil, closeBtn, nil, nil, closeBtn, rt)
+//	return content
+//}
 
 func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 	// todo: needs more work.
@@ -255,7 +275,9 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 
 	help := fyne.NewMenu("Help",
 		fyne.NewMenuItem("About", nil),
-		fyne.NewMenuItem("Manual", nil),
+		fyne.NewMenuItem("Manual", func() { 
+			vm.Body.Set(viewmodel.BodyManual)
+		}),
 	)
 
 	// Create the menu bar.

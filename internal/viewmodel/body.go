@@ -10,6 +10,7 @@ const (
 )
 
 type Body struct {
+	prev  int
 	value int
 	l     []func()
 
@@ -40,8 +41,13 @@ func (b *Body) Set(v int) {
 	if b.showHandlers != nil {
 		b.showHandlers[v]()
 	}
+	b.prev = b.value
 	b.value = v
 	b.notify()
+}
+
+func (b *Body) Back() {
+	b.Set(b.prev)
 }
 
 func (b *Body) AddListener(fn func()) {
