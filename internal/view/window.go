@@ -52,37 +52,15 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	table := newBodyTable(vm)
 	edit := newEdit(vm)
 	create := newCreate(vm)
+	//info := newInfo(vm)
+	//manual := newManual(vm)
 
-	update := func() {
-		switch vm.Body.Value() {
-		case viewmodel.BodyNoData:
-			table.Hide()
-			edit.Hide()
-			create.Hide()
-			noData.Show()
-		case viewmodel.BodyTable:
-			table.Show()
-			edit.Hide()
-			create.Hide()
-			noData.Hide()
-		case viewmodel.BodyBookCreate:
-			table.Hide()
-			edit.Hide()
-			create.Show()
-			noData.Hide()
-		case viewmodel.BodyBookEdit:
-			table.Hide()
-			edit.Show()
-			create.Hide()
-			noData.Hide()
-		default:
-			log.Printf("Error: unexpected body type %d", vm.Body.Value())
-		}
-	}
+	vm.Body.RegisterHandlers(viewmodel.BodyNoData, noData.Hide, noData.Show)
+	vm.Body.RegisterHandlers(viewmodel.BodyTable, table.Hide, table.Show)
+	vm.Body.RegisterHandlers(viewmodel.BodyBookCreate, create.Hide, create.Show)
+	vm.Body.RegisterHandlers(viewmodel.BodyBookEdit, edit.Hide, edit.Show)
 
-	vm.Body.AddListener(update)
-
-	update()
+	vm.Body.Set(vm.Body.Value()) // allow the handlers to be called.
 
 	body := container.NewStack(
 		noData,

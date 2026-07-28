@@ -12,15 +12,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
-const (
-	BodyNoData int = iota
-	BodyTable
-	BodyBookEdit
-	BodyBookCreate
-	BodyInfo
-	BodyManual
-)
-
 type Window struct {
 	cfg *config.Config
 

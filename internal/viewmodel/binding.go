@@ -76,29 +76,3 @@ func (p *DBPath) notify() {
 	}
 }
 
-type Body struct {
-	value int
-	l     []func()
-}
-
-func (b *Body) Value() int {
-	return b.value
-}
-
-func (b *Body) Set(v int) {
-	b.value = v
-	b.notify()
-}
-
-func (b *Body) AddListener(fn func()) {
-	if b.l == nil {
-		b.l = make([]func(), 0)
-	}
-	b.l = append(b.l, fn)
-}
-
-func (b *Body) notify() {
-	for _, fn := range b.l {
-		fn()
-	}
-}
