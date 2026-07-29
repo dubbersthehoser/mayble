@@ -53,7 +53,6 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	table := newBodyTable(vm)
 	edit := newEdit(vm)
 	create := newCreate(vm)
-	info := newInfo(vm)
 	manual := newManual(vm)
 
 	vm.Body.RegisterHandlers(viewmodel.BodyNoData, noData.Hide, noData.Show)
@@ -61,7 +60,6 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	vm.Body.RegisterHandlers(viewmodel.BodyBookCreate, create.Hide, create.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyBookEdit, edit.Hide, edit.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyManual, manual.Hide, manual.Show)
-	vm.Body.RegisterHandlers(viewmodel.BodyInfo, info.Hide, info.Show)
 
 	 // allow the handlers to be called.
 	vm.Body.Set(vm.Body.Value())
@@ -72,7 +70,6 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 		edit,
 		create,
 		manual,
-		info,
 	)
 
 	return body
@@ -80,13 +77,6 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newManual(w *viewmodel.Window) fyne.CanvasObject {
 	rt := widget.NewRichTextFromMarkdown(doc.Manual)
-	closeBtn := widget.NewButton("Close", w.Body.Back)
-	content := container.NewBorder(nil, closeBtn, nil, nil, closeBtn, rt)
-	return content
-}
-
-func newInfo(w *viewmodel.Window) fyne.CanvasObject {
-	rt := widget.NewRichTextFromMarkdown(doc.Info)
 	closeBtn := widget.NewButton("Close", w.Body.Back)
 	content := container.NewBorder(nil, closeBtn, nil, nil, closeBtn, rt)
 	return content
@@ -274,9 +264,6 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	)
 
 	help := fyne.NewMenu("Help",
-		fyne.NewMenuItem("About", func() {
-			vm.Body.Set(viewmodel.BodyInfo)
-		}),
 		fyne.NewMenuItem("Manual", func() { 
 			vm.Body.Set(viewmodel.BodyManual)
 		}),

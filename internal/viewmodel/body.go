@@ -5,7 +5,6 @@ const (
 	BodyTable
 	BodyBookEdit
 	BodyBookCreate
-	BodyInfo
 	BodyManual
 )
 
@@ -22,6 +21,7 @@ func (b *Body) RegisterHandlers(body int, hide, show func()) {
 	if b.hideHandlers == nil {
 		b.hideHandlers = make(map[int]func())
 	}
+
 	if b.showHandlers == nil {
 		b.showHandlers = make(map[int]func())
 	}
@@ -42,10 +42,7 @@ func (b *Body) Set(v int) {
 		b.showHandlers[v]()
 	}
 
-	// prevent a cycle of menu and info.
-	switch b.value {
-	case BodyManual, BodyInfo:
-	default:
+	if BodyManual != b.value {
 		b.prev = b.value
 	}
 

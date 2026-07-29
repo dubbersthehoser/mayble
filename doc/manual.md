@@ -2,7 +2,12 @@
 
 Mayble v2.0.2
 
+- [Github](https://github.com/dubbersthehoser/mayble/)
+
 ## Search
+
+- Press ENTER to move down to the next nearest result.
+- Press CTRL+ENTER to move back up the search result.
 
 ## CSV Format
 
