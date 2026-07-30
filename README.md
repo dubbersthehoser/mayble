@@ -20,11 +20,23 @@ Then build from source.
 
 1. Clone down repo: `git clone github.com/dubbersthehoser/mayble`
 
-2. Install the Go language (v1.24.0 or higher)
+1. Install dependencies.
+   - **Linux (Debian):** 
+     ```
+     sudo apt-get install golang gcc libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev
+     ```
 
-2. Install Fyne command line tool `go install fyne.io/tools/cmd/fyne@latest`.
+   - **MacOS:** As long you have `xcode` installed. 
+     ```
+     xcode-select --install
+     ```
+   - **Other:** Check [fyne quick start](https://docs.fyne.io/started/quick/).
 
-3. Build `fyne build .` then run `./mayble` and try it out!
+1. Install the Go language (v1.24.0 or higher), and a C Compiler for graphics libraries.
+
+1. Install Fyne command line tool `go install fyne.io/tools/cmd/fyne@latest`.
+
+1. Build `fyne build .` then run `./mayble` and try it out!
 
 ## Usage
 
