@@ -34,29 +34,14 @@ Then build from source.
 
 1. Install the Go language (v1.24.0 or higher), and a C Compiler for graphics libraries.
 
-1. Install Fyne command line tool `go install fyne.io/tools/cmd/fyne@latest`.
-
-1. Build `fyne build .` then run `./mayble` and try it out!
+1. Finally `go run .` and try it out!
 
 ## Usage
 
 The application starts without a database. You'll need to create a database which is done in the menu *File* drop down.
 
-**Create** entries press the ➕ (plus) button to open the create book entry view. Once there, You can continually add entires to the database, and will be notify of actions that succeed, or failed in the top blank spot of the view. Press `Cancel` to go back to the table view, to see your additions.
-
-**Hide, and show columns** by opening the *Table* menu bar drop down, and pick ID, loaned, and read to hide, or show a set of columns. These do not filter out entires, and just hides those columns from the table.
-
-**Column widths** are adjustable, by mousing in between two column headers, hold left click an move to resize.
-
-**Sort table** by pressing one of the column header labels you desire to sort by. Starting as *descending* order, and then *ascending* when pressed again, and toggled back and forth. When sorted, any none / empty values will always be forced to the bottom of the table when sorted. Keeping all actual value to the top of the sorted table.
-
-**Edit** an entry by selecting any cell in that row entry. Then press the ✏️ (pencil) button to open the edit view. This view behaves similar to the create entries view, but closes the view once submitted.
-
-**Delete** an entry by selecting an entry, then pressing the 🗑️ (garbage can) twice, do to the first click being a warning with a cool down.
-
-**Search** box will select a row cell by its highest scored match. You can change the `search by` setting using the select widget right of the search box. Searching with `All` will search cells from left to right and down, and down a column of cells for the other options. Searches are **case insensitive*.
+Open the *help* menu to open the manual.
 
 ## Contributing
 
 I'm not looking for contributors for this project. My aim was to help one person, but I'll consider any issue reports or request if they pop up.
-

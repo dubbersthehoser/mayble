@@ -77,6 +77,7 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newManual(w *viewmodel.Window) fyne.CanvasObject {
 	rt := widget.NewRichTextFromMarkdown(doc.Manual)
+	rt.Wrapping = fyne.TextWrapWord
 	closeBtn := widget.NewButton("Close", w.Body.Back)
 	content := container.NewBorder(nil, closeBtn, nil, nil, closeBtn, rt)
 	return content
