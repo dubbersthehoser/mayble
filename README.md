@@ -28,7 +28,7 @@ Then build from source.
 
 ## Usage
 
-When the application first starts, you need to create a database which can be done in the *File* menu bar drop down.
+The application starts without a database. You'll need to create a database which is done in the menu *File* drop down.
 
 **Create** entries press the ➕ (plus) button to open the create book entry view. Once there, You can continually add entires to the database, and will be notify of actions that succeed, or failed in the top blank spot of the view. Press `Cancel` to go back to the table view, to see your additions.
 
