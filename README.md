@@ -40,7 +40,7 @@ Then build from source.
 
 The application starts without a database. You'll need to create a database which is done in the menu *File* drop down.
 
-Open the *help* menu to open the manual.
+Open the *help* menu to open the manual, or open [./doc/manual.md](./doc/manual.md).
 
 ## Contributing
 

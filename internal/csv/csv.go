@@ -147,6 +147,12 @@ func mapSchema(f []string) ([]int, bool) {
 	if len(headers) != len(f) {
 		return nil, false
 	}
+
+	// case insensitive match.
+	for i := range headers { 
+		headers[i] = strings.ToLower(headers[i])
+		f[i] = strings.ToLower(f[i])
+	}
 	for i, field := range f {
 		idx := slices.Index(headers, field)
 		if idx == -1 {
