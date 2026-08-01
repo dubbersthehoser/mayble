@@ -13,9 +13,11 @@ There are three major visual elements: Menu Bar, Status Line, and View.
     + *Table* set settings for hiding a set of columns from the table view.
     + *Help* to open this manual.
 
-- Status Line Is on the top of every view, (and besides table controls), and will give a status of an action taken with in the application.
+- Status Line is on the top of every view, (and left of the table controls), and will give a status of an action taken with in the application.
 
-- View is the current open body for user interactions.
+- Body is the current open view for user interactions. Being: Table, Create, and Edit Entry views
+
+*note: There are other views that pertain to errors, and status of the application.*
 
 ## Table View
 
@@ -36,7 +38,7 @@ There are four controls and three of them are active when a entry is selected fr
 
 ### Search
 
-Search will create a grouping of nearest matches and select highest scored cell with that search. You can cycle through them by:
+Once text has been entered into the search box, will create a grouping of nearest matches and select highest scored cell with that search. You can cycle through them by:
 
 - Press ENTER to move down to the next search result.
 
@@ -44,23 +46,31 @@ Search will create a grouping of nearest matches and select highest scored cell 
 
 These hotkeys only work when you focus is in the search entry.
 
-You can change the `search by` and narrow down your search to a single column, or use all to search every cell in the table. 
-
 The searches are **case insensitive**.
+
+### Search By
+
+You can change the style of search, and narrow down to a single column, or to every cell in the table.
 
 ## Create Entry View
 
 With in this view you can create as many book entries as one needs. Press `Cancel` to go back to table view. Any errors, or successes will be shown on the Status Line. To Open this view check **Controls** section under **Table View**.
 
+## Edit Entry View
+
+This view is similar to the create view, but it will go back to the table view once the entry is updated.
+
 ## Import / Export
 
 ### CSV Format Rules
 
-- The header row is for the CSV file is `Title,Author,Genre,Completed,Rating,Loaned,Borrower`.
-
-- `Completed` and `Loaned` columns, value must be in a YYYY-MM-DD format, and for `Rating` values can only be from 1-5. The rating 0 and blank are treated as the same, otherwise it will be an error.  
+- The header row is for the CSV file is '`Title,Author,Genre,Completed,Rating,Loaned,Borrower`'.
 
 - `Title`, `Author`, and `Genre` column values **MUST** be filled in, and not left blank.
 
-- `Completed`, and `Rating`, or `Loaned`, and `Borrower`, both will be considered not filled if one is blank. e.g. If `Completed` is empty and `Rating` is filled as 1, both will be consider empty, and `Rating` will be not be present.
+- `Completed` and `Loaned` columns must be in a YYYY-MM-DD format. 
+ 
+- `Rating` values can only be from 1 to 5, and the rating 0 and blank are treated as the same, otherwise it will be an error.  
+
+- `Completed`, and `Rating`, or `Loaned`, and `Borrower`  will be considered not filled if one is blank out of the two. e.g. If `Completed` is empty and `Rating` is filled as 1, both will be consider empty, and `Rating` will be not be present, as well with `Loaned`, and `Borrower`.
 
