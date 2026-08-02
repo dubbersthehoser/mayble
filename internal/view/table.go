@@ -53,17 +53,13 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	return body
 }
 
-// func newTable(vm *viewmodel.Table, headers *viewmodel.TableHeaders, selector *viewmodel.TableSelect) fyne.CanvasObject {
 func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
-	//
-	// Table Note
-	//
 	// Code sections (A) are to allow user to resize the last column with the header.
-	// By adding an invisable header with an empty column, allows the user to move
-	// the last visable header / column to be resized with the mouse. Down side is
+	// By adding an invisible header with an empty column, allows the user to move
+	// the last visible header / column to be resized with the mouse. Down side is
 	// that there is an empty selectable item on the first entry of that last column.
-	// The selection system will ignore this selection of thoughs cells.
+	// The selection system will ignore this selection of those cells.
 
 	table := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {

@@ -3,6 +3,7 @@ package viewmodel
 import (
 	"cmp"
 	"slices"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/search"
@@ -34,6 +35,7 @@ func (s *Searching) GetOptions() []string {
 
 func (s *Searching) SetBy(c string) {
 	if c == "All" {
+		// neg one is for 'All' columns.
 		s.column = -1
 		return
 	}
@@ -95,6 +97,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	type result struct {
 		row, score int
 	}
+	fmt.Println("debug:", dataCol)
 	results := make([]result, 0)
 	s.cellSearch.Set(dataCol, search)
 	for s.cellSearch.Next() {
@@ -113,6 +116,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	if len(results) == 0 {
 		s.scored = s.scored[:0]
 		s.row = 0
+		fmt.Println("debug: No Result")
 		return
 	}
 	slices.SortFunc(results, func(a, b result) int {
@@ -122,6 +126,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 		}
 		return cmp.Compare(a.score, b.score)
 	})
+
 	s.row = 0
 	s.scored = s.scored[:0]
 	for _, r := range results {
@@ -130,6 +135,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 		row[1] = s.column
 		s.scored = append(s.scored, row)
 	}
+	fmt.Printf("debug: search='%s', top_result='%s'\n", search, dataCol[s.scored[0][0]])
 }
 
 func (s *Searching) searchAll(data [][]string, search string) {
