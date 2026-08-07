@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"slices"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/app"
@@ -216,4 +217,66 @@ func (ts *ColumnSettings) notify() {
 	for _, fn := range ts.l {
 		fn()
 	}
+}
+
+func isLoanHidden(cfg *config.Config) bool {
+	loaned := cfg.UI.Headers[models.IdxLoanedAt]
+	borrower := cfg.UI.Headers[models.IdxBorrower]
+	return loaned.IsHidden && borrower.IsHidden
+
+}
+
+func isIDHidden(cfg *config.Config) bool {
+	header := cfg.UI.Headers[models.IdxID]
+	return header.IsHidden
+}
+
+func isReadHidden(cfg *config.Config) bool {
+	rating := cfg.UI.Headers[models.IdxRating]
+	completed := cfg.UI.Headers[models.IdxCompletedAt]
+	return rating.IsHidden && completed.IsHidden
+}
+
+func entryValues(e *models.BookEntry) []string {
+
+	headers := models.BookEntryFields()
+	values := make([]string, len(headers))
+
+	for i, header := range headers {
+		switch i {
+		case models.IdxID:
+			values[i] = fmt.Sprintf("%d", e.ID)
+		case models.IdxTitle:
+			values[i] = e.Title
+		case models.IdxAuthor:
+			values[i] = e.Author
+		case models.IdxGenre:
+			values[i] = e.Genre
+		case models.IdxRating:
+			values[i] = formatRating(e.Rating)
+		case models.IdxCompletedAt:
+			values[i] = formatDate(&e.CompletedAt)
+		case models.IdxBorrower:
+			values[i] = e.Borrower
+		case models.IdxLoanedAt:
+			values[i] = formatDate(&e.LoanedAt)
+		default:
+			panic("unknown field:" + header)
+		}
+	}
+	return values
+}
+
+func removeHiddenColumns(cfg *config.Config) []int {
+	indexs := make([]int, 0)
+	if isLoanHidden(cfg) {
+		indexs = append(indexs, models.IdxBorrower, models.IdxLoanedAt)
+	}
+	if isReadHidden(cfg) {
+		indexs = append(indexs, models.IdxRating, models.IdxCompletedAt)
+	}
+	if isIDHidden(cfg) {
+		indexs = append(indexs, models.IdxID)
+	}
+	return indexs
 }
