@@ -4,12 +4,14 @@ import (
 	"errors"
 	"log"
 	"slices"
+	"cmp"
 	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
-
+	"github.com/dubbersthehoser/mayble/internal/search"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
 type Point struct {
@@ -17,10 +19,51 @@ type Point struct {
 	Row int
 }
 
+type Table struct {
+	Sheet    *Sheet
+	Sorting  *Sorting
+	Settings *Settings
+	Search   *Searching
+}
+
+func NewTable(cfg *config.Config, srv *app.Service) *Table {
+	t := &Table{
+		Sheet: NewSheet(cfg, srv),
+		Sorting: NewSorting(cfg),
+		Settings: NewSettings(cfg),
+	}
+
+	t.Search = NewSearching(t.Sheet)
+
+	t.Sorting.AddListener(func() {
+		t.Sheet.Load()
+	})
+
+	t.Settings.AddListener(func() {
+		t.Sheet.Load()
+	})
+
+	return t
+}
+
 type Sheet struct {
-	srv  *app.Service
-	cfg  *config.Config
-	data [][]string
+	srv     *app.Service
+	cfg     *config.Config
+	data    [][]string
+	header  []string
+	rowToID map[int]int64
+
+	l []func()
+}
+
+func NewSheet(cfg *config.Config, srv *app.Service) *Sheet {
+	s := &Sheet{
+		srv: srv,
+		cfg: cfg,
+		data: make([][]string, 0),
+		rowToID: make(map[int]int64),
+	}
+	return s
 }
 
 func (s *Sheet) Get(p Point) (string, error) {
@@ -46,8 +89,46 @@ func (s *Sheet) Header() []string {
 }
 
 func (s *Sheet) Load() error {
+
+	by := s.cfg.UI.TableSortBy
+	asc := s.cfg.UI.TableAscending
+
+	books, err := s.srv.GetAllBooks()
+	if err != nil {
+		return err
+	}
+
+	if err := app.SortBooks(books, by, asc); err != nil {
+		return err
+	}
+
+	s.data = s.data[:0]
+	clear(s.rowToID)
+
+	for row, book := range books {
+		s.rowToID[row] = book.ID
+		values := display.EntryValues(&book)
+		for _, idx := range removeHiddenColumns(s.cfg) {
+			values = slices.Delete(values, idx, idx+1)
+		}
+		s.data = append(s.data, values)
+	}
 	
+	s.notify()
 	return nil
+}
+
+func (s *Sheet) AddListener(fn func() ) {
+	if s.l == nil {
+		s.l = make([]func(), 0)
+	}
+	s.l = append(s.l, fn)
+}
+
+func (s *Sheet) notify() {
+	for _, fn := range s.l {
+		fn()
+	}
 }
 
 
@@ -67,7 +148,7 @@ func NewSorting(cfg *config.Config) *Sorting {
 func (s *Sorting) SetOrderBy(l string) {
 	idx := slices.Index(models.BookEntryFields(), l)
 	if idx == -1 {
-		log.Printf("Error: invalid header lable '%s'", l)
+		log.Printf("Error: invalid header label '%s'", l)
 		return
 	}
 	s.cfg.UI.TableSortBy = idx
@@ -89,6 +170,7 @@ func (s *Sorting) Sort() {
 	s.notify()
 }
 
+// AddListener for Sort call.
 func (s *Sorting) AddListener(fn func()) {
 	if s.l == nil {
 		s.l = make([]func(), 0)
@@ -102,23 +184,23 @@ func (s *Sorting) notify() {
 	}
 }
 
-type ColumnSettings struct {
+type Settings struct {
 	cfg *config.Config
 	l   []func()
 }
 
-func newColumnSettings(cfg *config.Config) *ColumnSettings {
-	cs := &ColumnSettings{
+func NewSettings(cfg *config.Config) *Settings {
+	cs := &Settings{
 		cfg: cfg,
 	}
 	return cs
 }
 
-func (ts *ColumnSettings) MinWidth() float32 {
+func (ts *Settings) MinWidth() float32 {
 	return ts.cfg.UI.TableMinWidth
 }
 
-func (ts *ColumnSettings) Headers() []string {
+func (ts *Settings) Headers() []string {
 	headers := models.BookEntryFields()
 	removeIdxs := removeHiddenColumns(ts.cfg)
 	for _, idx := range removeIdxs {
@@ -127,26 +209,26 @@ func (ts *ColumnSettings) Headers() []string {
 	return headers
 }
 
-func (ts *ColumnSettings) IsLoanHidden() bool {
+func (ts *Settings) IsLoanHidden() bool {
 	return isLoanHidden(ts.cfg)
 }
 
-func (ts *ColumnSettings) IsReadHidden() bool {
+func (ts *Settings) IsReadHidden() bool {
 	return isReadHidden(ts.cfg)
 }
 
-func (ts *ColumnSettings) IsIDHidden() bool {
+func (ts *Settings) IsIDHidden() bool {
 	return isIDHidden(ts.cfg)
 }
 
-func (ts *ColumnSettings) SetIDHidden(t bool) {
+func (ts *Settings) SetIDHidden(t bool) {
 	header := ts.cfg.UI.Headers[models.IdxID]
 	header.IsHidden = t
 	ts.cfg.UI.Headers[models.IdxID] = header
 	ts.notify()
 }
 
-func (ts *ColumnSettings) SetLoanHidden(t bool) {
+func (ts *Settings) SetLoanHidden(t bool) {
 
 	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
 	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
@@ -160,7 +242,7 @@ func (ts *ColumnSettings) SetLoanHidden(t bool) {
 	ts.notify()
 }
 
-func (ts *ColumnSettings) SetReadHidden(t bool) {
+func (ts *Settings) SetReadHidden(t bool) {
 	rating := ts.cfg.UI.Headers[models.IdxRating]
 	completed := ts.cfg.UI.Headers[models.IdxCompletedAt]
 
@@ -173,7 +255,7 @@ func (ts *ColumnSettings) SetReadHidden(t bool) {
 	ts.notify()
 }
 
-func (ts *ColumnSettings) SetWidth(label string, width float32) {
+func (ts *Settings) SetWidth(label string, width float32) {
 	if width <= ts.cfg.UI.TableMinWidth {
 		width = ts.cfg.UI.TableMinWidth
 	}
@@ -191,7 +273,7 @@ func (ts *ColumnSettings) SetWidth(label string, width float32) {
 	ts.cfg.UI.Headers[idx] = h
 }
 
-func (ts *ColumnSettings) GetWidth(label string) float32 {
+func (ts *Settings) GetWidth(label string) float32 {
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
@@ -205,15 +287,15 @@ func (ts *ColumnSettings) GetWidth(label string) float32 {
 	return width
 }
 
-// AddListener listen for changes to hidden columns.
-func (ts *ColumnSettings) AddListener(fn func()) {
+// AddListener for changes to hidden columns.
+func (ts *Settings) AddListener(fn func()) {
 	if ts.l == nil {
 		ts.l = make([]func(), 0)
 	}
 	ts.l = append(ts.l, fn)
 }
 
-func (ts *ColumnSettings) notify() {
+func (ts *Settings) notify() {
 	for _, fn := range ts.l {
 		fn()
 	}
@@ -237,36 +319,6 @@ func isReadHidden(cfg *config.Config) bool {
 	return rating.IsHidden && completed.IsHidden
 }
 
-func entryValues(e *models.BookEntry) []string {
-
-	headers := models.BookEntryFields()
-	values := make([]string, len(headers))
-
-	for i, header := range headers {
-		switch i {
-		case models.IdxID:
-			values[i] = fmt.Sprintf("%d", e.ID)
-		case models.IdxTitle:
-			values[i] = e.Title
-		case models.IdxAuthor:
-			values[i] = e.Author
-		case models.IdxGenre:
-			values[i] = e.Genre
-		case models.IdxRating:
-			values[i] = formatRating(e.Rating)
-		case models.IdxCompletedAt:
-			values[i] = formatDate(&e.CompletedAt)
-		case models.IdxBorrower:
-			values[i] = e.Borrower
-		case models.IdxLoanedAt:
-			values[i] = formatDate(&e.LoanedAt)
-		default:
-			panic("unknown field:" + header)
-		}
-	}
-	return values
-}
-
 func removeHiddenColumns(cfg *config.Config) []int {
 	indexs := make([]int, 0)
 	if isLoanHidden(cfg) {
@@ -279,4 +331,195 @@ func removeHiddenColumns(cfg *config.Config) []int {
 		indexs = append(indexs, models.IdxID)
 	}
 	return indexs
+}
+
+type Searching struct {
+
+	sheet       *Sheet
+
+	cellSearch  search.CellSearch
+	tableSearch search.TableSearch
+
+	column int
+	row    int
+	scored [][]int
+
+	l []func()
+}
+
+func NewSearching(s *Sheet) *Searching {
+	sr := &Searching{
+		sheet: s,
+	}
+	return sr
+}
+
+func (s *Searching) GetOptions() []string {
+	// TODO: Update this to only allow columns that are shown.
+	return []string{
+		"All",
+		models.BookEntryFields()[models.IdxTitle],
+		models.BookEntryFields()[models.IdxAuthor],
+		models.BookEntryFields()[models.IdxGenre],
+		models.BookEntryFields()[models.IdxBorrower],
+		models.BookEntryFields()[models.IdxLoanedAt],
+		models.BookEntryFields()[models.IdxCompletedAt],
+	}
+}
+
+func (s *Searching) SetBy(c string) {
+	if c == "All" {
+		// neg one is for 'All' columns.
+		s.column = -1
+		return
+	}
+
+	s.column = slices.Index(models.BookEntryFields(), c)
+}
+
+func (s *Searching) Selected() (int, int) {
+	return s.scored[s.row][0], s.scored[s.row][1]
+}
+
+func (s *Searching) Has() bool {
+	return len(s.scored) != 0
+}
+
+func (s *Searching) Prev() {
+	s.row -= 1
+	if s.row < 0 {
+		s.row = len(s.scored) - 1
+	}
+	s.notify()
+}
+
+func (s *Searching) Next() {
+	s.row += 1
+	if s.row == len(s.scored) {
+		s.row = 0
+	}
+	s.notify()
+}
+
+func (s *Searching) AddListener(fn func()) {
+	if s.l == nil {
+		s.l = make([]func(), 0)
+	}
+	s.l = append(s.l, fn)
+}
+
+func (s *Searching) notify() {
+	for _, fn := range s.l {
+		fn()
+	}
+}
+
+func (s *Searching) Search(data [][]string, search string) {
+	// TODO: this function needs to be updated.
+	if s.column == -1 {
+		s.searchAll(data, search)
+	} else {
+		s.searchColumn(data, search)
+	}
+	s.notify()
+}
+
+func (s *Searching) searchColumn(data [][]string, search string) {
+	dataCol := make([]string, 0)
+	for _, row := range data {
+		dataCol = append(dataCol, row[s.column])
+	}
+	type result struct {
+		row, score int
+	}
+	fmt.Println("debug:", dataCol)
+	results := make([]result, 0)
+	s.cellSearch.Set(dataCol, search)
+	for s.cellSearch.Next() {
+		row := s.cellSearch.Pos()
+		score := s.cellSearch.Score()
+		if score == -1 {
+			continue
+		}
+		r := result{
+			row:   row,
+			score: score,
+		}
+		results = append(results, r)
+	}
+
+	if len(results) == 0 {
+		s.scored = s.scored[:0]
+		s.row = 0
+		fmt.Println("debug: No Result")
+		return
+	}
+	slices.SortFunc(results, func(a, b result) int {
+		r := cmp.Compare(a.score, b.score)
+		if r == 0 {
+			return cmp.Compare(a.row, b.row)
+		}
+		return cmp.Compare(a.score, b.score)
+	})
+
+	s.row = 0
+	s.scored = s.scored[:0]
+	for _, r := range results {
+		row := make([]int, 2)
+		row[0] = r.row
+		row[1] = s.column
+		s.scored = append(s.scored, row)
+	}
+	fmt.Printf("debug: search='%s', top_result='%s'\n", search, dataCol[s.scored[0][0]])
+}
+
+func (s *Searching) searchAll(data [][]string, search string) {
+	type result struct {
+		row, col, score int
+	}
+	results := make([]result, 0)
+	s.tableSearch.Set(data, search)
+	for s.tableSearch.Next() {
+		row, col := s.tableSearch.Pos()
+		score := s.tableSearch.Score()
+		if score == -1 {
+			continue
+		}
+		r := result{
+			row:   row,
+			col:   col,
+			score: score,
+		}
+		results = append(results, r)
+	}
+	if len(results) == 0 {
+		s.row = 0
+		s.scored = s.scored[:0]
+	}
+
+	slices.SortFunc(results, func(a, b result) int {
+		r := cmp.Compare(a.score, b.score)
+		if r == 0 {
+			return cmp.Compare(a.row, b.row)
+		}
+		return r * -1
+	})
+	s.row = 0
+	s.scored = s.scored[:0]
+	for _, r := range results {
+		row := make([]int, 2)
+		row[0] = r.row
+		row[1] = r.col
+		s.scored = append(s.scored, row)
+	}
+}
+
+func AllowedSearchOptions(options, headers []string) []string {
+	o := make([]string, 0)
+	for _, option := range options {
+		if slices.Contains(headers, option) || option == "All" {
+			o = append(o, option)
+		}
+	}
+	return o
 }
