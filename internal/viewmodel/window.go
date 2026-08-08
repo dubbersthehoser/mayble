@@ -10,6 +10,7 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
 
 type Window struct {
@@ -25,25 +26,29 @@ type Window struct {
 	ColumnSettings *ColumnSettings
 	DataTable      *DataTable
 	Sorting        *SortingTable
-	Searching      *Searching
-	Search         func(string)
+	Searching      *table.Searching
 	Form           *BookForm
 	NoData         *NoDataBody
 }
 
 func NewWindow(cfg *config.Config) *Window {
-	serv := app.NewService(cfg)
+
+
+	srv := app.NewService(cfg)
+
+	tbl := table.NewTable(cfg, srv)
+
 	w := &Window{
 		cfg:            cfg,
 		Body:           &Body{},
 		StatusLine:     newStatusLine(),
 		ColumnSettings: newColumnSettings(cfg),
 		DBPath:         newDBPath(cfg),
-		DataTable:      newDataTable(cfg, serv),
+		DataTable:      newDataTable(cfg, srv),
 		Sorting:        newSortingTable(cfg),
-		Searching:      &Searching{},
+		Searching:      tbl.Searching,
 		Selected:       newEntrySelected(),
-		UniqueGenres:   newUniqueGenres(serv),
+		UniqueGenres:   newUniqueGenres(srv),
 		NoData:         &NoDataBody{},
 	}
 
@@ -63,7 +68,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			book.ID = id
-			if err := serv.UpdateBook(book); err != nil {
+			if err := srv.UpdateBook(book); err != nil {
 				log.Println("Error:", err)
 				w.StatusLine.sendError(err.Error())
 				return
@@ -81,7 +86,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			if _, err := serv.CreateBook(book); err != nil {
+			if _, err := srv.CreateBook(book); err != nil {
 				log.Println("Error:", err)
 				w.StatusLine.sendError(err.Error())
 				return
@@ -98,7 +103,7 @@ func NewWindow(cfg *config.Config) *Window {
 		OnEdit: func() {
 			row, _ := w.Selected.Get()
 			id := w.DataTable.rowToID[row]
-			book, err := serv.GetBookByID(id)
+			book, err := srv.GetBookByID(id)
 			if err != nil {
 				log.Println("Error:", err)
 				w.StatusLine.sendError(err.Error())
@@ -112,7 +117,7 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 		OnDelete: func() {
 			id := w.DataTable.rowToID[w.Selected.row]
-			err := serv.DeleteBook(id)
+			err := srv.DeleteBook(id)
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
@@ -162,7 +167,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			if err := serv.ImportFile(path); err != nil {
+			if err := srv.ImportFile(path); err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
 				return
@@ -184,7 +189,7 @@ func NewWindow(cfg *config.Config) *Window {
 				path += ".csv"
 			}
 
-			if err := serv.ExportFile(path); err != nil {
+			if err := srv.ExportFile(path); err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
 				return
@@ -193,25 +198,6 @@ func NewWindow(cfg *config.Config) *Window {
 			w.StatusLine.sendSuccess("Exported: " + path)
 		},
 	}
-
-	w.Search = func(s string) {
-		if s == "" {
-			w.Selected.Unselect()
-			return
-		}
-		w.Searching.search(w.DataTable.data, s)
-	}
-
-	// select entry when searched.
-	w.Searching.AddListener(func() {
-		if w.Searching.Has() {
-			w.Selected.Select(
-				w.Searching.Selected(),
-			)
-		} else {
-			w.Selected.Unselect()
-		}
-	})
 
 	// start with table view at start up.
 	w.Body.Set(BodyTable)
@@ -222,7 +208,7 @@ func NewWindow(cfg *config.Config) *Window {
 	})
 
 	// try and load database at first start.
-	if err := serv.LoadDatabase(); err != nil {
+	if err := srv.LoadDatabase(); err != nil {
 		log.Println("Warning:", err)
 		if w.cfg.DBFile == "" {
 			w.NoData.SetNoDB()
@@ -234,7 +220,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	// load database at database file path change.
 	w.DBPath.AddListener(func() {
-		if err := serv.LoadDatabase(); err != nil {
+		if err := srv.LoadDatabase(); err != nil {
 			w.StatusLine.sendError(err.Error())
 			log.Println("Error:", err)
 			w.NoData.SetDataErr(w.DBPath.Get(), err)
@@ -271,7 +257,7 @@ type FileManage struct {
 	ExportFile func(path string, err error)
 }
 
-// I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
+// Note: I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
 
 func WrapFyneFileOpen(fn func(string, error)) func(fyne.URIReadCloser, error) {
 	return func(r fyne.URIReadCloser, err error) {

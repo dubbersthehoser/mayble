@@ -18,12 +18,16 @@ type Point struct {
 	Col int
 	Row int
 }
+func (p Point) IsSelectable() bool {
+	return p.Col >= 0 && p.Row >= 0
+}
 
 type Table struct {
-	Sheet    *Sheet
-	Sorting  *Sorting
-	Settings *Settings
-	Search   *Searching
+	Sheet     *Sheet
+	Settings  *Settings
+	Sorting   *Sorting
+	Searching *Searching
+	Selected  *Selected
 }
 
 func NewTable(cfg *config.Config, srv *app.Service) *Table {
@@ -31,9 +35,18 @@ func NewTable(cfg *config.Config, srv *app.Service) *Table {
 		Sheet: NewSheet(cfg, srv),
 		Sorting: NewSorting(cfg),
 		Settings: NewSettings(cfg),
+		Selected: newSelected(),
 	}
 
-	t.Search = NewSearching(t.Sheet)
+	t.Searching = NewSearching()
+
+	t.Searching.AddListener(func() {
+		if t.Searching.Has() {
+			t.Selected.Select(t.Searching.Selected())
+		} else {
+			t.Selected.Unselect()
+		}
+	})
 
 	t.Sorting.AddListener(func() {
 		t.Sheet.Load()
@@ -45,6 +58,27 @@ func NewTable(cfg *config.Config, srv *app.Service) *Table {
 
 	return t
 }
+
+func (t *Table) Search(s string) {
+	if s == "" {
+		t.Selected.Unselect()
+		return
+	}
+	t.Searching.Search(t.Sheet.data, s)
+}
+
+func (t *Table) Get(p Point) (string, error) {
+	return t.Sheet.Get(p)
+}
+
+func (t *Table) Select(p Point) error {
+	
+}
+
+
+//
+// Sheet
+//
 
 type Sheet struct {
 	srv     *app.Service
@@ -132,6 +166,10 @@ func (s *Sheet) notify() {
 }
 
 
+//
+// Sorting
+//
+
 type Sorting struct {
 	cfg *config.Config
 
@@ -183,6 +221,10 @@ func (s *Sorting) notify() {
 		fn()
 	}
 }
+
+//
+// Settings
+//
 
 type Settings struct {
 	cfg *config.Config
@@ -301,41 +343,13 @@ func (ts *Settings) notify() {
 	}
 }
 
-func isLoanHidden(cfg *config.Config) bool {
-	loaned := cfg.UI.Headers[models.IdxLoanedAt]
-	borrower := cfg.UI.Headers[models.IdxBorrower]
-	return loaned.IsHidden && borrower.IsHidden
+//
+// Searching
+//
 
-}
-
-func isIDHidden(cfg *config.Config) bool {
-	header := cfg.UI.Headers[models.IdxID]
-	return header.IsHidden
-}
-
-func isReadHidden(cfg *config.Config) bool {
-	rating := cfg.UI.Headers[models.IdxRating]
-	completed := cfg.UI.Headers[models.IdxCompletedAt]
-	return rating.IsHidden && completed.IsHidden
-}
-
-func removeHiddenColumns(cfg *config.Config) []int {
-	indexs := make([]int, 0)
-	if isLoanHidden(cfg) {
-		indexs = append(indexs, models.IdxBorrower, models.IdxLoanedAt)
-	}
-	if isReadHidden(cfg) {
-		indexs = append(indexs, models.IdxRating, models.IdxCompletedAt)
-	}
-	if isIDHidden(cfg) {
-		indexs = append(indexs, models.IdxID)
-	}
-	return indexs
-}
+const columnAll = -1
 
 type Searching struct {
-
-	sheet       *Sheet
 
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
@@ -347,7 +361,7 @@ type Searching struct {
 	l []func()
 }
 
-func NewSearching(s *Sheet) *Searching {
+func NewSearching() *Searching {
 	sr := &Searching{
 		sheet: s,
 	}
@@ -369,16 +383,19 @@ func (s *Searching) GetOptions() []string {
 
 func (s *Searching) SetBy(c string) {
 	if c == "All" {
-		// neg one is for 'All' columns.
-		s.column = -1
+		s.column = columnAll
 		return
 	}
 
 	s.column = slices.Index(models.BookEntryFields(), c)
 }
 
-func (s *Searching) Selected() (int, int) {
-	return s.scored[s.row][0], s.scored[s.row][1]
+func (s *Searching) Selected() Point {
+	p := Point{
+		Row: s.scored[s.row][0],
+		Col: s.scored[s.row][1],
+	}
+	return p
 }
 
 func (s *Searching) Has() bool {
@@ -415,8 +432,8 @@ func (s *Searching) notify() {
 }
 
 func (s *Searching) Search(data [][]string, search string) {
-	// TODO: this function needs to be updated.
-	if s.column == -1 {
+
+	if s.column == columnAll {
 		s.searchAll(data, search)
 	} else {
 		s.searchColumn(data, search)
@@ -514,6 +531,52 @@ func (s *Searching) searchAll(data [][]string, search string) {
 	}
 }
 
+type Selected struct {
+	point Point
+	l   []func()
+}
+
+func newSelected() *Selected {
+	es := &Selected{
+		point: Point{
+			Row: -1,
+			Col: -1,
+		},
+	}
+	return es
+}
+
+func (es *Selected) Select(p Point) {
+	es.point = p
+	es.notify()
+}
+func (es *Selected) Unselect() {
+	es.point.Row = -1
+	es.point.Col = -1
+	es.notify()
+}
+
+func (es *Selected) Get() Point {
+	return es.point
+}
+
+func (es *Selected) Has() bool {
+	return es.point.IsSelectable()
+}
+
+func (es *Selected) AddListener(fn func()) {
+	if es.l == nil {
+		es.l = make([]func(), 0)
+	}
+	es.l = append(es.l, fn)
+}
+
+func (es *Selected) notify() {
+	for _, fn := range es.l {
+		fn()
+	}
+}
+
 func AllowedSearchOptions(options, headers []string) []string {
 	o := make([]string, 0)
 	for _, option := range options {
@@ -522,4 +585,36 @@ func AllowedSearchOptions(options, headers []string) []string {
 		}
 	}
 	return o
+}
+
+func isLoanHidden(cfg *config.Config) bool {
+	loaned := cfg.UI.Headers[models.IdxLoanedAt]
+	borrower := cfg.UI.Headers[models.IdxBorrower]
+	return loaned.IsHidden && borrower.IsHidden
+
+}
+
+func isIDHidden(cfg *config.Config) bool {
+	header := cfg.UI.Headers[models.IdxID]
+	return header.IsHidden
+}
+
+func isReadHidden(cfg *config.Config) bool {
+	rating := cfg.UI.Headers[models.IdxRating]
+	completed := cfg.UI.Headers[models.IdxCompletedAt]
+	return rating.IsHidden && completed.IsHidden
+}
+
+func removeHiddenColumns(cfg *config.Config) []int {
+	indexs := make([]int, 0)
+	if isLoanHidden(cfg) {
+		indexs = append(indexs, models.IdxBorrower, models.IdxLoanedAt)
+	}
+	if isReadHidden(cfg) {
+		indexs = append(indexs, models.IdxRating, models.IdxCompletedAt)
+	}
+	if isIDHidden(cfg) {
+		indexs = append(indexs, models.IdxID)
+	}
+	return indexs
 }
