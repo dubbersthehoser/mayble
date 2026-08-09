@@ -1,7 +1,10 @@
 package viewmodel
 
+//
+// File Panned for Removal.
+// 
+
 import (
-	"fmt"
 	"log"
 	"slices"
 
@@ -233,18 +236,18 @@ type DataTable struct {
 	l []func()
 }
 
-func newDataTable(cfg *config.Config, s *app.Service) *DataTable {
-	dt := &DataTable{
-		service: s,
-		cfg:     cfg,
-		rowToID: make(map[int]int64),
-	}
-	dt.service.AddListener(func() {
-		dt.load()
-	})
-	dt.load()
-	return dt
-}
+//func newDataTable(cfg *config.Config, s *app.Service) *DataTable {
+//	dt := &DataTable{
+//		service: s,
+//		cfg:     cfg,
+//		rowToID: make(map[int]int64),
+//	}
+//	dt.service.AddListener(func() {
+//		dt.load()
+//	})
+//	dt.load()
+//	return dt
+//}
 
 func (dt *DataTable) Size() (length, width int) {
 	fields := models.BookEntryFields()
@@ -274,36 +277,36 @@ func (dt *DataTable) notify() {
 	}
 }
 
-func (dt *DataTable) load() {
-
-	by := dt.cfg.UI.TableSortBy
-	asc := dt.cfg.UI.TableAscending
-
-	books, err := dt.service.GetAllBooks()
-	if err != nil {
-		log.Println("Error:", err)
-		return
-	}
-
-	if err := app.SortBooks(books, by, asc); err != nil {
-		log.Println("Error:", err)
-		return
-	}
-
-	dt.data = dt.data[:0]
-	clear(dt.rowToID)
-
-	for row, book := range books {
-		dt.rowToID[row] = book.ID
-		values := entryValues(&book)
-		for _, idx := range removeHiddenColumns(dt.cfg) {
-			values = slices.Delete(values, idx, idx+1)
-		}
-		dt.data = append(dt.data, values)
-	}
-
-	dt.notify()
-}
+//func (dt *DataTable) load() {
+//
+//	by := dt.cfg.UI.TableSortBy
+//	asc := dt.cfg.UI.TableAscending
+//
+//	books, err := dt.service.GetAllBooks()
+//	if err != nil {
+//		log.Println("Error:", err)
+//		return
+//	}
+//
+//	if err := app.SortBooks(books, by, asc); err != nil {
+//		log.Println("Error:", err)
+//		return
+//	}
+//
+//	dt.data = dt.data[:0]
+//	clear(dt.rowToID)
+//
+//	for row, book := range books {
+//		dt.rowToID[row] = book.ID
+//		values := entryValues(&book)
+//		for _, idx := range removeHiddenColumns(dt.cfg) {
+//			values = slices.Delete(values, idx, idx+1)
+//		}
+//		dt.data = append(dt.data, values)
+//	}
+//
+//	dt.notify()
+//}
 
 func isLoanHidden(cfg *config.Config) bool {
 	loaned := cfg.UI.Headers[models.IdxLoanedAt]
@@ -323,35 +326,35 @@ func isReadHidden(cfg *config.Config) bool {
 	return rating.IsHidden && completed.IsHidden
 }
 
-func entryValues(e *models.BookEntry) []string {
-
-	headers := models.BookEntryFields()
-	values := make([]string, len(headers))
-
-	for i, header := range headers {
-		switch i {
-		case models.IdxID:
-			values[i] = fmt.Sprintf("%d", e.ID)
-		case models.IdxTitle:
-			values[i] = e.Title
-		case models.IdxAuthor:
-			values[i] = e.Author
-		case models.IdxGenre:
-			values[i] = e.Genre
-		case models.IdxRating:
-			values[i] = formatRating(e.Rating)
-		case models.IdxCompletedAt:
-			values[i] = formatDate(&e.CompletedAt)
-		case models.IdxBorrower:
-			values[i] = e.Borrower
-		case models.IdxLoanedAt:
-			values[i] = formatDate(&e.LoanedAt)
-		default:
-			panic("unknown field:" + header)
-		}
-	}
-	return values
-}
+//func entryValues(e *models.BookEntry) []string {
+//
+//	headers := models.BookEntryFields()
+//	values := make([]string, len(headers))
+//
+//	for i, header := range headers {
+//		switch i {
+//		case models.IdxID:
+//			values[i] = fmt.Sprintf("%d", e.ID)
+//		case models.IdxTitle:
+//			values[i] = e.Title
+//		case models.IdxAuthor:
+//			values[i] = e.Author
+//		case models.IdxGenre:
+//			values[i] = e.Genre
+//		case models.IdxRating:
+//			values[i] = formatRating(e.Rating)
+//		case models.IdxCompletedAt:
+//			values[i] = formatDate(&e.CompletedAt)
+//		case models.IdxBorrower:
+//			values[i] = e.Borrower
+//		case models.IdxLoanedAt:
+//			values[i] = formatDate(&e.LoanedAt)
+//		default:
+//			panic("unknown field:" + header)
+//		}
+//	}
+//	return values
+//}
 
 func removeHiddenColumns(cfg *config.Config) []int {
 	indexs := make([]int, 0)

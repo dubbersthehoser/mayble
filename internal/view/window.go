@@ -109,14 +109,18 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	selectedBind := binding.NewString()
 	selectedLbl := widget.NewLabelWithData(selectedBind)
 
-	vm.Selected.AddListener(func() {
-		row, col := vm.Selected.Get()
-		if vm.Selected.Has() {
-			data := vm.DataTable.Get(row, col)
+	vm.Table.Selected.AddListener(func() {
+		point := vm.Table.Selected.Get()
+		if vm.Table.Selected.Has() {
+			data, err := vm.Table.Get(point)
+			if err != nil {
+				log.Println("view display select:", err)
+				return
+			}
 			if data != "" {
 				data = " | " + data
 			}
-			format := fmt.Sprintf("%d:%d%s", row, col, data)
+			format := fmt.Sprintf("%d:%d%s", point.Row, point.Col, data)
 			selectedBind.Set(format)
 		} else {
 			selectedBind.Set("")
@@ -166,7 +170,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		} else {
 			view.Show()
 		}
-		if vm.Selected.Has() {
+		if vm.Table.Selected.Has() {
 			deleteBtn.Enable()
 			edit.Enable()
 			unselect.Enable()
@@ -177,7 +181,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		}
 	}
 
-	vm.Selected.AddListener(update)
+	vm.Table.Selected.AddListener(update)
 	vm.Body.AddListener(update)
 	update()
 	return view
@@ -297,17 +301,17 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	}
 
 	updateCheck := func() {
-		if vm.ColumnSettings.IsLoanHidden() {
+		if vm.Table.Settings.IsLoanHidden() {
 			table.Items[loanIdx].Checked = false
 		} else {
 			table.Items[loanIdx].Checked = true
 		}
-		if vm.ColumnSettings.IsReadHidden() {
+		if vm.Table.Settings.IsReadHidden() {
 			table.Items[readIdx].Checked = false
 		} else {
 			table.Items[readIdx].Checked = true
 		}
-		if vm.ColumnSettings.IsIDHidden() {
+		if vm.Table.Settings.IsIDHidden() {
 			table.Items[idIdx].Checked = false
 		} else {
 			table.Items[idIdx].Checked = true
@@ -316,28 +320,28 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	}
 
 	table.Items[loanIdx].Action = func() {
-		if !vm.ColumnSettings.IsLoanHidden() {
-			vm.ColumnSettings.SetLoanHidden(true)
+		if !vm.Table.Settings.IsLoanHidden() {
+			vm.Table.Settings.SetLoanHidden(true)
 		} else {
-			vm.ColumnSettings.SetLoanHidden(false)
+			vm.Table.Settings.SetLoanHidden(false)
 		}
 		updateCheck()
 	}
 
 	table.Items[readIdx].Action = func() {
-		if !vm.ColumnSettings.IsReadHidden() {
-			vm.ColumnSettings.SetReadHidden(true)
+		if !vm.Table.Settings.IsReadHidden() {
+			vm.Table.Settings.SetReadHidden(true)
 		} else {
-			vm.ColumnSettings.SetReadHidden(false)
+			vm.Table.Settings.SetReadHidden(false)
 		}
 		updateCheck()
 	}
 
 	table.Items[idIdx].Action = func() {
-		if !vm.ColumnSettings.IsIDHidden() {
-			vm.ColumnSettings.SetIDHidden(true)
+		if !vm.Table.Settings.IsIDHidden() {
+			vm.Table.Settings.SetIDHidden(true)
 		} else {
-			vm.ColumnSettings.SetIDHidden(false)
+			vm.Table.Settings.SetIDHidden(false)
 		}
 		updateCheck()
 	}

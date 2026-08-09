@@ -1,53 +1,56 @@
 package view
 
 import (
+	"log"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
 
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := NewSearchEntry(
 		func() {
-			vm.Searching.Next()
+			vm.Table.Searching.Next()
 		},
 		func() {
-			vm.Searching.Prev()
+			vm.Table.Searching.Prev()
 		},
 	)
-	search.OnChanged = vm.Search
+	search.OnChanged = vm.Table.Search
 	searchBy := widget.NewSelect(
-		viewmodel.AllowedSearchOptions(
-			vm.Searching.GetOptions(),
-			vm.ColumnSettings.Headers(),
+		table.AllowedSearchOptions(
+			vm.Table.Searching.GetOptions(),
+			vm.Table.Settings.Headers(),
 		),
-		vm.Searching.SetBy,
+		vm.Table.Searching.SetBy,
 	)
 
-	searchBy.SetSelected(vm.Searching.GetOptions()[0])
+	searchBy.SetSelected(vm.Table.Searching.GetOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
-	table := container.NewStack(newTable(vm)) // wrapped with stack so table can be changed with out needing to know its location.
-	body := container.NewBorder(top, nil, nil, nil, table)
+	tbl := container.NewStack(newTable(vm)) // wrapped with stack so table can be changed with out needing to know its location.
+	body := container.NewBorder(top, nil, nil, nil, tbl)
 
-	vm.ColumnSettings.AddListener(func() {
+	vm.Table.Settings.AddListener(func() {
 		var (
 			tableIdx    int = 0
 			searchByIdx int = 1
 		)
 
-		table.Objects[tableIdx] = newTable(vm)
+		tbl.Objects[tableIdx] = newTable(vm)
 		top.Objects[searchByIdx].(*widget.Select).SetOptions(
-			viewmodel.AllowedSearchOptions(
-				vm.Searching.GetOptions(),
-				vm.ColumnSettings.Headers(),
+			table.AllowedSearchOptions(
+				vm.Table.Searching.GetOptions(),
+				vm.Table.Settings.Headers(),
 			))
 		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-		table.Refresh()
+		tbl.Refresh()
 	})
 
 	return body
@@ -61,9 +64,9 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	// that there is an empty selectable item on the first entry of that last column.
 	// The selection system will ignore this selection of those cells.
 
-	table := widget.NewTableWithHeaders(
+	tbl := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
-			rowLen, colLen = vm.DataTable.Size()
+			rowLen, colLen = vm.Table.Sheet.Size()
 			colLen += 1 // (A) have an extra header.
 			return
 		},
@@ -73,9 +76,14 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 			return object
 		},
 		func(cellID widget.TableCellID, object fyne.CanvasObject) {
-			_, colLen := vm.DataTable.Size()
+			_, colLen := vm.Table.Sheet.Size()
 			if cellID.Col < colLen {
-				data := vm.DataTable.Get(cellID.Row, cellID.Col)
+				point := table.Point{Row: cellID.Row, Col: cellID.Col}
+				data, err := vm.Table.Sheet.Get(point)
+				if err != nil {
+					log.Println("view table:", err)
+					data = "ERROR"
+				}
 				object.(*widget.Label).Show()
 				object.(*widget.Label).SetText(data)
 
@@ -86,23 +94,23 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	)
 
 	// Header Buttons
-	table.ShowHeaderColumn = false
-	table.ShowHeaderRow = true
+	tbl.ShowHeaderColumn = false
+	tbl.ShowHeaderRow = true
 	header := NewHeader(vm)
 
-	table.CreateHeader = func() fyne.CanvasObject {
+	tbl.CreateHeader = func() fyne.CanvasObject {
 		return header.NewHeaderButton()
 	}
 
-	table.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
+	tbl.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
 
-		_, colLen := vm.DataTable.Size()
+		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
-			label := vm.ColumnSettings.Headers()[cellID.Col]
-			vm.ColumnSettings.SetWidth(label, object.Size().Width)
+			label := vm.Table.Settings.Headers()[cellID.Col]
+			vm.Table.Settings.SetWidth(label, object.Size().Width)
 			by := vm.Sorting.GetOrderBy()
 			asc := vm.Sorting.GetAscending()
 			object.(*HeaderButton).Update(label, by, asc)
@@ -114,42 +122,43 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	// Set the width of the columns.
 	for i, label := range models.BookEntryFields() {
-		width := vm.ColumnSettings.GetWidth(label)
-		table.SetColumnWidth(i, width)
+		width := vm.Table.Settings.GetWidth(label)
+		tbl.SetColumnWidth(i, width)
 	}
 
 	// Selection
-	table.OnSelected = func(id widget.TableCellID) {
-		vm.Selected.Select(id.Row, id.Col)
+	tbl.OnSelected = func(id widget.TableCellID) {
+		point := table.Point{Row: id.Row, Col: id.Col}
+		vm.Table.Selected.Select(point)
 	}
-	table.OnUnselected = func(id widget.TableCellID) {
-		vm.Selected.Unselect()
-		table.UnselectAll()
+	tbl.OnUnselected = func(id widget.TableCellID) {
+		vm.Table.Selected.Unselect()
+		tbl.UnselectAll()
 	}
 
-	vm.Selected.AddListener(func() {
-		if vm.Selected.Has() {
-			row, col := vm.Selected.Get()
-			maxRow, maxCol := vm.DataTable.Size()
-			if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
-				id := widget.TableCellID{Row: row, Col: col}
-				table.Unselect(id)
+	vm.Table.Selected.AddListener(func() {
+		if vm.Table.Selected.Has() {
+			point := vm.Table.Selected.Get()
+			maxRow, maxCol := vm.Table.Sheet.Size()
+			if point.Row >= maxRow || point.Col >= maxCol { // (A) unselect the hidden cell if selected.
+				id := widget.TableCellID{Row: point.Row, Col: point.Col}
+				tbl.Unselect(id)
 				return
 			}
-			table.Select(widget.TableCellID{Row: row, Col: col})
+			tbl.Select(widget.TableCellID{Row: point.Row, Col: point.Col})
 
 		} else {
-			table.UnselectAll()
+			tbl.UnselectAll()
 		}
 	})
 
 	// Listen for updates from table
-	vm.DataTable.AddListener(func() {
-		table.UnselectAll()
-		table.Refresh()
+	vm.Table.Sheet.AddListener(func() {
+		tbl.UnselectAll()
+		tbl.Refresh()
 	})
 
-	return table
+	return tbl
 }
 
 type Header struct {
@@ -167,7 +176,7 @@ func NewHeader(vm *viewmodel.Window) *Header {
 
 func (h *Header) NewHeaderButton() *HeaderButton {
 	minSize := fyne.NewSize(
-		h.vm.ColumnSettings.MinWidth(),
+		h.vm.Table.Settings.MinWidth(),
 		25.0,
 	)
 	hb := NewHeaderButton(h, minSize)

@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
 func newEdit(vm *viewmodel.Window) fyne.CanvasObject {
@@ -100,11 +101,11 @@ func newLoanEntry(vm *viewmodel.Window) *fyne.Container {
 }
 
 func newReadEntry(vm *viewmodel.Window) *fyne.Container {
-	ratingEntry := widget.NewSelectWithData(viewmodel.Ratings(), vm.Form.Fyne.Rating)
+	ratingEntry := widget.NewSelectWithData(display.Ratings(), vm.Form.Fyne.Rating)
 	completedEntry := widget.NewDateEntry()
 	completedEntry.Bind(vm.Form.Fyne.CompletedAt)
 
-	rattingStrings := viewmodel.Ratings()
+	rattingStrings := display.Ratings()
 
 	ratingEntry.PlaceHolder = rattingStrings[0]
 	completedEntry.SetPlaceHolder("DD/MM/YYYY")

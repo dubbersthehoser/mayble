@@ -22,11 +22,8 @@ type Window struct {
 	FileManage     *FileManage
 	DBPath         *DBPath
 	UniqueGenres   *UniqueGenres
-	Selected       *EntrySelected
-	ColumnSettings *ColumnSettings
-	DataTable      *DataTable
+	Table          *table.Table
 	Sorting        *SortingTable
-	Searching      *table.Searching
 	Form           *BookForm
 	NoData         *NoDataBody
 }
@@ -42,12 +39,9 @@ func NewWindow(cfg *config.Config) *Window {
 		cfg:            cfg,
 		Body:           &Body{},
 		StatusLine:     newStatusLine(),
-		ColumnSettings: newColumnSettings(cfg),
 		DBPath:         newDBPath(cfg),
-		DataTable:      newDataTable(cfg, srv),
 		Sorting:        newSortingTable(cfg),
-		Searching:      tbl.Searching,
-		Selected:       newEntrySelected(),
+		Table:          tbl,
 		UniqueGenres:   newUniqueGenres(srv),
 		NoData:         &NoDataBody{},
 	}
@@ -61,8 +55,8 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			row, _ := w.Selected.Get()
-			id, ok := w.DataTable.rowToID[row]
+			row := w.Table.Selected.Get().Row
+			id, ok := w.Table.Sheet.RowToID(row)
 			if !ok {
 				log.Printf("Error: row '%d' not found in ids", row)
 				return
@@ -98,11 +92,11 @@ func NewWindow(cfg *config.Config) *Window {
 
 	w.Controls = &TableControl{
 		OnUnselect: func() {
-			w.Selected.Unselect()
+			w.Table.Selected.Unselect()
 		},
 		OnEdit: func() {
-			row, _ := w.Selected.Get()
-			id := w.DataTable.rowToID[row]
+			row := w.Table.Selected.Get().Row
+			id, _ := w.Table.Sheet.RowToID(row)
 			book, err := srv.GetBookByID(id)
 			if err != nil {
 				log.Println("Error:", err)
@@ -116,7 +110,8 @@ func NewWindow(cfg *config.Config) *Window {
 			w.Body.Set(BodyBookCreate)
 		},
 		OnDelete: func() {
-			id := w.DataTable.rowToID[w.Selected.row]
+			row := w.Table.Selected.Get().Row
+			id, _ := w.Table.Sheet.RowToID(row)
 			err := srv.DeleteBook(id)
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -227,17 +222,6 @@ func NewWindow(cfg *config.Config) *Window {
 			return
 		}
 		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
-	})
-
-	// unselect when the columns are hidden or been shown.
-	w.ColumnSettings.AddListener(func() {
-		w.DataTable.load()
-		w.Selected.Unselect()
-	})
-
-	// reload database when sorting changed.
-	w.Sorting.AddListener(func() {
-		w.DataTable.load()
 	})
 	return w
 }

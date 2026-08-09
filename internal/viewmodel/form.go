@@ -8,10 +8,10 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
 type BookForm struct {
-	//s *app.Service
 
 	Fyne struct {
 		Title  binding.String
@@ -84,13 +84,13 @@ func (bf *BookForm) Set(book *models.BookEntry) {
 
 	_ = bf.Fyne.IsCompleted.Set(book.IsCompleted)
 	if book.IsCompleted {
-		_ = bf.Fyne.CompletedAt.Set(book.CompletedAt.Format(dateFormat))
-		_ = bf.Fyne.Rating.Set(Ratings()[book.Rating])
+		_ = bf.Fyne.CompletedAt.Set(book.CompletedAt.Format(display.DateFormat))
+		_ = bf.Fyne.Rating.Set(display.Ratings()[book.Rating])
 	}
 
 	bf.Fyne.IsLoaned.Set(book.IsLoaned)
 	if book.IsLoaned {
-		_ = bf.Fyne.LoanedAt.Set(book.LoanedAt.Format(dateFormat))
+		_ = bf.Fyne.LoanedAt.Set(book.LoanedAt.Format(display.DateFormat))
 		_ = bf.Fyne.Borrower.Set(book.Borrower)
 	}
 }
@@ -111,7 +111,7 @@ func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
 	if book.IsLoaned {
 		var err error
 		date, _ := bf.Fyne.LoanedAt.Get()
-		book.LoanedAt, err = time.Parse(dateFormat, date)
+		book.LoanedAt, err = time.Parse(display.DateFormat, date)
 		if err != nil {
 			return nil, err
 		}
@@ -122,12 +122,12 @@ func (bf *BookForm) GetBookEntry() (*models.BookEntry, error) {
 	if book.IsCompleted {
 		var err error
 		date, _ := bf.Fyne.CompletedAt.Get()
-		book.CompletedAt, err = time.Parse(dateFormat, date)
+		book.CompletedAt, err = time.Parse(display.DateFormat, date)
 		if err != nil {
 			return nil, err
 		}
 		rs, _ := bf.Fyne.Rating.Get()
-		rating, err := parseRating(rs)
+		rating, err := display.ParseRating(rs)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func (bf *BookForm) validate() error {
 			return errors.New("missing borrower date")
 		}
 
-		_, err := time.Parse(dateFormat, date)
+		_, err := time.Parse(display.DateFormat, date)
 		if err != nil {
 			return errors.New("invalid date for loaned")
 		}
@@ -189,12 +189,12 @@ func (bf *BookForm) validate() error {
 			return errors.New("missing completion date")
 		}
 
-		_, err := time.Parse(dateFormat, date)
+		_, err := time.Parse(display.DateFormat, date)
 		if err != nil {
 			return errors.New("invalid date for completion")
 		}
 
-		ratings := Ratings()
+		ratings := display.Ratings()
 		rank := slices.Index(ratings, rating)
 		if rank == 0 {
 			return errors.New("rating not selected")

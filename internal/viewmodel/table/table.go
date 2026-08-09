@@ -18,6 +18,7 @@ type Point struct {
 	Col int
 	Row int
 }
+
 func (p Point) IsSelectable() bool {
 	return p.Col >= 0 && p.Row >= 0
 }
@@ -50,10 +51,12 @@ func NewTable(cfg *config.Config, srv *app.Service) *Table {
 
 	t.Sorting.AddListener(func() {
 		t.Sheet.Load()
+		t.Selected.Unselect()
 	})
 
 	t.Settings.AddListener(func() {
 		t.Sheet.Load()
+		t.Selected.Unselect()
 	})
 
 	return t
@@ -71,8 +74,8 @@ func (t *Table) Get(p Point) (string, error) {
 	return t.Sheet.Get(p)
 }
 
-func (t *Table) Select(p Point) error {
-	
+func (t *Table) Select(p Point) {
+	t.Selected.Select(p)
 }
 
 
@@ -85,6 +88,8 @@ type Sheet struct {
 	cfg     *config.Config
 	data    [][]string
 	header  []string
+
+	// Not used but could be useful.
 	rowToID map[int]int64
 
 	l []func()
@@ -98,6 +103,11 @@ func NewSheet(cfg *config.Config, srv *app.Service) *Sheet {
 		rowToID: make(map[int]int64),
 	}
 	return s
+}
+
+func (s *Sheet) RowToID(row int) (int64, bool) {
+	v, ok := s.rowToID[row]
+	return v, ok
 }
 
 func (s *Sheet) Get(p Point) (string, error) {
@@ -354,17 +364,18 @@ type Searching struct {
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
 
+	// The column to be searched.
 	column int
+
+	// The row that is selected out of scored.
 	row    int
-	scored [][]int
+	scored []Point
 
 	l []func()
 }
 
 func NewSearching() *Searching {
-	sr := &Searching{
-		sheet: s,
-	}
+	sr := &Searching{}
 	return sr
 }
 
@@ -391,11 +402,7 @@ func (s *Searching) SetBy(c string) {
 }
 
 func (s *Searching) Selected() Point {
-	p := Point{
-		Row: s.scored[s.row][0],
-		Col: s.scored[s.row][1],
-	}
-	return p
+	return s.scored[s.row]
 }
 
 func (s *Searching) Has() bool {
@@ -482,12 +489,13 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	s.row = 0
 	s.scored = s.scored[:0]
 	for _, r := range results {
-		row := make([]int, 2)
-		row[0] = r.row
-		row[1] = s.column
-		s.scored = append(s.scored, row)
+		p := Point{
+			Row: r.row,
+			Col: s.column,
+		}
+		s.scored = append(s.scored, p)
 	}
-	fmt.Printf("debug: search='%s', top_result='%s'\n", search, dataCol[s.scored[0][0]])
+	fmt.Printf("debug: search='%s', top_result='%s'\n", search, dataCol[s.scored[0].Row])
 }
 
 func (s *Searching) searchAll(data [][]string, search string) {
@@ -524,10 +532,11 @@ func (s *Searching) searchAll(data [][]string, search string) {
 	s.row = 0
 	s.scored = s.scored[:0]
 	for _, r := range results {
-		row := make([]int, 2)
-		row[0] = r.row
-		row[1] = r.col
-		s.scored = append(s.scored, row)
+		p := Point{
+			Row: r.row,
+			Col: r.col,
+		}
+		s.scored = append(s.scored, p)
 	}
 }
 

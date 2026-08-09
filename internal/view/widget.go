@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
 type RatingSelect struct {
@@ -14,7 +15,7 @@ type RatingSelect struct {
 
 func NewRatingSelect(fn func(s string)) *RatingSelect {
 	rs := &RatingSelect{}
-	rs.Options = viewmodel.Ratings()
+	rs.Options = display.Ratings()
 	rs.OnChanged = fn
 	rs.ExtendBaseWidget(rs)
 	return rs
