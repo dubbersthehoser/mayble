@@ -70,14 +70,6 @@ func (t *Table) Search(s string) {
 	t.Searching.Search(t.Sheet.data, s)
 }
 
-func (t *Table) Get(p Point) (string, error) {
-	return t.Sheet.Get(p)
-}
-
-func (t *Table) Select(p Point) {
-	t.Selected.Select(p)
-}
-
 
 //
 // Sheet
@@ -87,9 +79,7 @@ type Sheet struct {
 	srv     *app.Service
 	cfg     *config.Config
 	data    [][]string
-	header  []string
 
-	// Not used but could be useful.
 	rowToID map[int]int64
 
 	l []func()
@@ -121,15 +111,25 @@ func (s *Sheet) Get(p Point) (string, error) {
 }
 
 func (s *Sheet) Size() (width, length int) {
-	width = len(s.data)
-	if width > 0 {
-		length = len(s.data[0])
+	
+	headers := models.BookEntryFields()
+
+	for _, idx := range removeHiddenColumns(s.cfg) {
+		headers = slices.Delete(headers, idx, idx+1)
 	}
+	
+	width = len(headers)
+	length = len(s.data)
 	return width, length
 }
 
 func (s *Sheet) Header() []string {
-	return nil
+	header := models.BookEntryFields()
+	removeIdx := removeHiddenColumns(s.cfg)
+	for _, idx := range removeIdx {
+		header = slices.Delete(header, idx, idx+1)
+	}
+	return header
 }
 
 func (s *Sheet) Load() error {

@@ -2,6 +2,7 @@ package view
 
 import (
 	"log"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -34,16 +35,20 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	searchBy.SetSelected(vm.Table.Searching.GetOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
-	tbl := container.NewStack(newTable(vm)) // wrapped with stack so table can be changed with out needing to know its location.
+	// Wrapped table view with stack layout, so table can be changed with out needing to know its exact location in body container.
+	tbl := container.NewStack(newTable(vm))
 	body := container.NewBorder(top, nil, nil, nil, tbl)
 
+	// Create a new table when table settings change.
 	vm.Table.Settings.AddListener(func() {
 		var (
 			tableIdx    int = 0
 			searchByIdx int = 1
 		)
 
+		// Replace old table view with newer table in body container.
 		tbl.Objects[tableIdx] = newTable(vm)
+		// Change the options for the search by selection, and reset it to "All".
 		top.Objects[searchByIdx].(*widget.Select).SetOptions(
 			table.AllowedSearchOptions(
 				vm.Table.Searching.GetOptions(),
@@ -67,6 +72,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	tbl := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
 			rowLen, colLen = vm.Table.Sheet.Size()
+			fmt.Println("debug: sheet size ->", rowLen, colLen)
 			colLen += 1 // (A) have an extra header.
 			return
 		},
@@ -93,7 +99,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		},
 	)
 
-	// Header Buttons
+	// Header buttons
 	tbl.ShowHeaderColumn = false
 	tbl.ShowHeaderRow = true
 	header := NewHeader(vm)
@@ -111,16 +117,17 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		if cellID.Col < colLen {
 			label := vm.Table.Settings.Headers()[cellID.Col]
 			vm.Table.Settings.SetWidth(label, object.Size().Width)
-			by := vm.Sorting.GetOrderBy()
-			asc := vm.Sorting.GetAscending()
+			by := vm.Table.Sorting.GetOrderBy()
+			asc := vm.Table.Sorting.GetAscending()
 			object.(*HeaderButton).Update(label, by, asc)
 			object.(*HeaderButton).Show()
+			fmt.Println("dubug: created header ->", label)
 		} else { // (A) create hidden header.
 			object.(*HeaderButton).Hide()
 		}
 	}
 
-	// Set the width of the columns.
+	// Set the width of the columns from settings.
 	for i, label := range models.BookEntryFields() {
 		width := vm.Table.Settings.GetWidth(label)
 		tbl.SetColumnWidth(i, width)
@@ -136,6 +143,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		tbl.UnselectAll()
 	}
 
+	// Listen for select events, then select, or unselect.
 	vm.Table.Selected.AddListener(func() {
 		if vm.Table.Selected.Has() {
 			point := vm.Table.Selected.Get()
@@ -185,8 +193,8 @@ func (h *Header) NewHeaderButton() *HeaderButton {
 }
 
 func (h *Header) Pressed(label string) {
-	by := h.vm.Sorting.GetOrderBy()
-	asc := h.vm.Sorting.GetAscending()
+	by := h.vm.Table.Sorting.GetOrderBy()
+	asc := h.vm.Table.Sorting.GetAscending()
 
 	if by == label {
 		asc = !asc
@@ -195,14 +203,14 @@ func (h *Header) Pressed(label string) {
 		asc = false
 	}
 
-	h.vm.Sorting.SetOrderBy(by)
-	h.vm.Sorting.SetAscending(asc)
+	h.vm.Table.Sorting.SetOrderBy(by)
+	h.vm.Table.Sorting.SetAscending(asc)
 
 	for _, btn := range h.buttons {
 		btn.Update(btn.label, by, asc)
 	}
 
-	h.vm.Sorting.Sort()
+	h.vm.Table.Sorting.Sort()
 }
 
 type HeaderButton struct {

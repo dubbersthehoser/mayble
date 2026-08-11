@@ -23,24 +23,26 @@ type Window struct {
 	DBPath         *DBPath
 	UniqueGenres   *UniqueGenres
 	Table          *table.Table
-	Sorting        *SortingTable
 	Form           *BookForm
 	NoData         *NoDataBody
 }
 
 func NewWindow(cfg *config.Config) *Window {
 
-
 	srv := app.NewService(cfg)
 
 	tbl := table.NewTable(cfg, srv)
+
+	err := tbl.Sheet.Load()
+	if err != nil {
+		log.Println("error:", err)
+	}
 
 	w := &Window{
 		cfg:            cfg,
 		Body:           &Body{},
 		StatusLine:     newStatusLine(),
 		DBPath:         newDBPath(cfg),
-		Sorting:        newSortingTable(cfg),
 		Table:          tbl,
 		UniqueGenres:   newUniqueGenres(srv),
 		NoData:         &NoDataBody{},
