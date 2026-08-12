@@ -110,7 +110,7 @@ func (s *Sheet) Get(p Point) (string, error) {
 	return s.data[p.Row][p.Col], nil
 }
 
-func (s *Sheet) Size() (width, length int) {
+func (s *Sheet) Size() (length, width int) {
 	
 	headers := models.BookEntryFields()
 
@@ -120,7 +120,7 @@ func (s *Sheet) Size() (width, length int) {
 	
 	width = len(headers)
 	length = len(s.data)
-	return width, length
+	return length, width
 }
 
 func (s *Sheet) Header() []string {
