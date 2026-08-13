@@ -146,6 +146,8 @@ func (s *Sheet) Load() error {
 		return err
 	}
 
+	fmt.Println("debug: book count =", len(books))
+
 	s.data = s.data[:0]
 	clear(s.rowToID)
 
