@@ -142,11 +142,12 @@ func (s *Sheet) Load() error {
 		return err
 	}
 
+	fmt.Println("debug: book count =", len(books))
+
 	if err := app.SortBooks(books, by, asc); err != nil {
 		return err
 	}
 
-	fmt.Println("debug: book count =", len(books))
 
 	s.data = s.data[:0]
 	clear(s.rowToID)

@@ -85,6 +85,7 @@ func (as *Service) GetUniqueGenres() ([]string, error) {
 
 func (as *Service) GetAllBooks() ([]models.BookEntry, error) {
 	if as.noDatabase() {
+		println("debug: no database")
 		return []models.BookEntry{}, nil
 	}
 	return as.db.GetAllBooks()
