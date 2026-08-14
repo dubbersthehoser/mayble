@@ -33,11 +33,6 @@ func NewWindow(cfg *config.Config) *Window {
 
 	tbl := table.NewTable(cfg, srv)
 
-	err := tbl.Sheet.Load()
-	if err != nil {
-		log.Println("error:", err)
-	}
-
 	w := &Window{
 		cfg:            cfg,
 		Body:           &Body{},
@@ -47,6 +42,10 @@ func NewWindow(cfg *config.Config) *Window {
 		UniqueGenres:   newUniqueGenres(srv),
 		NoData:         &NoDataBody{},
 	}
+
+	//
+	// Set Up Handlers
+	//
 
 	w.Form = newBookForm(
 		func() {
@@ -196,6 +195,22 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
+	// load database at database file path change.
+	w.DBPath.AddListener(func() {
+		if err := srv.LoadDatabase(); err != nil {
+			w.StatusLine.sendError(err.Error())
+			log.Println("Error:", err)
+			w.NoData.SetDataErr(w.DBPath.Get(), err)
+			return
+		}
+		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
+	})
+
+	//
+	// Set Up and Load.
+	//
+
+
 	// start with table view at start up.
 	w.Body.Set(BodyTable)
 
@@ -215,16 +230,11 @@ func NewWindow(cfg *config.Config) *Window {
 		}
 	}
 
-	// load database at database file path change.
-	w.DBPath.AddListener(func() {
-		if err := srv.LoadDatabase(); err != nil {
-			w.StatusLine.sendError(err.Error())
-			log.Println("Error:", err)
-			w.NoData.SetDataErr(w.DBPath.Get(), err)
-			return
-		}
-		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
-	})
+	err := tbl.Sheet.Load()
+	if err != nil {
+		log.Println("error:", err)
+	}
+
 	return w
 }
 
