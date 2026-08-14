@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -58,23 +59,34 @@ func main() {
 	defer cfg.Save()
 
 	// window set up
-	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))
+
+	if cfg.UI.WindowFullScreen {
+		window.FullScreen()
+	}
+
 	window.SetMaster()
 	if cfg.UI.WindowCenterOnScreen {
 		window.CenterOnScreen()
 	}
-	defer func() {
-		size := window.Content().Size()
+
+	window.SetCloseIntercept(func() {
+		size := window.Canvas().Size()
+		fmt.Printf("debug: get: width=%f, height=%f\n", size.Width, size.Height)
 		cfg.UI.WindowWidth = size.Width
 		cfg.UI.WindowHeight = size.Height
 		cfg.UI.WindowFullScreen = window.FullScreen()
-	}()
+		window.Close()
+	})
 
 	// create and show content
 	vm := viewmodel.NewWindow(cfg)
 	f := view.NewFyne(a, window)
 	content := view.NewWindow(f, vm)
 
+	fmt.Printf("debug: set: width=%f, height=%f\n", cfg.UI.WindowWidth, cfg.UI.WindowHeight)
 	window.SetContent(content)
+	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))
+	fmt.Printf("debug: get first: width=%f, height=%f\n", window.Content().Size().Width, window.Content().Size().Height)
 	window.ShowAndRun()
 }
+

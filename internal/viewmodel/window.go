@@ -210,13 +210,13 @@ func NewWindow(cfg *config.Config) *Window {
 	// Set Up and Load.
 	//
 
-
 	// start with table view at start up.
 	w.Body.Set(BodyTable)
 
 	// only when body can change to NoData is with NoData calls.
 	w.NoData.AddListener(func() {
-		w.Body.Set(BodyNoData) // the only place this line should be called!!!
+		 // The only place this function should be called durring run time.
+		w.Body.Set(BodyNoData)
 	})
 
 	// try and load database at first start.

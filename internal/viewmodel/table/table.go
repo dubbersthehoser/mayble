@@ -5,7 +5,6 @@ import (
 	"log"
 	"slices"
 	"cmp"
-	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/app"
@@ -101,7 +100,7 @@ func (s *Sheet) RowToID(row int) (int64, bool) {
 }
 
 func (s *Sheet) Get(p Point) (string, error) {
-	if p.Row >= len(s.data) || p.Row > 0 {
+	if p.Row >= len(s.data) || p.Row < 0 {
 		return "", errors.New("row point out of range")
 	}
 	if p.Col >= len(s.data[p.Row]) || p.Col < 0 {
@@ -141,8 +140,6 @@ func (s *Sheet) Load() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("debug: book count =", len(books))
 
 	if err := app.SortBooks(books, by, asc); err != nil {
 		return err
@@ -199,7 +196,6 @@ func NewSorting(cfg *config.Config) *Sorting {
 func (s *Sorting) SetOrderBy(l string) {
 	idx := slices.Index(models.BookEntryFields(), l)
 	if idx == -1 {
-		log.Printf("Error: invalid header label '%s'", l)
 		return
 	}
 	s.cfg.UI.TableSortBy = idx
@@ -459,7 +455,6 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	type result struct {
 		row, score int
 	}
-	fmt.Println("debug:", dataCol)
 	results := make([]result, 0)
 	s.cellSearch.Set(dataCol, search)
 	for s.cellSearch.Next() {
@@ -478,7 +473,6 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	if len(results) == 0 {
 		s.scored = s.scored[:0]
 		s.row = 0
-		fmt.Println("debug: No Result")
 		return
 	}
 	slices.SortFunc(results, func(a, b result) int {
@@ -498,7 +492,6 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 		}
 		s.scored = append(s.scored, p)
 	}
-	fmt.Printf("debug: search='%s', top_result='%s'\n", search, dataCol[s.scored[0].Row])
 }
 
 func (s *Searching) searchAll(data [][]string, search string) {

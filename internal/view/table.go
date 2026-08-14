@@ -2,7 +2,6 @@ package view
 
 import (
 	"log"
-	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -72,7 +71,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	tbl := widget.NewTableWithHeaders(
 		func() (rowLen, colLen int) {
 			rowLen, colLen = vm.Table.Sheet.Size()
-			fmt.Println("debug: sheet size ->", rowLen, colLen)
 			colLen += 1 // (A) have an extra header.
 			return
 		},
@@ -121,7 +119,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 			asc := vm.Table.Sorting.GetAscending()
 			object.(*HeaderButton).Update(label, by, asc)
 			object.(*HeaderButton).Show()
-			fmt.Println("dubug: created header ->", label)
 		} else { // (A) create hidden header.
 			object.(*HeaderButton).Hide()
 		}
