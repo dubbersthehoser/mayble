@@ -13,6 +13,8 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
+type GetAllBooks func() ([]models.BookEntry, error)
+
 type Point struct {
 	Col int
 	Row int
@@ -30,9 +32,9 @@ type Table struct {
 	Selected  *Selected
 }
 
-func NewTable(cfg *config.Config, srv *app.Service) *Table {
+func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 	t := &Table{
-		Sheet: NewSheet(cfg, srv),
+		Sheet: NewSheet(cfg, fetch),
 		Sorting: NewSorting(cfg),
 		Settings: NewSettings(cfg),
 		Selected: newSelected(),
@@ -75,7 +77,7 @@ func (t *Table) Search(s string) {
 //
 
 type Sheet struct {
-	srv     *app.Service
+	fetch     GetAllBooks
 	cfg     *config.Config
 	data    [][]string
 
@@ -84,9 +86,9 @@ type Sheet struct {
 	l []func()
 }
 
-func NewSheet(cfg *config.Config, srv *app.Service) *Sheet {
+func NewSheet(cfg *config.Config, fetch GetAllBooks) *Sheet {
 	s := &Sheet{
-		srv: srv,
+		fetch: fetch,
 		cfg: cfg,
 		data: make([][]string, 0),
 		rowToID: make(map[int]int64),
@@ -136,7 +138,7 @@ func (s *Sheet) Load() error {
 	by := s.cfg.UI.TableSortBy
 	asc := s.cfg.UI.TableAscending
 
-	books, err := s.srv.GetAllBooks()
+	books, err := s.fetch()
 	if err != nil {
 		return err
 	}

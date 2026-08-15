@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"os"
-	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -35,6 +34,7 @@ func main() {
 		fatalLaunch(window, err)
 		return
 	}
+
 	cfg, err := config.Load(cfgPath)
 	switch {
 	case errors.Is(err, config.ErrIsOldConfig):
@@ -58,20 +58,21 @@ func main() {
 	}
 	defer cfg.Save()
 
-	// window set up
+	//
+	// Setup Window
+	//
 
 	if cfg.UI.WindowFullScreen {
 		window.FullScreen()
 	}
-
 	window.SetMaster()
 	if cfg.UI.WindowCenterOnScreen {
 		window.CenterOnScreen()
 	}
 
+	// Save window size before closing.
 	window.SetCloseIntercept(func() {
 		size := window.Canvas().Size()
-		fmt.Printf("debug: get: width=%f, height=%f\n", size.Width, size.Height)
 		cfg.UI.WindowWidth = size.Width
 		cfg.UI.WindowHeight = size.Height
 		cfg.UI.WindowFullScreen = window.FullScreen()
@@ -83,10 +84,8 @@ func main() {
 	f := view.NewFyne(a, window)
 	content := view.NewWindow(f, vm)
 
-	fmt.Printf("debug: set: width=%f, height=%f\n", cfg.UI.WindowWidth, cfg.UI.WindowHeight)
 	window.SetContent(content)
 	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))
-	fmt.Printf("debug: get first: width=%f, height=%f\n", window.Content().Size().Width, window.Content().Size().Height)
 	window.ShowAndRun()
 }
 
