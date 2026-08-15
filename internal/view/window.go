@@ -85,18 +85,12 @@ func newManual(w *viewmodel.Window) fyne.CanvasObject {
 }
 
 func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
-	// todo: needs more work.
 	view := widget.NewLabel("")
 	view.Wrapping = fyne.TextWrapWord
 	view.TextStyle = fyne.TextStyle{
-		Bold: true,
+		Bold: false,
 	}
-	if vm.DBPath.Get() == "" {
-		view.SetText("Create or open a new database to work on.")
-		vm.StatusLine.Clear()
-	} else {
-		view.SetText(fmt.Sprintf("Something when wrong when opening database: \"%s\"", vm.DBPath.Get()))
-	}
+	view.SetText(vm.NoData.Message())
 	return view
 }
 
@@ -263,6 +257,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		}),
 	)
 
+
 	table := fyne.NewMenu("Table",
 		fyne.NewMenuItem("Show Loaned", nil),
 		fyne.NewMenuItem("Show Read", nil),
@@ -286,15 +281,25 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		idIdx
 	)
 
+	const (
+		importIdx  = 2
+		exportIdx  = 3
+	)
+
+
 	bodyUpdate := func() {
 		if vm.Body.Value() != viewmodel.BodyTable {
 			table.Items[loanIdx].Disabled = true
 			table.Items[readIdx].Disabled = true
 			table.Items[idIdx].Disabled = true
+			file.Items[importIdx].Disabled = true
+			file.Items[exportIdx].Disabled = true
 		} else {
 			table.Items[loanIdx].Disabled = false
 			table.Items[readIdx].Disabled = false
 			table.Items[idIdx].Disabled = false
+			file.Items[importIdx].Disabled = false
+			file.Items[exportIdx].Disabled = false
 		}
 		menu.Refresh()
 	}

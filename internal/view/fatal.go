@@ -8,6 +8,7 @@ import (
 
 func NewFatal(banner, message, report string) *fyne.Container {
 	b := widget.NewLabel(banner)
+	b.Importance = widget.DangerImportance
 	m := widget.NewLabel(message)
 
 	textBox := widget.NewRichTextWithText(report)

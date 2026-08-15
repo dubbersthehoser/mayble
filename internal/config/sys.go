@@ -3,24 +3,17 @@ package config
 import (
 	"errors"
 	"os"
-	"path/filepath"
+)
+
+var (
+	ErrRootNotExist error = errors.New("config: could not find root directory")
 )
 
 const (
-	filename string = "config.json"
+	Filename string = "config.json"
 )
 
-func GetDefaultConfigFile(appName string) (string, error) {
-	dir, ok := findConfigDir(appName)
-	if !ok {
-		return "", errors.New("config: could not find default config directory")
-
-	}
-	path := filepath.Join(dir, filename)
-	return path, nil
-}
-
-func findConfigDir(appName string) (string, bool) {
+func GetRootDir() (string, error) {
 	var (
 		hasHomeDir   bool
 		hasConfigDir bool
@@ -32,19 +25,11 @@ func findConfigDir(appName string) (string, bool) {
 	hasHomeDir = err == nil
 
 	if hasConfigDir {
-		path := filepath.Join(userConfig, appName)
-		_, err := os.Stat(path)
-		if err == nil {
-			return path, true
-		}
+		return userConfig, nil
 	}
-
 	if hasHomeDir {
-		path := filepath.Join(userHome, "."+appName)
-		_, err := os.Stat(path)
-		if err == nil {
-			return path, true
-		}
+		return userHome, nil
 	}
-	return "", false
+	return "", ErrRootNotExist
 }
+

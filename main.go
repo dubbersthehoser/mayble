@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,8 +15,8 @@ import (
 )
 
 func fatalLaunch(w fyne.Window, err error) {
-	log.Fatal(err)
-	body := view.NewFatal("Fatal", "Failed to launch application.", err.Error())
+	log.Println(err)
+	body := view.NewFatal("Something Went Wrong!", "Failed to launch application.", err.Error())
 
 	w.SetContent(body)
 	w.ShowAndRun()
@@ -25,28 +26,31 @@ func fatalLaunch(w fyne.Window, err error) {
 func main() {
 
 	appName := "mayble"
-	a := app.NewWithID("com.dubbersthehoser." + appName)
+	appID := "com.dubbersthehoser"
+	a := app.NewWithID(appID + "." + appName)
 	window := a.NewWindow(appName)
 
-	// open config
-	cfgPath, err := config.GetDefaultConfigFile(appName)
+	// locate config directory
+	cfgRoot, err := config.GetRootDir()
 	if err != nil {
 		fatalLaunch(window, err)
 		return
 	}
+	configDir := filepath.Join(cfgRoot, appID, appName)
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		fatalLaunch(window, err)
+		return
+	}
 
-	cfg, err := config.Load(cfgPath)
+	// open config
+	cfgFile := filepath.Join(configDir, config.Filename)
+	cfg, err := config.Load(cfgFile)
 	switch {
-	case errors.Is(err, config.ErrIsOldConfig):
-		cfg, err = config.Migrate(cfgPath)
-		if err != nil {
-			fatalLaunch(window, err)
-			return
-		}
-
 	case errors.Is(err, os.ErrNotExist):
-		configFile, err := config.GetDefaultConfigFile(appName)
-		cfg = config.NewConfigWithDefaults(configFile)
+		cfg = config.NewConfigWithDefaults(cfgFile)
+
+	case errors.Is(err, config.ErrIsOldConfig):
+		cfg, err = config.Migrate(cfgFile)
 		if err != nil {
 			fatalLaunch(window, err)
 			return

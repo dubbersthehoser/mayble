@@ -31,7 +31,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	srv := app.NewService(cfg)
 
-	tbl := table.NewTable(cfg, srv)
+	tbl := table.NewTable(cfg, srv.GetAllBooks)
 
 	w := &Window{
 		cfg:          cfg,

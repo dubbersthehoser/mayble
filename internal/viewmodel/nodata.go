@@ -29,8 +29,12 @@ func (nb *NoDataBody) SetDataErr(path string, err error) {
 
 func (nb *NoDataBody) SetNoDB() {
 	nb.s = DataNoDB
-	nb.m = "Create or open a new database to work on."
+	nb.m = "Create, or Open a new database from the File drop-down."
 	nb.notify()
+}
+
+func (nb *NoDataBody) Message() string {
+	return nb.m
 }
 
 func (nb *NoDataBody) AddListener(fn func()) {
