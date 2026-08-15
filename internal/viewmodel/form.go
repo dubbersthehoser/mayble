@@ -12,7 +12,6 @@ import (
 )
 
 type BookForm struct {
-
 	Fyne struct {
 		Title  binding.String
 		Author binding.String

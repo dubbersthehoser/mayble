@@ -1,9 +1,9 @@
 package display
 
 import (
-	"time"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 )

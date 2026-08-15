@@ -16,15 +16,15 @@ import (
 type Window struct {
 	cfg *config.Config
 
-	Body           *Body
-	StatusLine     *StatusLine
-	Controls       *TableControl
-	FileManage     *FileManage
-	DBPath         *DBPath
-	UniqueGenres   *UniqueGenres
-	Table          *table.Table
-	Form           *BookForm
-	NoData         *NoDataBody
+	Body         *Body
+	StatusLine   *StatusLine
+	Controls     *TableControl
+	FileManage   *FileManage
+	DBPath       *DBPath
+	UniqueGenres *UniqueGenres
+	Table        *table.Table
+	Form         *BookForm
+	NoData       *NoDataBody
 }
 
 func NewWindow(cfg *config.Config) *Window {
@@ -34,13 +34,13 @@ func NewWindow(cfg *config.Config) *Window {
 	tbl := table.NewTable(cfg, srv)
 
 	w := &Window{
-		cfg:            cfg,
-		Body:           &Body{},
-		StatusLine:     newStatusLine(),
-		DBPath:         newDBPath(cfg),
-		Table:          tbl,
-		UniqueGenres:   newUniqueGenres(srv),
-		NoData:         &NoDataBody{},
+		cfg:          cfg,
+		Body:         &Body{},
+		StatusLine:   newStatusLine(),
+		DBPath:       newDBPath(cfg),
+		Table:        tbl,
+		UniqueGenres: newUniqueGenres(srv),
+		NoData:       &NoDataBody{},
 	}
 
 	//
@@ -215,7 +215,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	// only when body can change to NoData is with NoData calls.
 	w.NoData.AddListener(func() {
-		 // The only place this function should be called durring run time.
+		// The only place this function should be called durring run time.
 		w.Body.Set(BodyNoData)
 	})
 

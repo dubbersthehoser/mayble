@@ -149,7 +149,7 @@ func mapSchema(f []string) ([]int, bool) {
 	}
 
 	// case insensitive match.
-	for i := range headers { 
+	for i := range headers {
 		headers[i] = strings.ToLower(headers[i])
 		f[i] = strings.ToLower(f[i])
 	}

@@ -2,7 +2,7 @@ package viewmodel
 
 //
 // File Panned for Removal.
-// 
+//
 
 import (
 	"log"

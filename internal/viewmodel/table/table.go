@@ -1,14 +1,14 @@
 package table
 
 import (
+	"cmp"
 	"errors"
 	"log"
 	"slices"
-	"cmp"
 
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
@@ -34,8 +34,8 @@ type Table struct {
 
 func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 	t := &Table{
-		Sheet: NewSheet(cfg, fetch),
-		Sorting: NewSorting(cfg),
+		Sheet:    NewSheet(cfg, fetch),
+		Sorting:  NewSorting(cfg),
 		Settings: NewSettings(cfg),
 		Selected: newSelected(),
 	}
@@ -71,15 +71,14 @@ func (t *Table) Search(s string) {
 	t.Searching.Search(t.Sheet.data, s)
 }
 
-
 //
 // Sheet
 //
 
 type Sheet struct {
-	fetch     GetAllBooks
-	cfg     *config.Config
-	data    [][]string
+	fetch GetAllBooks
+	cfg   *config.Config
+	data  [][]string
 
 	rowToID map[int]int64
 
@@ -88,9 +87,9 @@ type Sheet struct {
 
 func NewSheet(cfg *config.Config, fetch GetAllBooks) *Sheet {
 	s := &Sheet{
-		fetch: fetch,
-		cfg: cfg,
-		data: make([][]string, 0),
+		fetch:   fetch,
+		cfg:     cfg,
+		data:    make([][]string, 0),
 		rowToID: make(map[int]int64),
 	}
 	return s
@@ -112,13 +111,13 @@ func (s *Sheet) Get(p Point) (string, error) {
 }
 
 func (s *Sheet) Size() (length, width int) {
-	
+
 	headers := models.BookEntryFields()
 
 	for _, idx := range removeHiddenColumns(s.cfg) {
 		headers = slices.Delete(headers, idx, idx+1)
 	}
-	
+
 	width = len(headers)
 	length = len(s.data)
 	return length, width
@@ -147,7 +146,6 @@ func (s *Sheet) Load() error {
 		return err
 	}
 
-
 	s.data = s.data[:0]
 	clear(s.rowToID)
 
@@ -159,12 +157,12 @@ func (s *Sheet) Load() error {
 		}
 		s.data = append(s.data, values)
 	}
-	
+
 	s.notify()
 	return nil
 }
 
-func (s *Sheet) AddListener(fn func() ) {
+func (s *Sheet) AddListener(fn func()) {
 	if s.l == nil {
 		s.l = make([]func(), 0)
 	}
@@ -176,7 +174,6 @@ func (s *Sheet) notify() {
 		fn()
 	}
 }
-
 
 //
 // Sorting
@@ -361,7 +358,6 @@ func (ts *Settings) notify() {
 const columnAll = -1
 
 type Searching struct {
-
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
 
@@ -540,7 +536,7 @@ func (s *Searching) searchAll(data [][]string, search string) {
 
 type Selected struct {
 	point Point
-	l   []func()
+	l     []func()
 }
 
 func newSelected() *Selected {

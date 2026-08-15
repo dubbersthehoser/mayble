@@ -13,8 +13,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/doc"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 type Fyne struct {
@@ -61,7 +61,7 @@ func newBody(vm *viewmodel.Window) fyne.CanvasObject {
 	vm.Body.RegisterHandlers(viewmodel.BodyBookEdit, edit.Hide, edit.Show)
 	vm.Body.RegisterHandlers(viewmodel.BodyManual, manual.Hide, manual.Show)
 
-	 // allow the handlers to be called.
+	// allow the handlers to be called.
 	vm.Body.Set(vm.Body.Value())
 
 	body := container.NewStack(
@@ -270,14 +270,13 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 	)
 
 	help := fyne.NewMenu("Help",
-		fyne.NewMenuItem("Manual", func() { 
+		fyne.NewMenuItem("Manual", func() {
 			vm.Body.Set(viewmodel.BodyManual)
 		}),
 	)
 
 	// Create the menu bar.
 	menu := fyne.NewMainMenu(file, table, help)
-
 
 	// Managing the state of when table should be enabled or disabled, and change
 	// to change the check satus of it's items

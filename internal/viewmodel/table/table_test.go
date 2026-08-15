@@ -1,11 +1,11 @@
 package table
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 func TestTable(t *testing.T) {
@@ -16,14 +16,14 @@ func TestTable(t *testing.T) {
 		book := models.BookEntry{
 			ID: int64(i),
 			Book: models.Book{
-				Title: fmt.Sprintf("title-%d", i),
+				Title:  fmt.Sprintf("title-%d", i),
 				Author: fmt.Sprintf("author-%d", i),
-				Genre: fmt.Sprintf("genre-%d", i),
+				Genre:  fmt.Sprintf("genre-%d", i),
 			},
 		}
 		books = append(books, book)
 	}
-	
+
 	source := func() ([]models.BookEntry, error) {
 		return books, nil
 	}
@@ -50,7 +50,7 @@ func TestTable(t *testing.T) {
 			Row: len(books) - 1,
 			Col: 2,
 		}
-		expect := fmt.Sprintf("genre-%d", len(books) -1)
+		expect := fmt.Sprintf("genre-%d", len(books)-1)
 		actual, err := table.Sheet.Get(p)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -61,7 +61,4 @@ func TestTable(t *testing.T) {
 		}
 	}
 
-	{ //
-		
-	}
 }

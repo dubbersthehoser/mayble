@@ -75,4 +75,3 @@ func (p *DBPath) notify() {
 		fn()
 	}
 }
-
