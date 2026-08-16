@@ -12,6 +12,7 @@ func TestTable(t *testing.T) {
 
 	books := make([]models.BookEntry, 0)
 
+	// Note: only having only title, author and genre may bite me.
 	for i := range 6 {
 		book := models.BookEntry{
 			ID: int64(i),
@@ -31,8 +32,6 @@ func TestTable(t *testing.T) {
 	cfg := config.NewConfigWithDefaults("")
 
 	table := NewTable(cfg, source)
-
-	// Test Sheet
 
 	// Load
 	err := table.Sheet.Load()
@@ -57,6 +56,22 @@ func TestTable(t *testing.T) {
 		}
 
 		if expect != actual {
+			t.Fatalf("expect '%s', got '%s'", expect, actual)
+		}
+	}
+
+	{ // Search 
+		expect := "title-0"
+		table.Settings.SetIDHidden(true)
+		title := table.Searching.Searchable.GetOptions()[1]
+		table.Searching.Searchable.SetBy(title)
+		table.Search(expect)
+		selected := table.Selected.Get()
+		actual, err := table.Sheet.Get(selected)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if actual != expect {
 			t.Fatalf("expect '%s', got '%s'", expect, actual)
 		}
 	}

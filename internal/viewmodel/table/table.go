@@ -476,6 +476,10 @@ func (s *Searching) Search(search string) {
 }
 
 func (s *Searching) searchColumn(data [][]string, search string) {
+	 // This maybe the cause of the slowness. 
+	 // Eather way this dataCol should be fixed.
+	 // Caching, change the search method to use data?
+	 // TODO: change this.
 	dataCol := make([]string, 0)
 	for _, row := range data {
 		dataCol = append(dataCol, row[s.Searchable.column])
@@ -495,6 +499,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 			row:   row,
 			score: score,
 		}
+		
 		results = append(results, r)
 	}
 
@@ -508,7 +513,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 		if r == 0 {
 			return cmp.Compare(a.row, b.row)
 		}
-		return cmp.Compare(a.score, b.score)
+		return cmp.Compare(a.score, b.score) * -1
 	})
 
 	s.row = 0
