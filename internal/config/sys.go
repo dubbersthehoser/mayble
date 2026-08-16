@@ -32,4 +32,3 @@ func GetRootDir() (string, error) {
 	}
 	return "", ErrRootNotExist
 }
-

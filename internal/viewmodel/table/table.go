@@ -406,7 +406,6 @@ func (s *Searchable) notify() {
 }
 
 type Searching struct {
-	
 	table *Table
 
 	Searchable *Searchable
@@ -423,7 +422,7 @@ type Searching struct {
 
 func NewSearching(t *Table) *Searching {
 	sr := &Searching{
-		table: t,
+		table:      t,
 		Searchable: NewSearchable(t),
 	}
 	return sr
@@ -609,16 +608,6 @@ func (es *Selected) notify() {
 	for _, fn := range es.l {
 		fn()
 	}
-}
-
-func AllowedSearchOptions(options, headers []string) []string {
-	o := make([]string, 0)
-	for _, option := range options {
-		if slices.Contains(headers, option) || option == "All" {
-			o = append(o, option)
-		}
-	}
-	return o
 }
 
 func isLoanHidden(cfg *config.Config) bool {

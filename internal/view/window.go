@@ -211,7 +211,24 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 }
 
 func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
+
+	// Labels for paticular MenuItems for disabling, and adding check marks.
+	const (
+		ShowLoanLabel string = "Show Loaned"
+		ShowReadLabel string = "Show Read"
+		ShowIDLabel   string = "Show ID"
+
+		ImportLabel string = "Import"
+		ExportLabel string = "Export"
+	)
+
+	// File Menu
 	file := fyne.NewMenu("File",
+		fyne.NewMenuItem("Current Database", func() {
+			db := fmt.Sprintf("\"%s\"", vm.DBPath.Get())
+			// quick and straigh forward way to check database path in app.
+			dialog.ShowInformation("Current Database", db, w)
+		}),
 		fyne.NewMenuItem("Open", func() {
 			d := dialog.NewFileOpen(
 				viewmodel.WrapFyneFileOpen(vm.FileManage.OpenDatabase),
@@ -235,7 +252,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 
 		}),
 
-		fyne.NewMenuItem("Import", func() {
+		fyne.NewMenuItem(ImportLabel, func() {
 			d := dialog.NewFileOpen(
 				viewmodel.WrapFyneFileOpen(vm.FileManage.ImportFile),
 				w,
@@ -245,7 +262,7 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 			d.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
 			d.Show()
 		}),
-		fyne.NewMenuItem("Export", func() {
+		fyne.NewMenuItem(ExportLabel, func() {
 			d := dialog.NewFileSave(
 				viewmodel.WrapFyneFileCreate(vm.FileManage.ExportFile),
 				w,
@@ -257,97 +274,103 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		}),
 	)
 
+	// Defined latter.
+	var updateCheck func()
 
+	// Table Menu
 	table := fyne.NewMenu("Table",
-		fyne.NewMenuItem("Show Loaned", nil),
-		fyne.NewMenuItem("Show Read", nil),
-		fyne.NewMenuItem("Show ID", nil),
+		fyne.NewMenuItem(ShowLoanLabel, func() {
+			if !vm.Table.Settings.IsLoanHidden() {
+				vm.Table.Settings.SetLoanHidden(true)
+			} else {
+				vm.Table.Settings.SetLoanHidden(false)
+			}
+			updateCheck()
+		}),
+		fyne.NewMenuItem(ShowReadLabel, func() {
+			if !vm.Table.Settings.IsReadHidden() {
+				vm.Table.Settings.SetReadHidden(true)
+			} else {
+				vm.Table.Settings.SetReadHidden(false)
+			}
+			updateCheck()
+		}),
+
+		fyne.NewMenuItem(ShowIDLabel, func() {
+			if !vm.Table.Settings.IsIDHidden() {
+				vm.Table.Settings.SetIDHidden(true)
+			} else {
+				vm.Table.Settings.SetIDHidden(false)
+			}
+			updateCheck()
+		}),
 	)
 
+	// Help Menu
 	help := fyne.NewMenu("Help",
 		fyne.NewMenuItem("Manual", func() {
 			vm.Body.Set(viewmodel.BodyManual)
 		}),
 	)
 
-	// Create the menu bar.
+	// Create MainMenu
 	menu := fyne.NewMainMenu(file, table, help)
 
-	// Managing the state of when table should be enabled or disabled, and change
-	// to change the check satus of it's items
-	const (
-		loanIdx int = iota
-		readIdx
-		idIdx
-	)
-
-	const (
-		importIdx  = 2
-		exportIdx  = 3
-	)
-
-
+	// Setting up the MenuItem locking system for when the Body value changes, and
+	// maintains as active if its in Table view.
+	menuItemsToLock := make([]*fyne.MenuItem, 0)
+	for _, mi := range table.Items {
+		switch mi.Label {
+		case ShowLoanLabel, ShowReadLabel, ShowIDLabel:
+			menuItemsToLock = append(menuItemsToLock, mi)
+		}
+	}
+	for _, mi := range file.Items {
+		switch mi.Label {
+		case ImportLabel, ExportLabel:
+			menuItemsToLock = append(menuItemsToLock, mi)
+		}
+	}
 	bodyUpdate := func() {
-		if vm.Body.Value() != viewmodel.BodyTable {
-			table.Items[loanIdx].Disabled = true
-			table.Items[readIdx].Disabled = true
-			table.Items[idIdx].Disabled = true
-			file.Items[importIdx].Disabled = true
-			file.Items[exportIdx].Disabled = true
-		} else {
-			table.Items[loanIdx].Disabled = false
-			table.Items[readIdx].Disabled = false
-			table.Items[idIdx].Disabled = false
-			file.Items[importIdx].Disabled = false
-			file.Items[exportIdx].Disabled = false
+		for _, mi := range menuItemsToLock {
+			mi.Disabled = vm.Body.Value() != viewmodel.BodyTable
 		}
 		menu.Refresh()
 	}
 
-	updateCheck := func() {
-		if vm.Table.Settings.IsLoanHidden() {
-			table.Items[loanIdx].Checked = false
-		} else {
-			table.Items[loanIdx].Checked = true
+	// Setting up the Checking system. Mainly used for table Menu Items for when a
+	// set of columns are set to hidden by that Item action.
+	type check struct {
+		mi        *fyne.MenuItem
+		predicate func() bool
+	}
+	menuItemsToCheck := make([]check, 0)
+	for _, mi := range table.Items {
+		switch mi.Label {
+		case ShowLoanLabel:
+			ch := check{mi: mi, predicate: func() bool {
+				return !vm.Table.Settings.IsLoanHidden()
+			}}
+			menuItemsToCheck = append(menuItemsToCheck, ch)
+
+		case ShowReadLabel:
+			ch := check{mi: mi, predicate: func() bool {
+				return !vm.Table.Settings.IsReadHidden()
+			}}
+			menuItemsToCheck = append(menuItemsToCheck, ch)
+
+		case ShowIDLabel:
+			ch := check{mi: mi, predicate: func() bool {
+				return !vm.Table.Settings.IsIDHidden()
+			}}
+			menuItemsToCheck = append(menuItemsToCheck, ch)
 		}
-		if vm.Table.Settings.IsReadHidden() {
-			table.Items[readIdx].Checked = false
-		} else {
-			table.Items[readIdx].Checked = true
-		}
-		if vm.Table.Settings.IsIDHidden() {
-			table.Items[idIdx].Checked = false
-		} else {
-			table.Items[idIdx].Checked = true
+	}
+	updateCheck = func() {
+		for _, ch := range menuItemsToCheck {
+			ch.mi.Checked = ch.predicate()
 		}
 		menu.Refresh()
-	}
-
-	table.Items[loanIdx].Action = func() {
-		if !vm.Table.Settings.IsLoanHidden() {
-			vm.Table.Settings.SetLoanHidden(true)
-		} else {
-			vm.Table.Settings.SetLoanHidden(false)
-		}
-		updateCheck()
-	}
-
-	table.Items[readIdx].Action = func() {
-		if !vm.Table.Settings.IsReadHidden() {
-			vm.Table.Settings.SetReadHidden(true)
-		} else {
-			vm.Table.Settings.SetReadHidden(false)
-		}
-		updateCheck()
-	}
-
-	table.Items[idIdx].Action = func() {
-		if !vm.Table.Settings.IsIDHidden() {
-			vm.Table.Settings.SetIDHidden(true)
-		} else {
-			vm.Table.Settings.SetIDHidden(false)
-		}
-		updateCheck()
 	}
 
 	vm.Body.AddListener(func() {
