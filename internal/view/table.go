@@ -24,14 +24,10 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	)
 	search.OnChanged = vm.Table.Search
 	searchBy := widget.NewSelect(
-		table.AllowedSearchOptions(
-			vm.Table.Searching.GetOptions(),
-			vm.Table.Settings.Headers(),
-		),
-		vm.Table.Searching.SetBy,
+		vm.Table.Searching.Searchable.GetOptions(),
+		vm.Table.Searching.Searchable.SetBy,
 	)
-
-	searchBy.SetSelected(vm.Table.Searching.GetOptions()[0])
+	searchBy.SetSelected(vm.Table.Searching.Searchable.GetOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
 	// Wrapped table view with stack layout, so table can be changed with out needing to know its exact location in body container.
@@ -49,10 +45,8 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 		tbl.Objects[tableIdx] = newTable(vm)
 		// Change the options for the search by selection, and reset it to "All".
 		top.Objects[searchByIdx].(*widget.Select).SetOptions(
-			table.AllowedSearchOptions(
-				vm.Table.Searching.GetOptions(),
-				vm.Table.Settings.Headers(),
-			))
+			vm.Table.Searching.Searchable.GetOptions(),
+		)
 		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
 		tbl.Refresh()
 	})

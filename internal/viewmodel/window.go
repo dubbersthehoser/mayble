@@ -203,6 +203,7 @@ func NewWindow(cfg *config.Config) *Window {
 			w.NoData.SetDataErr(w.DBPath.Get(), err)
 			return
 		}
+		w.Table.Sheet.Load()
 		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
 	})
 

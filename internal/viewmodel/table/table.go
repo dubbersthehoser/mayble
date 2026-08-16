@@ -40,7 +40,7 @@ func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 		Selected: newSelected(),
 	}
 
-	t.Searching = NewSearching()
+	t.Searching = NewSearching(t)
 
 	t.Searching.AddListener(func() {
 		if t.Searching.Has() {
@@ -68,7 +68,7 @@ func (t *Table) Search(s string) {
 		t.Selected.Unselect()
 		return
 	}
-	t.Searching.Search(t.Sheet.data, s)
+	t.Searching.Search(s)
 }
 
 //
@@ -357,12 +357,62 @@ func (ts *Settings) notify() {
 
 const columnAll = -1
 
+type Searchable struct {
+	table *Table
+
+	column int
+
+	l []func()
+}
+
+func NewSearchable(t *Table) *Searchable {
+	s := &Searchable{
+		table: t,
+	}
+
+	t.Settings.AddListener(func() {
+		s.notify()
+	})
+	return s
+}
+
+func (s *Searchable) GetOptions() []string {
+	o := []string{
+		"All",
+	}
+	o = append(o, s.table.Sheet.Header()...)
+	return o
+}
+
+func (s *Searchable) SetBy(c string) {
+	if c == "All" {
+		s.column = columnAll
+		return
+	}
+	s.column = slices.Index(s.table.Sheet.Header(), c)
+}
+
+func (s *Searchable) AddListener(fn func()) {
+	if s.l == nil {
+		s.l = make([]func(), 0)
+	}
+	s.l = append(s.l, fn)
+}
+
+func (s *Searchable) notify() {
+	for _, fn := range s.l {
+		fn()
+	}
+}
+
 type Searching struct {
+	
+	table *Table
+
+	Searchable *Searchable
+
 	cellSearch  search.CellSearch
 	tableSearch search.TableSearch
-
-	// The column to be searched.
-	column int
 
 	// The row that is selected out of scored.
 	row    int
@@ -371,31 +421,12 @@ type Searching struct {
 	l []func()
 }
 
-func NewSearching() *Searching {
-	sr := &Searching{}
+func NewSearching(t *Table) *Searching {
+	sr := &Searching{
+		table: t,
+		Searchable: NewSearchable(t),
+	}
 	return sr
-}
-
-func (s *Searching) GetOptions() []string {
-	// TODO: Update this to only allow columns that are shown.
-	return []string{
-		"All",
-		models.BookEntryFields()[models.IdxTitle],
-		models.BookEntryFields()[models.IdxAuthor],
-		models.BookEntryFields()[models.IdxGenre],
-		models.BookEntryFields()[models.IdxBorrower],
-		models.BookEntryFields()[models.IdxLoanedAt],
-		models.BookEntryFields()[models.IdxCompletedAt],
-	}
-}
-
-func (s *Searching) SetBy(c string) {
-	if c == "All" {
-		s.column = columnAll
-		return
-	}
-
-	s.column = slices.Index(models.BookEntryFields(), c)
 }
 
 func (s *Searching) Selected() Point {
@@ -435,12 +466,12 @@ func (s *Searching) notify() {
 	}
 }
 
-func (s *Searching) Search(data [][]string, search string) {
+func (s *Searching) Search(search string) {
 
-	if s.column == columnAll {
-		s.searchAll(data, search)
+	if s.Searchable.column == columnAll {
+		s.searchAll(s.table.Sheet.data, search)
 	} else {
-		s.searchColumn(data, search)
+		s.searchColumn(s.table.Sheet.data, search)
 	}
 	s.notify()
 }
@@ -448,7 +479,7 @@ func (s *Searching) Search(data [][]string, search string) {
 func (s *Searching) searchColumn(data [][]string, search string) {
 	dataCol := make([]string, 0)
 	for _, row := range data {
-		dataCol = append(dataCol, row[s.column])
+		dataCol = append(dataCol, row[s.Searchable.column])
 	}
 	type result struct {
 		row, score int
@@ -486,7 +517,7 @@ func (s *Searching) searchColumn(data [][]string, search string) {
 	for _, r := range results {
 		p := Point{
 			Row: r.row,
-			Col: s.column,
+			Col: s.Searchable.column,
 		}
 		s.scored = append(s.scored, p)
 	}
