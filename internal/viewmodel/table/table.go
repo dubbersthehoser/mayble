@@ -410,10 +410,12 @@ type Searching struct {
 
 	Searchable *Searchable
 
-	cellSearch  search.CellSearch
-	tableSearch search.TableSearch
+	// this my not be necessary.
+	//columnTraverse search.ColumnTraverse
+	//tableTraverse  search.TableTraverse
+	//searcher       search.Searcher
 
-	// The row that is selected out of scored.
+	// The row that is selected from scored.
 	row    int
 	scored []Point
 
@@ -475,74 +477,36 @@ func (s *Searching) Search(search string) {
 	s.notify()
 }
 
-func (s *Searching) searchColumn(data [][]string, search string) {
-	 // This maybe the cause of the slowness. 
-	 // Eather way this dataCol should be fixed.
-	 // Caching, change the search method to use data?
-	 // TODO: change this.
-	dataCol := make([]string, 0)
-	for _, row := range data {
-		dataCol = append(dataCol, row[s.Searchable.column])
-	}
-	type result struct {
-		row, score int
-	}
-	results := make([]result, 0)
-	s.cellSearch.Set(dataCol, search)
-	for s.cellSearch.Next() {
-		row := s.cellSearch.Pos()
-		score := s.cellSearch.Score()
-		if score == -1 {
-			continue
-		}
-		r := result{
-			row:   row,
-			score: score,
-		}
-		
-		results = append(results, r)
-	}
-
-	if len(results) == 0 {
-		s.scored = s.scored[:0]
-		s.row = 0
-		return
-	}
-	slices.SortFunc(results, func(a, b result) int {
-		r := cmp.Compare(a.score, b.score)
-		if r == 0 {
-			return cmp.Compare(a.row, b.row)
-		}
-		return cmp.Compare(a.score, b.score) * -1
-	})
-
-	s.row = 0
-	s.scored = s.scored[:0]
-	for _, r := range results {
-		p := Point{
-			Row: r.row,
-			Col: s.Searchable.column,
-		}
-		s.scored = append(s.scored, p)
-	}
+func (s *Searching) searchColumn(data [][]string, pattern string) {
+	trv := (&search.ColumnTraverse{}).Set(data, s.Searchable.column)
+	searcher := (&search.Searcher{}).Set(trv, pattern)
+	s.searchToScored(searcher)
 }
 
-func (s *Searching) searchAll(data [][]string, search string) {
+func (s *Searching) searchAll(data [][]string, pattern string) {
+	type result struct {
+		row, col, score int
+	}
+	trv := (&search.TableTraverse{}).Set(data)
+	searcher := (&search.Searcher{}).Set(trv, pattern)
+	s.searchToScored(searcher)
+}
+
+func (s *Searching) searchToScored(srch *search.Searcher) {
 	type result struct {
 		row, col, score int
 	}
 	results := make([]result, 0)
-	s.tableSearch.Set(data, search)
-	for s.tableSearch.Next() {
-		row, col := s.tableSearch.Pos()
-		score := s.tableSearch.Score()
+	for srch.Next() {
+		point := srch.Point()
+		score := srch.Score()
 		if score == -1 {
 			continue
 		}
 		r := result{
-			row:   row,
-			col:   col,
-			score: score,
+			row:   point.Row,
+			col:   point.Col,
+			score: srch.Score(),
 		}
 		results = append(results, r)
 	}
@@ -568,6 +532,10 @@ func (s *Searching) searchAll(data [][]string, search string) {
 		s.scored = append(s.scored, p)
 	}
 }
+
+//
+// Selected
+//
 
 type Selected struct {
 	point Point

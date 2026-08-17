@@ -5,6 +5,106 @@ import (
 	"unicode"
 )
 
+type Point struct {
+	Col int
+	Row int
+}
+
+type Taverser interface {
+	Next() (string, bool)
+	Point() Point
+}
+
+type Searcher struct {
+	tvr    Taverser
+	isDone bool
+	score  int
+	search string
+}
+
+func (s *Searcher) Set(tvr Taverser, search string) *Searcher {
+	s.tvr = tvr
+	s.isDone = false
+	s.search = search
+	return s
+}
+
+func (s *Searcher) Point() Point {
+	return s.tvr.Point()
+}
+
+func (s *Searcher) Score() int {
+	return s.score
+}
+
+func (s *Searcher) IsFinished() bool {
+	return s.isDone
+}
+
+func (s *Searcher) Next() bool {
+	item, ok := s.tvr.Next()
+	if ok {
+		s.score = searchCompare(item, s.search)
+	}
+	s.isDone = !ok
+	return ok
+}
+
+type ColumnTraverse struct {
+	data    [][]string
+	setCol  int
+	currRow int
+}
+
+func (ct *ColumnTraverse) Set(data [][]string, col int) *ColumnTraverse {
+	ct.data = data
+	ct.setCol = col
+	ct.currRow = -1
+	return ct
+}
+
+func (ct *ColumnTraverse) Next() (string, bool) {
+	ct.currRow += 1
+	if len(ct.data) <= ct.currRow {
+		return "", false
+	}
+	return ct.data[ct.currRow][ct.setCol], true
+}
+
+func (ct *ColumnTraverse) Point() Point {
+	return Point{Row: ct.currRow, Col: ct.setCol}
+}
+
+type TableTraverse struct {
+	data    [][]string
+	currCol int
+	currRow int
+}
+
+func (tt *TableTraverse) Set(data [][]string) *TableTraverse {
+	tt.data = data
+	tt.currCol = -1
+	tt.currRow = 0
+	return tt
+}
+
+func (tt *TableTraverse) Next() (string, bool) {
+	tt.currCol += 1
+	if len(tt.data[tt.currRow]) <= tt.currCol {
+		tt.currCol = 0
+		tt.currRow += 1
+	}
+	if len(tt.data) <= tt.currRow {
+		return "", false
+	}
+
+	return tt.data[tt.currRow][tt.currCol], true
+}
+
+func (tt *TableTraverse) Point() Point {
+	return Point{Row: tt.currRow, Col: tt.currCol}
+}
+
 type CellSearch struct {
 	search string
 	cells  []string

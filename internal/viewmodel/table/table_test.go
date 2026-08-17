@@ -60,7 +60,7 @@ func TestTable(t *testing.T) {
 		}
 	}
 
-	{ // Search 
+	{ // Search
 		expect := "title-0"
 		table.Settings.SetIDHidden(true)
 		title := table.Searching.Searchable.GetOptions()[1]
