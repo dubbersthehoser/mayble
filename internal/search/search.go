@@ -10,19 +10,19 @@ type Point struct {
 	Row int
 }
 
-type Taverser interface {
+type Traverser interface {
 	Next() (string, bool)
 	Point() Point
 }
 
 type Searcher struct {
-	tvr    Taverser
+	tvr    Traverser
 	isDone bool
 	score  int
 	search string
 }
 
-func (s *Searcher) Set(tvr Taverser, search string) *Searcher {
+func (s *Searcher) Set(tvr Traverser, search string) *Searcher {
 	s.tvr = tvr
 	s.isDone = false
 	s.search = search
@@ -106,7 +106,6 @@ func (tt *TableTraverse) Point() Point {
 }
 
 // EditDist an Levenshtein distance function.
-//
 // Returns the total number edits to make s and t match.
 func EditDist(s, t string) int {
 

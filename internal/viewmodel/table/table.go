@@ -467,26 +467,17 @@ func (s *Searching) notify() {
 	}
 }
 
-func (s *Searching) Search(search string) {
-
+func (s *Searching) Search(pattern string) {
+	data := s.table.Sheet.data
+	var trv search.Traverser
 	if s.Searchable.column == columnAll {
-		s.searchAll(s.table.Sheet.data, search)
+		trv = (&search.TableTraverse{}).Set(data)
 	} else {
-		s.searchColumn(s.table.Sheet.data, search)
+		trv = (&search.ColumnTraverse{}).Set(data, s.Searchable.column)
 	}
+	srch := (&search.Searcher{}).Set(trv, pattern)
+	s.searchToScored(srch)
 	s.notify()
-}
-
-func (s *Searching) searchColumn(data [][]string, pattern string) {
-	trv := (&search.ColumnTraverse{}).Set(data, s.Searchable.column)
-	searcher := (&search.Searcher{}).Set(trv, pattern)
-	s.searchToScored(searcher)
-}
-
-func (s *Searching) searchAll(data [][]string, pattern string) {
-	trv := (&search.TableTraverse{}).Set(data)
-	searcher := (&search.Searcher{}).Set(trv, pattern)
-	s.searchToScored(searcher)
 }
 
 func (s *Searching) searchToScored(srch *search.Searcher) {
