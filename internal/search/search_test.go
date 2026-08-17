@@ -24,11 +24,12 @@ func TestSearchTable(t *testing.T) {
 		},
 	}
 
-	ts := TableSearch{}
+	trv := (&TableTraverse{}).Set(table)
+	ts := &Searcher{}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ts.Set(table, test.search)
+			ts.Set(trv, test.search)
 			for !ts.Next() {
 				if !ts.IsFinished() {
 

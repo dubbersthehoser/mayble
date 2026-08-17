@@ -484,9 +484,6 @@ func (s *Searching) searchColumn(data [][]string, pattern string) {
 }
 
 func (s *Searching) searchAll(data [][]string, pattern string) {
-	type result struct {
-		row, col, score int
-	}
 	trv := (&search.TableTraverse{}).Set(data)
 	searcher := (&search.Searcher{}).Set(trv, pattern)
 	s.searchToScored(searcher)
