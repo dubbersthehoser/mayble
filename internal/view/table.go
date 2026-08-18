@@ -7,7 +7,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
@@ -107,7 +106,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
-			label := vm.Table.Settings.Headers()[cellID.Col]
+			label := vm.Table.Sheet.Header()[cellID.Col]
 			vm.Table.Settings.SetWidth(label, object.Size().Width)
 			by := vm.Table.Sorting.GetOrderBy()
 			asc := vm.Table.Sorting.GetAscending()
@@ -119,7 +118,7 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	}
 
 	// Set the width of the columns from settings.
-	for i, label := range models.BookEntryFields() {
+	for i, label := range vm.Table.Sheet.Header() {
 		width := vm.Table.Settings.GetWidth(label)
 		tbl.SetColumnWidth(i, width)
 	}
