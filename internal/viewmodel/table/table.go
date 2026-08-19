@@ -55,7 +55,7 @@ func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 		t.Selected.Unselect()
 	})
 
-	t.Settings.AddListener(func() {
+	t.Settings.AddOnHidden(func() {
 		t.Sheet.Load()
 		t.Selected.Unselect()
 	})
@@ -236,7 +236,7 @@ func (s *Sorting) notify() {
 
 type Settings struct {
 	cfg *config.Config
-	l   []func()
+	onHidden   []func()
 }
 
 func NewSettings(cfg *config.Config) *Settings {
@@ -246,17 +246,12 @@ func NewSettings(cfg *config.Config) *Settings {
 	return cs
 }
 
-func (ts *Settings) MinWidth() float32 {
+func (ts *Settings) HeaderMinWidth() float32 {
 	return ts.cfg.UI.TableMinWidth
 }
 
-func (ts *Settings) Headers() []string {
-	headers := models.BookEntryFields()
-	removeIdxs := removeHiddenColumns(ts.cfg)
-	for _, idx := range removeIdxs {
-		headers = slices.Delete(headers, idx, idx+1)
-	}
-	return headers
+func (ts *Settings) HeaderHeight() float32 {
+	return ts.cfg.UI.TableHeaderHeight
 }
 
 func (ts *Settings) IsLoanHidden() bool {
@@ -275,7 +270,7 @@ func (ts *Settings) SetIDHidden(t bool) {
 	header := ts.cfg.UI.Headers[models.IdxID]
 	header.IsHidden = t
 	ts.cfg.UI.Headers[models.IdxID] = header
-	ts.notify()
+	ts.notifyOnHidden()
 }
 
 func (ts *Settings) SetLoanHidden(t bool) {
@@ -289,7 +284,7 @@ func (ts *Settings) SetLoanHidden(t bool) {
 	ts.cfg.UI.Headers[models.IdxLoanedAt] = loaned
 	ts.cfg.UI.Headers[models.IdxBorrower] = borrower
 
-	ts.notify()
+	ts.notifyOnHidden()
 }
 
 func (ts *Settings) SetReadHidden(t bool) {
@@ -302,13 +297,10 @@ func (ts *Settings) SetReadHidden(t bool) {
 	ts.cfg.UI.Headers[models.IdxRating] = rating
 	ts.cfg.UI.Headers[models.IdxCompletedAt] = completed
 
-	ts.notify()
+	ts.notifyOnHidden()
 }
 
 func (ts *Settings) SetWidth(label string, width float32) {
-	if width <= ts.cfg.UI.TableMinWidth {
-		width = ts.cfg.UI.TableMinWidth
-	}
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
@@ -331,22 +323,19 @@ func (ts *Settings) GetWidth(label string) float32 {
 	}
 	h := ts.cfg.UI.Headers[idx]
 	width := h.Width
-	if width <= ts.cfg.UI.TableMinWidth {
-		width = ts.cfg.UI.TableMinWidth
-	}
 	return width
 }
 
-// AddListener for changes to hidden columns.
-func (ts *Settings) AddListener(fn func()) {
-	if ts.l == nil {
-		ts.l = make([]func(), 0)
+// AddOnHidden for changes to hidden columns.
+func (ts *Settings) AddOnHidden(fn func()) {
+	if ts.onHidden == nil {
+		ts.onHidden = make([]func(), 0)
 	}
-	ts.l = append(ts.l, fn)
+	ts.onHidden = append(ts.onHidden, fn)
 }
 
-func (ts *Settings) notify() {
-	for _, fn := range ts.l {
+func (ts *Settings) notifyOnHidden() {
+	for _, fn := range ts.onHidden {
 		fn()
 	}
 }
@@ -370,7 +359,7 @@ func NewSearchable(t *Table) *Searchable {
 		table: t,
 	}
 
-	t.Settings.AddListener(func() {
+	t.Settings.AddOnHidden(func() {
 		s.notify()
 	})
 	return s

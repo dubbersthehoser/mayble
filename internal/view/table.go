@@ -33,13 +33,12 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	tbl := container.NewStack(newTable(vm))
 	body := container.NewBorder(top, nil, nil, nil, tbl)
 
-	// Create a new table when table settings change.
-	vm.Table.Settings.AddListener(func() {
+	// Create a new table when column is hidden.
+	vm.Table.Settings.AddOnHidden(func() {
 		var (
 			tableIdx    int = 0
 			searchByIdx int = 1
 		)
-
 		// Replace old table view with newer table in body container.
 		tbl.Objects[tableIdx] = newTable(vm)
 		// Change the options for the search by selection, and reset it to "All".
@@ -106,8 +105,18 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
+			// set size
 			label := vm.Table.Sheet.Header()[cellID.Col]
-			vm.Table.Settings.SetWidth(label, object.Size().Width)
+			btnWidth := object.Size().Width
+			cfgWidth := vm.Table.Settings.GetWidth(label)
+			if btnWidth != cfgWidth {
+				if object.(*HeaderButton).label != label {
+					tbl.SetColumnWidth(cellID.Col, cfgWidth)
+				} else {
+					vm.Table.Settings.SetWidth(label, btnWidth)
+				}
+			}
+			// update header button
 			by := vm.Table.Sorting.GetOrderBy()
 			asc := vm.Table.Sorting.GetAscending()
 			object.(*HeaderButton).Update(label, by, asc)
@@ -173,11 +182,7 @@ func NewHeader(vm *viewmodel.Window) *Header {
 }
 
 func (h *Header) NewHeaderButton() *HeaderButton {
-	minSize := fyne.NewSize(
-		h.vm.Table.Settings.MinWidth(),
-		25.0,
-	)
-	hb := NewHeaderButton(h, minSize)
+	hb := NewHeaderButton(h)
 	h.buttons = append(h.buttons, hb)
 	return hb
 }
@@ -206,23 +211,20 @@ func (h *Header) Pressed(label string) {
 type HeaderButton struct {
 	widget.Button
 	header  *Header
-	minSize fyne.Size
 	label   string
 }
 
-func NewHeaderButton(h *Header, minSize fyne.Size) *HeaderButton {
+func NewHeaderButton(h *Header) *HeaderButton {
+
 	hb := &HeaderButton{
 		header:  h,
-		minSize: minSize,
 	}
 
 	hb.OnTapped = func() {
 		hb.header.Pressed(hb.label)
 	}
 
-	hb.minSize = fyne.NewSize(80, 30)
 	hb.ExtendBaseWidget(hb)
-
 	return hb
 }
 
@@ -237,8 +239,16 @@ func (hb *HeaderButton) Update(label string, by string, asc bool) {
 	} else {
 		hb.SetText("- " + label)
 	}
+
+	hb.Refresh()
 }
 
 func (hb *HeaderButton) MinSize() fyne.Size {
-	return hb.minSize
+	minWidth := hb.header.vm.Table.Settings.HeaderMinWidth()
+	height := hb.header.vm.Table.Settings.HeaderHeight()
+	minSize := fyne.Size{
+		Width: minWidth,
+		Height: height,
+	}
+	return minSize
 }

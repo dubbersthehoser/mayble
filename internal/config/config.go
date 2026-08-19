@@ -19,7 +19,8 @@ const (
 	windowWidth          float32 = 900
 	windowFullScreen     bool    = false
 	windowCenterOnScreen bool    = true
-	minColumnSize        float32 = 100
+	minColumnWidth       float32 = 15.0
+	headerBtnHeight      float32 = 25.0
 	tableSortByIdx       int     = models.IdxTitle
 )
 
@@ -53,6 +54,7 @@ type UI struct {
 	TableSortBy          int            `json:"table_sort_by"`
 	TableAscending       bool           `json:"table_ascending"`
 	TableMinWidth        float32        `json:"table_min_width"`
+	TableHeaderHeight    float32        `json:"table_header_height"`
 	WindowHeight         float32        `json:"window_height"`
 	WindowWidth          float32        `json:"window_width"`
 	WindowFullScreen     bool           `json:"window_fullscreen"`
@@ -66,7 +68,8 @@ func NewConfigWithDefaults(configFile string) *Config {
 		ConfigFile: configFile,
 		UI: UI{
 			Headers:              make(map[int]Header),
-			TableMinWidth:        minColumnSize,
+			TableHeaderHeight:    headerBtnHeight,
+			TableMinWidth:        minColumnWidth,
 			TableSortBy:          tableSortByIdx,
 			WindowHeight:         windowHeight,
 			WindowWidth:          windowWidth,
@@ -75,12 +78,13 @@ func NewConfigWithDefaults(configFile string) *Config {
 		},
 	}
 
-	headerLables := models.BookEntryFields()
-	for i, label := range headerLables {
+	headerLabels := models.BookEntryFields()
+	for i, label := range headerLabels {
 		header := Header{
 			Name: label,
+			Width: 100.0,
 		}
-		if label == headerLables[models.IdxID] {
+		if label == headerLabels[models.IdxID] {
 			header.IsHidden = true
 		}
 		cfg.UI.Headers[i] = header
