@@ -52,7 +52,13 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	return body
 }
 
-func newTable(vm *viewmodel.Window) fyne.CanvasObject {
+type Table struct {
+	widget.Table
+	vm     *viewmodel.Window
+	header *Header
+}
+
+func newTable(vm *viewmodel.Window) *Table {
 
 	// Code sections (A) are to allow user to resize the last column with the header.
 	// By adding an invisible header with an empty column, allows the user to move
@@ -60,48 +66,57 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 	// that there is an empty selectable item on the first entry of that last column.
 	// The selection system will ignore this selection of those cells.
 
-	tbl := widget.NewTableWithHeaders(
-		func() (rowLen, colLen int) {
-			rowLen, colLen = vm.Table.Sheet.Size()
-			colLen += 1 // (A) have an extra header.
-			return
-		},
-		func() fyne.CanvasObject {
-			object := widget.NewLabel("")
-			object.Truncation = fyne.TextTruncateEllipsis
-			return object
-		},
-		func(cellID widget.TableCellID, object fyne.CanvasObject) {
-			_, colLen := vm.Table.Sheet.Size()
-			if cellID.Col < colLen {
-				point := table.Point{Row: cellID.Row, Col: cellID.Col}
-				data, err := vm.Table.Sheet.Get(point)
-				if err != nil {
-					log.Println("view table:", err)
-					data = "ERROR"
-				}
-				object.(*widget.Label).Show()
-				object.(*widget.Label).SetText(data)
-
-			} else { // (A) create empty cell.
-				object.(*widget.Label).SetText("")
+	Length := func() (rowLen, colLen int) {
+		rowLen, colLen = vm.Table.Sheet.Size()
+		colLen += 1 // (A) have an extra header.
+		return
+	}
+	CreateCell := func() fyne.CanvasObject {
+		object := widget.NewLabel("")
+		object.Truncation = fyne.TextTruncateEllipsis
+		return object
+	}
+	UpdateCell := func(cellID widget.TableCellID, object fyne.CanvasObject) {
+		_, colLen := vm.Table.Sheet.Size()
+		if cellID.Col < colLen {
+			point := table.Point{Row: cellID.Row, Col: cellID.Col}
+			data, err := vm.Table.Sheet.Get(point)
+			if err != nil {
+				log.Println("view table:", err)
+				data = "ERROR"
 			}
+			object.(*widget.Label).Show()
+			object.(*widget.Label).SetText(data)
+
+		} else { // (A) create empty cell.
+			object.(*widget.Label).SetText("")
+		}
+	}
+
+	tbl := &Table{
+		Table: widget.Table{
+			Length: Length,
+			CreateCell: CreateCell,
+			UpdateCell: UpdateCell,
+			ShowHeaderColumn: false,
+			ShowHeaderRow: true,
 		},
-	)
+	}
+	tbl.ExtendBaseWidget(tbl)
+
 
 	// Header buttons
-	tbl.ShowHeaderColumn = false
-	tbl.ShowHeaderRow = true
-	header := NewHeader(vm)
+	tbl.header = NewHeader(vm)
 
 	tbl.CreateHeader = func() fyne.CanvasObject {
-		return header.NewHeaderButton()
+		return tbl.header.NewHeaderButton()
 	}
 
 	tbl.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
 		}
+
 
 		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
@@ -132,11 +147,12 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		tbl.SetColumnWidth(i, width)
 	}
 
-	// Selection
+	// Selection Events
 	tbl.OnSelected = func(id widget.TableCellID) {
 		point := table.Point{Row: id.Row, Col: id.Col}
 		vm.Table.Selected.Select(point)
 	}
+
 	tbl.OnUnselected = func(id widget.TableCellID) {
 		vm.Table.Selected.Unselect()
 		tbl.UnselectAll()
@@ -164,7 +180,6 @@ func newTable(vm *viewmodel.Window) fyne.CanvasObject {
 		tbl.UnselectAll()
 		tbl.Refresh()
 	})
-
 	return tbl
 }
 
