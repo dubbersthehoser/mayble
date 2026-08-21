@@ -39,6 +39,10 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 	status := newStatusLine(vm.StatusLine)
 	controls := newControls(vm)
 
+	vm.ShowError.AddListener(func() {
+		dialog.ShowError(vm.ShowError.Err, w)
+	})
+
 	topBar := container.NewGridWithColumns(2, status, controls)
 	body := newBody(vm)
 

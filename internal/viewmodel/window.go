@@ -25,6 +25,7 @@ type Window struct {
 	Table        *table.Table
 	Form         *BookForm
 	NoData       *NoDataBody
+	ShowError    *ShowError
 }
 
 func NewWindow(cfg *config.Config) *Window {
@@ -41,6 +42,7 @@ func NewWindow(cfg *config.Config) *Window {
 		Table:        tbl,
 		UniqueGenres: newUniqueGenres(srv),
 		NoData:       &NoDataBody{},
+		ShowError:    &ShowError{},
 	}
 
 	//
@@ -126,6 +128,7 @@ func NewWindow(cfg *config.Config) *Window {
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
+				w.ShowError.Show(err)
 				return
 			}
 			if path == "" {
@@ -136,13 +139,21 @@ func NewWindow(cfg *config.Config) *Window {
 				!strings.HasSuffix(path, ".sqlite3") {
 				path += ".db"
 			}
+			if err := srv.CreateDatabase(path); err != nil {
+				w.StatusLine.sendError(err.Error())
+				log.Println("Error:", err)
+				w.NoData.SetDataErr(w.DBPath.Get(), err)
+				return
+			}
 			w.DBPath.Set(path)
+			w.StatusLine.sendInfo(fmt.Sprintf("created: %s", w.DBPath.Get()))
 			w.Body.Set(BodyTable)
 		},
 
 		OpenDatabase: func(path string, err error) {
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
+				w.ShowError.Show(err)
 				log.Println("Error:", err)
 				return
 			}
@@ -150,12 +161,20 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			w.DBPath.Set(path)
+			if err := srv.OpenDatabase(path); err != nil {
+				w.StatusLine.sendError(err.Error())
+				log.Println("Error:", err)
+				w.NoData.SetDataErr(w.DBPath.Get(), err)
+				return
+			}
+			w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
 			w.Body.Set(BodyTable)
 		},
 
 		ImportFile: func(path string, err error) {
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
+				w.ShowError.Show(err)
 				log.Println("Error:", err)
 				return
 			}
@@ -166,9 +185,11 @@ func NewWindow(cfg *config.Config) *Window {
 			if err := srv.ImportFile(path); err != nil {
 				w.StatusLine.sendError(err.Error())
 				log.Println("Error:", err)
+				w.ShowError.Show(err)
 				return
 			}
 			w.StatusLine.sendSuccess("Imported: " + path)
+			w.Table.Sheet.Load()
 		},
 
 		ExportFile: func(path string, err error) {
@@ -190,21 +211,17 @@ func NewWindow(cfg *config.Config) *Window {
 				log.Println("Error:", err)
 				return
 			}
-
 			w.StatusLine.sendSuccess("Exported: " + path)
 		},
 	}
 
 	// load database at database file path change.
-	w.DBPath.AddListener(func() {
-		if err := srv.LoadDatabase(); err != nil {
-			w.StatusLine.sendError(err.Error())
-			log.Println("Error:", err)
-			w.NoData.SetDataErr(w.DBPath.Get(), err)
-			return
-		}
+	//w.DBPath.AddListener(func() {
+	//	w.Table.Sheet.Load()
+	//})
+
+	srv.AddListener(func(){
 		w.Table.Sheet.Load()
-		w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
 	})
 
 	//
@@ -221,7 +238,7 @@ func NewWindow(cfg *config.Config) *Window {
 	})
 
 	// try and load database at first start.
-	if err := srv.LoadDatabase(); err != nil {
+	if err := srv.OpenDatabase(w.cfg.DBFile); err != nil {
 		log.Println("Warning:", err)
 		if w.cfg.DBFile == "" {
 			w.NoData.SetNoDB()

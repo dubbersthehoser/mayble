@@ -141,8 +141,17 @@ func (as *Service) ImportFile(path string) error {
 	return nil
 }
 
-func (as *Service) LoadDatabase() error {
-	return as.OpenDatabase(as.cfg.DBFile)
+func (as *Service) CreateDatabase(path string) error {
+	db, err := database.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := as.swap(db); err != nil {
+		return err
+	}
+	as.cfg.DBFile = path
+	as.notify()
+	return nil
 }
 
 func (as *Service) OpenDatabase(path string) error {
@@ -150,19 +159,25 @@ func (as *Service) OpenDatabase(path string) error {
 	if err != nil {
 		return err
 	}
+	if err := as.swap(db); err != nil {
+		return err
+	}
+	as.cfg.DBFile = path
+	as.notify()
+	return nil
+}
 
+func (as *Service) swap(db *database.Database) error {
 	if as.db == nil {
 		as.db = db
 	} else {
-		err = as.db.Conn.Close()
+		err := as.db.Conn.Close()
 		if err != nil {
 			return err
 		}
 		as.db.Conn = db.Conn
 		as.db.Queries = db.Queries
 	}
-	as.cfg.DBFile = path
-	as.notify()
 	return nil
 }
 

@@ -16,7 +16,6 @@ func TestTable(t *testing.T) {
 	cfg := config.NewConfigWithDefaults("")
 	vm := viewmodel.NewWindow(cfg)
 	table := newTable(vm)
-
 	table.Refresh()
 
 	if len(table.header.buttons) == 0 {

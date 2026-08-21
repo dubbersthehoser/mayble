@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"
@@ -35,26 +36,69 @@ func OpenMem() (*Database, error) {
 	return db, nil
 }
 
+// Create create a new database from path.
+func Create(path string) (*Database, error) {
+
+	db := &Database{}
+
+	_, err := os.Lstat(path)
+	if err == nil {
+		return nil, fmt.Errorf("database: create %s: file exists", path)
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("database: create %s: %w", path, err)
+	}
+
+	conn, err := sqlite.OpenDB(path)
+	if err != nil {
+		return nil, fmt.Errorf("database: create %s: %w", path, err)
+	}
+
+	db.Conn = conn
+	db.Queries = sqlite.GetQueries(db.Conn)
+
+	if err := migrate(db.Conn); err != nil {
+		return nil, fmt.Errorf("database: migrate %s: %w", path, err)
+	}
+	return db, nil
+}
+
 // Open open database from path.
 func Open(path string) (*Database, error) {
 
 	db := &Database{}
 
+	_, err := os.Lstat(path)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return nil, fmt.Errorf("database: open %s: file not found", path)
+	case err != nil:
+		return nil, fmt.Errorf("database: open %s: %w", path, err)
+	}
+
 	conn, err := sqlite.OpenDB(path)
 	if err != nil {
-		return nil, fmt.Errorf("database: %w", err)
+		return nil, fmt.Errorf("database: open %s: %w", path, err)
 	}
 	db.Conn = conn
 	db.Queries = sqlite.GetQueries(db.Conn)
 
 	if checkIsV1(db.Conn) {
-		err := migrate(path, db.Conn)
+		err := dbBackup(path)
 		if err != nil {
-			return nil, fmt.Errorf("datbase: migrate: %w", err)
+			return nil, fmt.Errorf("database: db_backup %s: %w", path, err)
+		}
+		err = migrate(db.Conn)
+		if err != nil {
+			return nil, fmt.Errorf("database: migrate %s: %w", path, err)
 		}
 	}
 
 	return db, nil
+}
+
+func dbBackup(path string) error {
+	return dbCopy(path, path+".bak")
 }
 
 // dbCopy copy file pathFromt to pathTo
@@ -74,12 +118,8 @@ func dbCopy(pathFrom, pathTo string) error {
 	return nil
 }
 
-// migrate up database and create backup.
-func migrate(path string, conn *sql.DB) error {
-	err := dbCopy(path, path+".bak")
-	if err != nil {
-		return err
-	}
+// migrate database up to current version.
+func migrate(conn *sql.DB) error {
 	return sqlite.MigrateUpTo(conn, version)
 }
 

@@ -18,7 +18,6 @@ const (
 	windowHeight         float32 = 600
 	windowWidth          float32 = 900
 	windowFullScreen     bool    = false
-	windowCenterOnScreen bool    = true
 	minHeaderBtnWidth    float32 = 25.0
 	minHeaderBtnHeight   float32 = 25.0
 	baseHeaderBtnWidth   float32 = 100.0
@@ -75,7 +74,6 @@ func NewConfigWithDefaults(configFile string) *Config {
 			WindowHeight:         windowHeight,
 			WindowWidth:          windowWidth,
 			WindowFullScreen:     windowFullScreen,
-			WindowCenterOnScreen: windowCenterOnScreen,
 		},
 	}
 

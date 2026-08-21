@@ -70,9 +70,6 @@ func main() {
 		window.FullScreen()
 	}
 	window.SetMaster()
-	if cfg.UI.WindowCenterOnScreen {
-		window.CenterOnScreen()
-	}
 
 	// Save window size before closing.
 	window.SetCloseIntercept(func() {

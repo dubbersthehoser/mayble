@@ -117,7 +117,6 @@ func newTable(vm *viewmodel.Window) *Table {
 			return
 		}
 
-
 		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
 			// set size
