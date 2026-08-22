@@ -215,18 +215,11 @@ func NewWindow(cfg *config.Config) *Window {
 		},
 	}
 
-	// load database at database file path change.
-	//w.DBPath.AddListener(func() {
-	//	w.Table.Sheet.Load()
-	//})
-
+	// Allow table sheet to load data from database when there is a change.
+	// Be it from regular CRUD operations, and the opening, and creation of a database file.
 	srv.AddListener(func(){
 		w.Table.Sheet.Load()
 	})
-
-	//
-	// Set Up and Load.
-	//
 
 	// start with table view at start up.
 	w.Body.Set(BodyTable)
@@ -248,8 +241,7 @@ func NewWindow(cfg *config.Config) *Window {
 		}
 	}
 
-	err := tbl.Sheet.Load()
-	if err != nil {
+	if err := tbl.Sheet.Load(); err != nil {
 		log.Println("error:", err)
 	}
 

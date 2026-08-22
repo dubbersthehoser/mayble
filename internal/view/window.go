@@ -278,8 +278,9 @@ func newMainMenu(vm *viewmodel.Window, w fyne.Window) *fyne.MainMenu {
 		}),
 	)
 
-	// Defined latter.
+	// Defined latter. Updates the checkmarks for hidden columns.
 	var updateCheck func()
+
 
 	// Table Menu
 	table := fyne.NewMenu("Table",
