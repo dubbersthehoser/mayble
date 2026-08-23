@@ -4,6 +4,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
@@ -83,5 +84,26 @@ func (eb *SearchEntry) TypedShortcut(cut fyne.Shortcut) {
 		if short.Key() == fyne.KeyReturn {
 			eb.OnPrev()
 		}
+	}
+}
+
+type Check struct {
+	widget.Check
+}
+
+func NewCheckWithData(label string, b binding.Bool) *Check {
+	c := &Check{}
+	c.Check.Text = label
+	c.Check.Bind(b)	
+	c.ExtendBaseWidget(c)
+	return c
+}
+
+func (c *Check) TypedKey(ev *fyne.KeyEvent) {
+	switch ev.Name {
+	case fyne.KeyReturn:
+		c.SetChecked(!c.Check.Checked)
+	default:
+		c.Check.TypedKey(ev)
 	}
 }

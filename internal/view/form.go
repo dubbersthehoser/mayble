@@ -20,8 +20,8 @@ func newCreate(vm *viewmodel.Window) fyne.CanvasObject {
 
 func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasObject {
 
-	loanCheck := widget.NewCheckWithData("Is on loan.", vm.Form.Fyne.IsLoaned)
-	readCheck := widget.NewCheckWithData("Has been completed.", vm.Form.Fyne.IsCompleted)
+	loanCheck := NewCheckWithData("Is on loan.", vm.Form.Fyne.IsLoaned)
+	readCheck := NewCheckWithData("Has been completed.", vm.Form.Fyne.IsCompleted)
 
 	submitBtn := NewEnterButton(label, submit)
 	submitBtn.Alignment = widget.ButtonAlignLeading
