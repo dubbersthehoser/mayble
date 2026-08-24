@@ -107,3 +107,4 @@ func (c *Check) TypedKey(ev *fyne.KeyEvent) {
 		c.Check.TypedKey(ev)
 	}
 }
+
