@@ -13,6 +13,7 @@ func TestTable(t *testing.T) {
 	books := make([]models.BookEntry, 0)
 
 	// Note: only having only title, author and genre may bite me.
+	// Note: it did.
 	for i := range 6 {
 		book := models.BookEntry{
 			ID: int64(i),
@@ -75,5 +76,4 @@ func TestTable(t *testing.T) {
 			t.Fatalf("expect '%s', got '%s'", expect, actual)
 		}
 	}
-
 }

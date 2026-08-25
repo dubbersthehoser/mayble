@@ -399,12 +399,7 @@ type Searching struct {
 
 	Searchable *Searchable
 
-	// this my not be necessary.
-	//columnTraverse search.ColumnTraverse
-	//tableTraverse  search.TableTraverse
-	//searcher       search.Searcher
-
-	// The row that is selected from scored.
+	// The row that is selected from the scored matches.
 	row    int
 	scored []Point
 

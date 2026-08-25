@@ -33,6 +33,11 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 
 	w := f.w
 
+	cb := NewCommandBus()
+	ce := NewEventBus()
+
+	_, _ = cb, ce // Todo: Remove this once done
+
 	w.SetMainMenu(newMainMenu(vm, w))
 
 	status := newStatusLine(vm.StatusLine)
@@ -48,6 +53,15 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 	view := container.NewBorder(topBar, nil, nil, nil, body)
 
 	return view
+}
+
+func setupCommandBus(cb *CommandBus, vm *viewmodel.Window) {
+	
+	cb.Regester("OpenDialog", func(v any) error {
+		args := v.(OpenDialog)
+		switch
+		return nil
+	})
 }
 
 func newBody(vm *viewmodel.Window) fyne.CanvasObject {
