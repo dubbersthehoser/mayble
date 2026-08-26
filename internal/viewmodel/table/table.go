@@ -56,11 +56,16 @@ func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 	})
 
 	t.Settings.AddOnHidden(func() {
-		t.Sheet.Load()
 		t.Selected.Unselect()
 	})
 
 	return t
+}
+
+func (t *Table) NewSheet() {
+	old := t.Sheet
+	t.Sheet = NewSheet(old.cfg, old.fetch)
+	t.Sheet.Load()
 }
 
 func (t *Table) Search(s string) {

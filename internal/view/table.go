@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"fyne.io/fyne/v2"
+	_ "fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
@@ -36,17 +37,22 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	// Create a new table when column is hidden.
 	vm.Table.Settings.AddOnHidden(func() {
 		var (
-			tableIdx    int = 0
 			searchByIdx int = 1
 		)
-		// Replace old table view with newer table in body container.
-		tbl.Objects[tableIdx] = newTable(vm)
-		// Change the options for the search by selection, and reset it to "All".
+		tbl.RemoveAll()
+		go func(){
+			vm.Table.NewSheet()
+			fyne.DoAndWait(func() {
+				ntbl := newTable(vm)
+				tbl.Add(ntbl)
+				tbl.Refresh()
+			})
+		}()
 		top.Objects[searchByIdx].(*widget.Select).SetOptions(
 			vm.Table.Searching.Searchable.GetOptions(),
 		)
 		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-		tbl.Refresh()
+		
 	})
 
 	return body

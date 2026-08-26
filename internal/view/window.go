@@ -257,3 +257,5 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 
 	return label
 }
+
+

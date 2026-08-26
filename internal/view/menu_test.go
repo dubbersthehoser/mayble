@@ -6,6 +6,80 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
+func TestFileMenu(t *testing.T) {
+	bodyList := []int{
+		viewmodel.BodyTable,
+		viewmodel.BodyNoData,
+		viewmodel.BodyBookEdit,
+		viewmodel.BodyBookCreate,
+		viewmodel.BodyManual,
+	}
+	tests := []struct{
+		Label        string
+		BodyDisabled []bool
+		DialogName   string
+	}{
+		{
+			Label: "Current Database",
+			BodyDisabled: []bool{false, false, false, false, false},
+			DialogName: "ShowDatabasePath",
+		},     
+		{
+			Label: "Open",
+			BodyDisabled: []bool{false, false, true, true, true},
+			DialogName: "OpenDatabase",
+		},     
+		{
+			Label: "Create",
+			BodyDisabled: []bool{false, false, true, true, true},
+			DialogName: "CreateDatabase",
+		},     
+		{
+			Label: "Import",
+			BodyDisabled: []bool{false, true, true, true, true},
+			DialogName: "ImportCSV",
+		},     
+		{
+			Label: "Export",
+			BodyDisabled: []bool{false, true, true, true, true},
+			DialogName: "ExportCSV",
+		},     
+	}
+
+	cb := NewCommandBus()
+	eb := NewEventBus()
+	file := newFileMenu(eb, cb)
+
+	if len(file.Items) != len(tests) {
+		t.Fatalf("expect length %d, got %d", len(tests), len(file.Items))
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.Label, func(t *testing.T) {
+			item := file.Items[i]
+			if item.Label != tt.Label {
+				t.Fatalf("expect %s, got %s", tt.Label, item.Label)
+			}
+			for idx, body := range bodyList {
+				eb.Notify(BodyChanged{Body: body})
+				if item.Disabled != tt.BodyDisabled[idx] {
+					t.Fatalf("[%d] expect %t, got %t", idx, tt.BodyDisabled[i], item.Disabled)
+				}
+			}
+
+			cb.Regester("OpenDialog", func(v any) error {
+				d := v.(OpenDialog)
+				if d.Name != tt.DialogName {
+					t.Fatalf("expect %s, got %s", tt.DialogName, d.Name)
+				}
+				return nil
+			})
+			item.Action()
+		})
+	}
+
+}
+
 func TestTableMenu(t *testing.T) {
 
 	const (
