@@ -34,11 +34,12 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 	w := f.w
 
 	cb := NewCommandBus()
-	ce := NewEventBus()
+	eb := NewEventBus()
 
-	_, _ = cb, ce // Todo: Remove this once done
+	setupCommandBus(cb, vm, f)
+	setupEventBus(eb, vm)
 
-	w.SetMainMenu(newMainMenu(vm, w))
+	w.SetMainMenu(newMainMenu(vm, eb, cb))
 
 	status := newStatusLine(vm.StatusLine)
 	controls := newControls(vm)
@@ -52,16 +53,46 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 
 	view := container.NewBorder(topBar, nil, nil, nil, body)
 
+	vm.Table.Settings.NotifyOnHidden()
+
 	return view
 }
 
-func setupCommandBus(cb *CommandBus, vm *viewmodel.Window) {
-	
+func setupCommandBus(cb *CommandBus, vm *viewmodel.Window, f *Fyne) {
 	cb.Regester("OpenDialog", func(v any) error {
-		args := v.(OpenDialog)
-		switch
-		return nil
+		return restrictsOpenDialog(v.(OpenDialog), vm, f.w)
 	})
+	cb.Regester("ToggleHiddenColumn", func(v any) error {
+		return commandToggleHiddenColumn(v.(ToggleHiddenColumn), vm)
+	})
+}
+
+func setupEventBus(eb *EventBus, vm *viewmodel.Window) {
+	vm.Body.AddListener(func() {
+		eb.Notify(BodyChanged{Body: vm.Body.Value()})
+	})
+
+	vm.Table.Settings.AddOnHidden(func() {
+		eb.Notify(ColumnHiddenChanged{
+			ID:      vm.Table.Settings.IsIDHidden(),
+			LoanSet: vm.Table.Settings.IsLoanHidden(),
+			ReadSet: vm.Table.Settings.IsReadHidden(),
+		})
+	})
+}
+
+func commandToggleHiddenColumn(args ToggleHiddenColumn, vm *viewmodel.Window) error {
+	switch args.Column {
+	case "LoanSet":
+		_ = vm.Table.Settings.ToggleHiddenLoan()
+	case "ReadSet":
+		_ = vm.Table.Settings.ToggleHiddenRead()
+	case "ID":
+		_ = vm.Table.Settings.ToggleHiddenID()
+	default:
+		log.Printf("toggle_hidden_column %s: invalid column", args.Column)
+	}
+	return nil
 }
 
 func newBody(vm *viewmodel.Window) fyne.CanvasObject {

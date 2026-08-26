@@ -217,7 +217,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	// Allow table sheet to load data from database when there is a change.
 	// Be it from regular CRUD operations, and the opening, and creation of a database file.
-	srv.AddListener(func(){
+	srv.AddListener(func() {
 		w.Table.Sheet.Load()
 	})
 

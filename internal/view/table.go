@@ -95,15 +95,14 @@ func newTable(vm *viewmodel.Window) *Table {
 
 	tbl := &Table{
 		Table: widget.Table{
-			Length: Length,
-			CreateCell: CreateCell,
-			UpdateCell: UpdateCell,
+			Length:           Length,
+			CreateCell:       CreateCell,
+			UpdateCell:       UpdateCell,
 			ShowHeaderColumn: false,
-			ShowHeaderRow: true,
+			ShowHeaderRow:    true,
 		},
 	}
 	tbl.ExtendBaseWidget(tbl)
-
 
 	// Header buttons
 	tbl.header = NewHeader(vm)
@@ -224,14 +223,14 @@ func (h *Header) Pressed(label string) {
 
 type HeaderButton struct {
 	widget.Button
-	header  *Header
-	label   string
+	header *Header
+	label  string
 }
 
 func NewHeaderButton(h *Header) *HeaderButton {
 
 	hb := &HeaderButton{
-		header:  h,
+		header: h,
 	}
 
 	hb.OnTapped = func() {
@@ -261,7 +260,7 @@ func (hb *HeaderButton) MinSize() fyne.Size {
 	minWidth := hb.header.vm.Table.Settings.HeaderMinWidth()
 	height := hb.header.vm.Table.Settings.HeaderHeight()
 	minSize := fyne.Size{
-		Width: minWidth,
+		Width:  minWidth,
 		Height: height,
 	}
 	return minSize

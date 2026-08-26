@@ -235,8 +235,8 @@ func (s *Sorting) notify() {
 //
 
 type Settings struct {
-	cfg *config.Config
-	onHidden   []func()
+	cfg      *config.Config
+	onHidden []func()
 }
 
 func NewSettings(cfg *config.Config) *Settings {
@@ -270,7 +270,14 @@ func (ts *Settings) SetIDHidden(t bool) {
 	header := ts.cfg.UI.Headers[models.IdxID]
 	header.IsHidden = t
 	ts.cfg.UI.Headers[models.IdxID] = header
-	ts.notifyOnHidden()
+	ts.NotifyOnHidden()
+}
+
+func (ts *Settings) ToggleHiddenID() bool {
+	header := ts.cfg.UI.Headers[models.IdxID]
+	t := !header.IsHidden
+	ts.SetIDHidden(t)
+	return t
 }
 
 func (ts *Settings) SetLoanHidden(t bool) {
@@ -284,7 +291,15 @@ func (ts *Settings) SetLoanHidden(t bool) {
 	ts.cfg.UI.Headers[models.IdxLoanedAt] = loaned
 	ts.cfg.UI.Headers[models.IdxBorrower] = borrower
 
-	ts.notifyOnHidden()
+	ts.NotifyOnHidden()
+}
+
+func (ts *Settings) ToggleHiddenLoan() bool {
+	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
+	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
+	t := !(loaned.IsHidden || borrower.IsHidden)
+	ts.SetLoanHidden(t)
+	return t
 }
 
 func (ts *Settings) SetReadHidden(t bool) {
@@ -297,7 +312,15 @@ func (ts *Settings) SetReadHidden(t bool) {
 	ts.cfg.UI.Headers[models.IdxRating] = rating
 	ts.cfg.UI.Headers[models.IdxCompletedAt] = completed
 
-	ts.notifyOnHidden()
+	ts.NotifyOnHidden()
+}
+
+func (ts *Settings) ToggleHiddenRead() bool {
+	rating := ts.cfg.UI.Headers[models.IdxRating]
+	completed := ts.cfg.UI.Headers[models.IdxCompletedAt]
+	t := !(completed.IsHidden || rating.IsHidden)
+	ts.SetReadHidden(t)
+	return t
 }
 
 func (ts *Settings) SetWidth(label string, width float32) {
@@ -334,7 +357,7 @@ func (ts *Settings) AddOnHidden(fn func()) {
 	ts.onHidden = append(ts.onHidden, fn)
 }
 
-func (ts *Settings) notifyOnHidden() {
+func (ts *Settings) NotifyOnHidden() {
 	for _, fn := range ts.onHidden {
 		fn()
 	}

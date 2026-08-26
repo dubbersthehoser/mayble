@@ -15,13 +15,13 @@ const Version string = "2.0.2" // modified by ./scripts/version.sh
 
 // default values for config.
 const (
-	windowHeight         float32 = 600
-	windowWidth          float32 = 900
-	windowFullScreen     bool    = false
-	minHeaderBtnWidth    float32 = 25.0
-	minHeaderBtnHeight   float32 = 25.0
-	baseHeaderBtnWidth   float32 = 100.0
-	tableSortByIdx       int     = models.IdxTitle
+	windowHeight       float32 = 600
+	windowWidth        float32 = 900
+	windowFullScreen   bool    = false
+	minHeaderBtnWidth  float32 = 25.0
+	minHeaderBtnHeight float32 = 25.0
+	baseHeaderBtnWidth float32 = 100.0
+	tableSortByIdx     int     = models.IdxTitle
 )
 
 var (
@@ -67,20 +67,20 @@ func NewConfigWithDefaults(configFile string) *Config {
 		Version:    Version,
 		ConfigFile: configFile,
 		UI: UI{
-			Headers:              make(map[int]Header),
-			TableHeaderHeight:    minHeaderBtnHeight,
-			TableMinWidth:        minHeaderBtnWidth,
-			TableSortBy:          tableSortByIdx,
-			WindowHeight:         windowHeight,
-			WindowWidth:          windowWidth,
-			WindowFullScreen:     windowFullScreen,
+			Headers:           make(map[int]Header),
+			TableHeaderHeight: minHeaderBtnHeight,
+			TableMinWidth:     minHeaderBtnWidth,
+			TableSortBy:       tableSortByIdx,
+			WindowHeight:      windowHeight,
+			WindowWidth:       windowWidth,
+			WindowFullScreen:  windowFullScreen,
 		},
 	}
 
 	headerLabels := models.BookEntryFields()
 	for i, label := range headerLabels {
 		header := Header{
-			Name: label,
+			Name:  label,
 			Width: baseHeaderBtnWidth,
 		}
 		if label == headerLabels[models.IdxID] {

@@ -2,9 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
-	"errors"
 
 	"github.com/dubbersthehoser/mayble/internal/sqlite"
 	"github.com/dubbersthehoser/mayble/internal/sqlite/database"

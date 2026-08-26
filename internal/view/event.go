@@ -25,11 +25,13 @@ func (eb *EventBus) Subscribe(name string, h func(any)) {
 }
 
 func (eb *EventBus) Notify(ev any) {
-	
+
 	var name string
 	switch ev.(type) {
-	case EventColumnHidden:
-		name = "EventHidden"
+	case BodyChanged:
+		name = "BodyChanged"
+	case ColumnHiddenChanged:
+		name = "ColumnHiddenChanged"
 	default:
 		log.Println("eventbus: notify: type not found")
 		return
@@ -45,8 +47,12 @@ func (eb *EventBus) Notify(ev any) {
 	}
 }
 
-type EventColumnHidden struct {
-	name   string
-	active bool
+type BodyChanged struct {
+	Body int
 }
 
+type ColumnHiddenChanged struct {
+	ID      bool
+	LoanSet bool
+	ReadSet bool
+}

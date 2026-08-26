@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	//"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/widget"
 	_ "fyne.io/fyne/v2/test"
+	"fyne.io/fyne/v2/widget"
 
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func TestTable(t *testing.T) {
-	
+
 	cfg := config.NewConfigWithDefaults("")
 	vm := viewmodel.NewWindow(cfg)
 	table := newTable(vm)
@@ -22,14 +22,12 @@ func TestTable(t *testing.T) {
 		t.Fatalf("header buttons don't exists after creating table")
 	}
 
-	// need to call UpdateHeader() manualy for all header buttons. fyne test code 
+	// need to call UpdateHeader() manualy for all header buttons. fyne test code
 	// dose not call it. Only the CreateHeader() after calling Refresh()
 	for i, h := range table.header.buttons {
 		cellID := widget.TableCellID{Col: i, Row: -1}
 		table.UpdateHeader(cellID, h)
 	}
-
-
 
 	// Seems like I can't test widget widths in fyne tests,
 	// so I'm commenting this out.

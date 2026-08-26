@@ -45,6 +45,5 @@ type OpenDialog struct {
 }
 
 type ToggleHiddenColumn struct {
-	ColumnName string
+	Column string
 }
-

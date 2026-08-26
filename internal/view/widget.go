@@ -2,9 +2,9 @@ package view
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
-	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
@@ -94,7 +94,7 @@ type Check struct {
 func NewCheckWithData(label string, b binding.Bool) *Check {
 	c := &Check{}
 	c.Check.Text = label
-	c.Check.Bind(b)	
+	c.Check.Bind(b)
 	c.ExtendBaseWidget(c)
 	return c
 }
@@ -107,4 +107,3 @@ func (c *Check) TypedKey(ev *fyne.KeyEvent) {
 		c.Check.TypedKey(ev)
 	}
 }
-
