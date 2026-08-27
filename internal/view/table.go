@@ -16,18 +16,18 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := NewSearchEntry(
 		func() {
-			vm.Table.Searching.Next()
+			vm.Table.NextSearchedItem()
 		},
 		func() {
-			vm.Table.Searching.Prev()
+			vm.Table.PrevSearchedItem()
 		},
 	)
 	search.OnChanged = vm.Table.Search
 	searchBy := widget.NewSelect(
-		vm.Table.Searching.Searchable.GetOptions(),
-		vm.Table.Searching.Searchable.SetBy,
+		vm.Table.SearchableOptions(),
+		vm.Table.SearchableSetBy,
 	)
-	searchBy.SetSelected(vm.Table.Searching.Searchable.GetOptions()[0])
+	searchBy.SetSelected(vm.Table.SearchableOptions()[0])
 
 	top := container.NewGridWithColumns(2, search, searchBy)
 	// Wrapped table view with stack layout, so table can be changed with out needing to know its exact location in body container.
@@ -35,7 +35,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	body := container.NewBorder(top, nil, nil, nil, tbl)
 
 	// Create a new table when column is hidden.
-	vm.Table.Settings.AddOnHidden(func() {
+	vm.Table.AddListenerOnHidden(func() {
 		var (
 			searchByIdx int = 1
 		)
@@ -49,10 +49,9 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 			})
 		}()
 		top.Objects[searchByIdx].(*widget.Select).SetOptions(
-			vm.Table.Searching.Searchable.GetOptions(),
+			vm.Table.SearchableOptions(),
 		)
 		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-		
 	})
 
 	return body
@@ -73,7 +72,7 @@ func newTable(vm *viewmodel.Window) *Table {
 	// The selection system will ignore this selection of those cells.
 
 	Length := func() (rowLen, colLen int) {
-		rowLen, colLen = vm.Table.Sheet.Size()
+		rowLen, colLen = vm.Table.Size()
 		colLen += 1 // (A) have an extra header.
 		return
 	}
@@ -83,10 +82,10 @@ func newTable(vm *viewmodel.Window) *Table {
 		return object
 	}
 	UpdateCell := func(cellID widget.TableCellID, object fyne.CanvasObject) {
-		_, colLen := vm.Table.Sheet.Size()
+		_, colLen := vm.Table.Size()
 		if cellID.Col < colLen {
 			point := table.Point{Row: cellID.Row, Col: cellID.Col}
-			data, err := vm.Table.Sheet.Get(point)
+			data, err := vm.Table.GetDataPoint(point)
 			if err != nil {
 				log.Println("view table:", err)
 				data = "ERROR"
@@ -122,22 +121,23 @@ func newTable(vm *viewmodel.Window) *Table {
 			return
 		}
 
-		_, colLen := vm.Table.Sheet.Size()
+		_, colLen := vm.Table.Size()
 		if cellID.Col < colLen {
 			// set size
-			label := vm.Table.Sheet.Header()[cellID.Col]
+			label := vm.Table.Header()[cellID.Col]
 			btnWidth := object.Size().Width
-			cfgWidth := vm.Table.Settings.GetWidth(label)
+			cfgWidth := vm.Table.GetColumnWidth(label)
 			if btnWidth != cfgWidth {
 				if object.(*HeaderButton).label != label {
 					tbl.SetColumnWidth(cellID.Col, cfgWidth)
 				} else {
-					vm.Table.Settings.SetWidth(label, btnWidth)
+					vm.Table.SetColumnWidth(label, btnWidth)
 				}
 			}
 			// update header button
-			by := vm.Table.Sorting.GetOrderBy()
-			asc := vm.Table.Sorting.GetAscending()
+			by := vm.Table.GetSortingOrderBy()
+
+			asc := vm.Table.GetSortingAscending()
 			object.(*HeaderButton).Update(label, by, asc)
 			object.(*HeaderButton).Show()
 		} else { // (A) create hidden header.
@@ -146,27 +146,26 @@ func newTable(vm *viewmodel.Window) *Table {
 	}
 
 	// Set the width of the columns from settings.
-	for i, label := range vm.Table.Sheet.Header() {
-		width := vm.Table.Settings.GetWidth(label)
+	for i, label := range vm.Table.Header() {
+		width := vm.Table.GetColumnWidth(label)
 		tbl.SetColumnWidth(i, width)
 	}
 
 	// Selection Events
 	tbl.OnSelected = func(id widget.TableCellID) {
 		point := table.Point{Row: id.Row, Col: id.Col}
-		vm.Table.Selected.Select(point)
+		vm.Table.SelectPoint(point)
 	}
 
 	tbl.OnUnselected = func(id widget.TableCellID) {
-		vm.Table.Selected.Unselect()
+		vm.Table.UnselectPoint()
 		tbl.UnselectAll()
 	}
 
 	// Listen for select events, then select, or unselect.
-	vm.Table.Selected.AddListener(func() {
-		if vm.Table.Selected.Has() {
-			point := vm.Table.Selected.Get()
-			maxRow, maxCol := vm.Table.Sheet.Size()
+	vm.Table.AddSelectedListener(func(has bool, point table.Point) {
+		if has {
+			maxRow, maxCol := vm.Table.Size()
 			if point.Row >= maxRow || point.Col >= maxCol { // (A) unselect the hidden cell if selected.
 				id := widget.TableCellID{Row: point.Row, Col: point.Col}
 				tbl.Unselect(id)
@@ -180,7 +179,7 @@ func newTable(vm *viewmodel.Window) *Table {
 	})
 
 	// Listen for updates from table
-	vm.Table.Sheet.AddListener(func() {
+	vm.Table.AddListenerOnDataChanged(func() {
 		tbl.UnselectAll()
 		tbl.Refresh()
 	})
@@ -207,8 +206,9 @@ func (h *Header) NewHeaderButton() *HeaderButton {
 }
 
 func (h *Header) Pressed(label string) {
-	by := h.vm.Table.Sorting.GetOrderBy()
-	asc := h.vm.Table.Sorting.GetAscending()
+
+	by := h.vm.Table.GetSortingOrderBy()
+	asc := h.vm.Table.GetSortingAscending()
 
 	if by == label {
 		asc = !asc
@@ -217,14 +217,14 @@ func (h *Header) Pressed(label string) {
 		asc = false
 	}
 
-	h.vm.Table.Sorting.SetOrderBy(by)
-	h.vm.Table.Sorting.SetAscending(asc)
+	h.vm.Table.SetSortingOrderBy(by)
+	h.vm.Table.SetSortingAscending(asc)
 
 	for _, btn := range h.buttons {
 		btn.Update(btn.label, by, asc)
 	}
 
-	h.vm.Table.Sorting.Sort()
+	h.vm.Table.Sort()
 }
 
 type HeaderButton struct {
@@ -263,8 +263,8 @@ func (hb *HeaderButton) Update(label string, by string, asc bool) {
 }
 
 func (hb *HeaderButton) MinSize() fyne.Size {
-	minWidth := hb.header.vm.Table.Settings.HeaderMinWidth()
-	height := hb.header.vm.Table.Settings.HeaderHeight()
+	minWidth := hb.header.vm.Table.HeaderMinWidth()
+	height := hb.header.vm.Table.HeaderHeight()
 	minSize := fyne.Size{
 		Width:  minWidth,
 		Height: height,

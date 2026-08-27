@@ -53,7 +53,7 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 
 	view := container.NewBorder(topBar, nil, nil, nil, body)
 
-	vm.Table.Settings.NotifyOnHidden()
+	vm.Table.NotifyOnColumnHidden()
 
 	return view
 }
@@ -154,7 +154,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	vm.Table.Selected.AddListener(func() {
 		point := vm.Table.Selected.Get()
 		if vm.Table.Selected.Has() {
-			data, err := vm.Table.Sheet.Get(point)
+			data, err := vm.Table.GetDataPoint(point)
 			if err != nil {
 				log.Println("view display select:", err)
 				return

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"slices"
+	"sync"
+	"fmt"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
@@ -14,6 +16,73 @@ import (
 )
 
 type GetAllBooks func() ([]models.BookEntry, error)
+
+type BookData struct {
+	data    []models.BookEntry
+	rowToID map[int]int64
+	idToRow map[int64]int
+	mu      sync.RWMutex
+}
+
+func NewBookData() *BookData {
+	bd := &BookData{
+		rowToID: make(map[int]int64),
+		idToRow: make(map[int64]int),
+		data: make([]models.BookEntry, 0),
+
+	}
+	return bd
+}
+
+func (bd *BookData) Get(p Point) (string, error) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+	if p.Row >= len(bd.data) || p.Col < 0 {
+		return "", errors.New("point.row out of range")
+	}
+	fields := display.EntryValues(&bd.data[p.Row])
+	if p.Col >= len(fields) || p.Col < 0 {
+		return "", errors.New("point.col out of range")
+	}
+	return fields[p.Col], nil
+}
+
+func (bd *BookData) RowToID(row int) (int64, error) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+	id, ok := bd.rowToID[row]
+	if !ok {
+		return 0, fmt.Errorf("row_to_id %d: row not found")
+	}
+	return id, nil
+}
+
+func (bd*BookData) IDToRow(id int64) (int, error) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+	row, ok := bd.idToRow[id]
+	if !ok {
+		return 0, fmt.Errorf("id_to_row %d: id not found", id)
+	}
+	return row, nil
+}
+
+func (bd*BookData) Size() (rows, cols int) {
+	bd.mu.RLock()
+	defer bd.mu.RUnlock()
+	rows = len(bd.data)
+	if rows == 0 {
+		return 0, 0
+	}
+	cols = len(models.BookEntryFields())
+	return
+}
+
+func (bd *BookData) Set(data []models.BookEntry)  {
+	bd.mu.Lock()
+	defer bd.mu.Unlock()
+	bd.data = data
+}
 
 type Point struct {
 	Col int
@@ -25,55 +94,195 @@ func (p Point) IsSelectable() bool {
 }
 
 type Table struct {
-	Sheet     *Sheet
-	Settings  *Settings
-	Sorting   *Sorting
-	Searching *Searching
-	Selected  *Selected
+	sheet     *Sheet
+	settings  *Settings
+	sorting   *Sorting
+	searching *Searching
+	selected  *Selected
+
+	// muSheet mutex for when Sheet is being touched by mutiple threads.
+	// Inpaticular the main UI thread, search, and recreating Sheet threads.
+	// NOTE:(dth): Best for [view.Table] be the only one to call [Sheet] methods.
+	muSheet sync.RWMutex
 }
 
 func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
 	t := &Table{
-		Sheet:    NewSheet(cfg, fetch),
-		Sorting:  NewSorting(cfg),
-		Settings: NewSettings(cfg),
-		Selected: newSelected(),
+		sheet:    NewSheet(cfg, fetch),
+		sorting:  NewSorting(cfg),
+		settings: NewSettings(cfg),
+		selected: newSelected(),
 	}
 
-	t.Searching = NewSearching(t)
+	t.searching = NewSearching(t)
 
-	t.Searching.AddListener(func() {
-		if t.Searching.Has() {
-			t.Selected.Select(t.Searching.Selected())
+	t.searching.AddListener(func() {
+		if t.searching.Has() {
+			t.selected.Select(t.searching.Selected())
 		} else {
-			t.Selected.Unselect()
+			t.selected.Unselect()
 		}
 	})
 
-	t.Sorting.AddListener(func() {
-		t.Sheet.Load()
-		t.Selected.Unselect()
+	t.sorting.AddListener(func() {
+		t.sheet.Load()
+		t.selected.Unselect()
 	})
 
-	t.Settings.AddOnHidden(func() {
-		t.Selected.Unselect()
+	t.settings.AddOnHidden(func() {
+		t.selected.Unselect()
 	})
 
 	return t
 }
 
 func (t *Table) NewSheet() {
-	old := t.Sheet
-	t.Sheet = NewSheet(old.cfg, old.fetch)
-	t.Sheet.Load()
+	t.muSheet.Lock()
+	defer t.muSheet.Unlock()
+	old := t.sheet
+	t.sheet = NewSheet(old.cfg, old.fetch)
+	t.sheet.Load()
+}
+
+func (t *Table) GetDataPoint(p Point) (string, error) {
+	t.muSheet.Lock()
+	defer t.muSheet.Unlock()
+	return t.sheet.Get(p)
 }
 
 func (t *Table) Search(s string) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
 	if s == "" {
-		t.Selected.Unselect()
+		t.selected.Unselect()
 		return
 	}
-	t.Searching.Search(s)
+	t.searching.search(s)
+}
+
+func (t *Table) NextSearchedItem() {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.searching.Next()
+}
+
+func (t *Table) PrevSearchedItem() {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.searching.Prev()
+}
+
+func (t *Table) SearchableOptions() []string {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.searching.Searchable.GetOptions()
+}
+
+func (t *Table) SearchableSetBy(s string) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.searching.Searchable.SetBy(s)
+}
+
+func (t *Table) AddListenerOnHidden(h func()) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.settings.AddOnHidden(h)
+}
+
+func (t *Table) Size() (int, int) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.sheet.Size()
+}
+
+func (t *Table) Header() []string {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.sheet.Header()
+}
+
+func (t *Table) GetColumnWidth(label string) float32 {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.settings.GetWidth(label)
+}
+
+func (t *Table) SetColumnWidth(label string, width float32) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.settings.SetWidth(label, width)
+}
+
+func (t *Table) GetSortingOrderBy() string {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.sorting.GetOrderBy()
+}
+func (t *Table) SetSortingOrderBy(by string) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.sorting.SetOrderBy(by)
+}
+
+func (t *Table) GetSortingAscending() bool {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.sorting.GetAscending()
+}
+
+func (t *Table) SetSortingAscending(b bool) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.sorting.SetAscending(b)
+}
+
+func (t *Table) Sort() {
+	t.muSheet.Lock()
+	defer t.muSheet.Unlock()
+	t.sorting.Sort()
+}
+
+func (t *Table) SelectPoint(p Point) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.selected.Select(p)
+}
+
+func (t *Table) UnselectPoint() {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.selected.Unselect()
+}
+
+func (t *Table) AddSelectedListener(h func(has bool, p Point)) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.selected.AddListener(h)
+}
+
+func (t *Table) AddListenerOnDataChanged(h func()) {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.sheet.AddListener(h)
+}
+
+func (t *Table) HeaderHeight() float32 {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.settings.HeaderHeight()
+}
+
+func (t *Table) HeaderMinWidth() float32 {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	return t.settings.HeaderMinWidth()
+}
+
+func (t *Table) NotifyOnColumnHidden() {
+	t.muSheet.RLock()
+	defer t.muSheet.RUnlock()
+	t.settings.NotifyOnHidden()
 }
 
 //
@@ -83,9 +292,9 @@ func (t *Table) Search(s string) {
 type Sheet struct {
 	fetch GetAllBooks
 	cfg   *config.Config
-	data  [][]string
+	data  *BookData
 
-	rowToID map[int]int64
+	sortedLookup map[int]int64
 
 	l []func()
 }
@@ -94,38 +303,35 @@ func NewSheet(cfg *config.Config, fetch GetAllBooks) *Sheet {
 	s := &Sheet{
 		fetch:   fetch,
 		cfg:     cfg,
-		data:    make([][]string, 0),
-		rowToID: make(map[int]int64),
+		data:    NewBookData(),
+		sortedLookup: make(map[int]int64),
 	}
 	return s
 }
 
 func (s *Sheet) RowToID(row int) (int64, bool) {
-	v, ok := s.rowToID[row]
-	return v, ok
+	id, ok := s.sortedLookup[row]
+	return id, ok
 }
 
 func (s *Sheet) Get(p Point) (string, error) {
-	if p.Row >= len(s.data) || p.Row < 0 {
-		return "", errors.New("row point out of range")
+	col, err := columnLookaside(s.cfg, p.Col)
+	if err != nil {
+		return "", err
 	}
-	if p.Col >= len(s.data[p.Row]) || p.Col < 0 {
-		return "", errors.New("column point out of range")
+	p.Col = col
+	id := s.sortedLookup[p.Row]
+	p.Row, err = s.data.IDToRow(id)
+	if err != nil {
+		return "", err
 	}
-	return s.data[p.Row][p.Col], nil
+	return s.data.Get(p)
 }
 
-func (s *Sheet) Size() (length, width int) {
-
-	headers := models.BookEntryFields()
-
-	for _, idx := range removeHiddenColumns(s.cfg) {
-		headers = slices.Delete(headers, idx, idx+1)
-	}
-
-	width = len(headers)
-	length = len(s.data)
-	return length, width
+func (s *Sheet) Size() (rows, cols int) {
+	rows, _  = s.data.Size()
+	cols = len(includedColumns(s.cfg))
+	return
 }
 
 func (s *Sheet) Header() []string {
@@ -147,20 +353,15 @@ func (s *Sheet) Load() error {
 		return err
 	}
 
+	// load the unsorted data, sort, then add to sort lookup.
+	_ = s.data.Load(books)
 	if err := app.SortBooks(books, by, asc); err != nil {
 		return err
 	}
-
-	s.data = s.data[:0]
-	clear(s.rowToID)
-
-	for row, book := range books {
-		s.rowToID[row] = book.ID
-		values := display.EntryValues(&book)
-		for _, idx := range removeHiddenColumns(s.cfg) {
-			values = slices.Delete(values, idx, idx+1)
-		}
-		s.data = append(s.data, values)
+	clear(s.sortedLookup)
+	for sRow := range books {
+		id := books[sRow].ID
+		s.sortedLookup[sRow] = id
 	}
 
 	s.notify()
@@ -387,7 +588,7 @@ func NewSearchable(t *Table) *Searchable {
 		table: t,
 	}
 
-	t.Settings.AddOnHidden(func() {
+	t.settings.AddOnHidden(func() {
 		s.notify()
 	})
 	return s
@@ -397,7 +598,7 @@ func (s *Searchable) GetOptions() []string {
 	o := []string{
 		"All",
 	}
-	o = append(o, s.table.Sheet.Header()...)
+	o = append(o, s.table.sheet.Header()...)
 	return o
 }
 
@@ -406,7 +607,7 @@ func (s *Searchable) SetBy(c string) {
 		s.column = columnAll
 		return
 	}
-	s.column = slices.Index(s.table.Sheet.Header(), c)
+	s.column = slices.Index(s.table.sheet.Header(), c)
 }
 
 func (s *Searchable) AddListener(fn func()) {
@@ -479,8 +680,9 @@ func (s *Searching) notify() {
 	}
 }
 
-func (s *Searching) Search(pattern string) {
-	data := s.table.Sheet.data
+func (s *Searching) search(pattern string) {
+	data := s.table.sheet.data
+
 	var trv search.Traverser
 	if s.Searchable.column == columnAll {
 		trv = (&search.TableTraverse{}).Set(data)
@@ -539,7 +741,7 @@ func (s *Searching) searchToScored(srch *search.Searcher) {
 
 type Selected struct {
 	point Point
-	l     []func()
+	l     []func(has bool, p Point)
 }
 
 func newSelected() *Selected {
@@ -562,24 +764,24 @@ func (es *Selected) Unselect() {
 	es.notify()
 }
 
-func (es *Selected) Get() Point {
+func (es *Selected) get() Point {
 	return es.point
 }
 
-func (es *Selected) Has() bool {
+func (es *Selected) has() bool {
 	return es.point.IsSelectable()
 }
 
-func (es *Selected) AddListener(fn func()) {
+func (es *Selected) AddListener(fn func(has bool, p Point)) {
 	if es.l == nil {
-		es.l = make([]func(), 0)
+		es.l = make([]func(has bool, p Point), 0)
 	}
 	es.l = append(es.l, fn)
 }
 
 func (es *Selected) notify() {
 	for _, fn := range es.l {
-		fn()
+		fn(es.has(), es.get())
 	}
 }
 
@@ -614,3 +816,28 @@ func removeHiddenColumns(cfg *config.Config) []int {
 	}
 	return indexs
 }
+
+func includedColumns(cfg *config.Config) []int {
+	indexes := make([]int, 0 )
+	for idx, h := range cfg.UI.Headers {
+		if !h.IsHidden{
+			indexes = append(indexes, idx)
+		}
+	}
+	return indexes
+}
+
+func columnLookaside(cfg *config.Config, col int) (int, error) {
+	count := -1
+	for idx, h := range cfg.UI.Headers {
+		if !h.IsHidden {
+			count += 1
+		}
+
+		if col == count {
+			return idx, nil
+		}
+	}
+	return 0, fmt.Errorf("lookaside %d: invalid column", col)
+}
+
