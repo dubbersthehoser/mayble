@@ -35,7 +35,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	body := container.NewBorder(top, nil, nil, nil, tbl)
 
 	// Create a new table when column is hidden.
-	vm.Table.AddListenerOnHidden(func() {
+	vm.Table.OnNewSheet = func() {
 		var (
 			searchByIdx int = 1
 		)
@@ -52,7 +52,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 			vm.Table.SearchableOptions(),
 		)
 		top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-	})
+	}
 
 	return body
 }

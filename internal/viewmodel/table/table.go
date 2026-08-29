@@ -15,8 +15,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
-type GetAllBooks func() ([]models.BookEntry, error)
-
 type BookData struct {
 	data    []models.BookEntry
 	rowToID map[int]int64
@@ -24,12 +22,11 @@ type BookData struct {
 	mu      sync.RWMutex
 }
 
-func NewBookData() *BookData {
+func NewBookData(books []models.BookEntry) *BookData {
 	bd := &BookData{
 		rowToID: make(map[int]int64),
 		idToRow: make(map[int64]int),
-		data: make([]models.BookEntry, 0),
-
+		data: books,
 	}
 	return bd
 }
@@ -78,12 +75,6 @@ func (bd*BookData) Size() (rows, cols int) {
 	return
 }
 
-func (bd *BookData) Set(data []models.BookEntry)  {
-	bd.mu.Lock()
-	defer bd.mu.Unlock()
-	bd.data = data
-}
-
 type Point struct {
 	Col int
 	Row int
@@ -100,212 +91,62 @@ type Table struct {
 	searching *Searching
 	selected  *Selected
 
-	// muSheet mutex for when Sheet is being touched by mutiple threads.
-	// Inpaticular the main UI thread, search, and recreating Sheet threads.
-	// NOTE:(dth): Best for [view.Table] be the only one to call [Sheet] methods.
-	muSheet sync.RWMutex
+	OnNewSheet func()
+	OnNewHeader func()
+
+	eb *eventBus
 }
 
-func NewTable(cfg *config.Config, fetch GetAllBooks) *Table {
+func NewTable(cfg *config.Config, books []models.BookEntry) *Table {
+	eb := newEventBus()
 	t := &Table{
-		sheet:    NewSheet(cfg, fetch),
-		sorting:  NewSorting(cfg),
-		settings: NewSettings(cfg),
-		selected: newSelected(),
+		sheet:       NewSheet(getHeaderSet(cfg), books),
+		sorting:     NewSorting(eb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
+		settings:    NewSettings(cfg),
+		selected:    newSelected(),
+		OnNewSheet:  func() {},
+		OnNewHeader: func() {},
 	}
-
-	t.searching = NewSearching(t)
-
-	t.searching.AddListener(func() {
-		if t.searching.Has() {
-			t.selected.Select(t.searching.Selected())
-		} else {
-			t.selected.Unselect()
-		}
-	})
-
-	t.sorting.AddListener(func() {
-		t.sheet.Load()
-		t.selected.Unselect()
-	})
-
-	t.settings.AddOnHidden(func() {
-		t.selected.Unselect()
-	})
-
 	return t
 }
 
-func (t *Table) NewSheet() {
-	t.muSheet.Lock()
-	defer t.muSheet.Unlock()
-	old := t.sheet
-	t.sheet = NewSheet(old.cfg, old.fetch)
-	t.sheet.Load()
+func (t *Table) NewSheet(books []models.BookEntry) {
+	t.sheet = NewSheet(getHeaderSet(t.settings.cfg), books)
+	t.OnNewSheet()
 }
 
-func (t *Table) GetDataPoint(p Point) (string, error) {
-	t.muSheet.Lock()
-	defer t.muSheet.Unlock()
-	return t.sheet.Get(p)
-}
+func (t *Table) ChangeHeader()
 
-func (t *Table) Search(s string) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	if s == "" {
-		t.selected.Unselect()
-		return
-	}
-	t.searching.search(s)
-}
-
-func (t *Table) NextSearchedItem() {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.searching.Next()
-}
-
-func (t *Table) PrevSearchedItem() {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.searching.Prev()
-}
-
-func (t *Table) SearchableOptions() []string {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.searching.Searchable.GetOptions()
-}
-
-func (t *Table) SearchableSetBy(s string) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.searching.Searchable.SetBy(s)
-}
-
-func (t *Table) AddListenerOnHidden(h func()) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.settings.AddOnHidden(h)
-}
-
-func (t *Table) Size() (int, int) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.sheet.Size()
-}
-
-func (t *Table) Header() []string {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.sheet.Header()
-}
-
-func (t *Table) GetColumnWidth(label string) float32 {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.settings.GetWidth(label)
-}
-
-func (t *Table) SetColumnWidth(label string, width float32) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.settings.SetWidth(label, width)
-}
-
-func (t *Table) GetSortingOrderBy() string {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.sorting.GetOrderBy()
-}
-func (t *Table) SetSortingOrderBy(by string) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.sorting.SetOrderBy(by)
-}
-
-func (t *Table) GetSortingAscending() bool {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.sorting.GetAscending()
-}
-
-func (t *Table) SetSortingAscending(b bool) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.sorting.SetAscending(b)
-}
-
-func (t *Table) Sort() {
-	t.muSheet.Lock()
-	defer t.muSheet.Unlock()
-	t.sorting.Sort()
-}
-
-func (t *Table) SelectPoint(p Point) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.selected.Select(p)
-}
-
-func (t *Table) UnselectPoint() {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.selected.Unselect()
-}
-
-func (t *Table) AddSelectedListener(h func(has bool, p Point)) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.selected.AddListener(h)
-}
-
-func (t *Table) AddListenerOnDataChanged(h func()) {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.sheet.AddListener(h)
-}
-
-func (t *Table) HeaderHeight() float32 {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.settings.HeaderHeight()
-}
-
-func (t *Table) HeaderMinWidth() float32 {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	return t.settings.HeaderMinWidth()
-}
-
-func (t *Table) NotifyOnColumnHidden() {
-	t.muSheet.RLock()
-	defer t.muSheet.RUnlock()
-	t.settings.NotifyOnHidden()
-}
 
 //
 // Sheet
 //
 
+var sheetVersion int64
+
 type Sheet struct {
-	fetch GetAllBooks
-	cfg   *config.Config
-	data  *BookData
-
+	data         *BookData
+	headerSet    []int
 	sortedLookup map[int]int64
-
-	l []func()
+	
+	version int64
 }
 
-func NewSheet(cfg *config.Config, fetch GetAllBooks) *Sheet {
+func NewSheet(headerSet []int, books []models.BookEntry) *Sheet {
+	sheetVersion += 1
 	s := &Sheet{
-		fetch:   fetch,
-		cfg:     cfg,
-		data:    NewBookData(),
+		data:    NewBookData(books),
 		sortedLookup: make(map[int]int64),
+		headerSet: headerSet,
+		version: sheetVersion,
 	}
+
+	clear(s.sortedLookup)
+	for sRow := range books {
+		id := books[sRow].ID
+		s.sortedLookup[sRow] = id
+	}
+
 	return s
 }
 
@@ -315,12 +156,9 @@ func (s *Sheet) RowToID(row int) (int64, bool) {
 }
 
 func (s *Sheet) Get(p Point) (string, error) {
-	col, err := columnLookaside(s.cfg, p.Col)
-	if err != nil {
-		return "", err
-	}
-	p.Col = col
+	p.Col = s.headerSet[p.Col]
 	id := s.sortedLookup[p.Row]
+	var err error
 	p.Row, err = s.data.IDToRow(id)
 	if err != nil {
 		return "", err
@@ -330,55 +168,18 @@ func (s *Sheet) Get(p Point) (string, error) {
 
 func (s *Sheet) Size() (rows, cols int) {
 	rows, _  = s.data.Size()
-	cols = len(includedColumns(s.cfg))
+	cols = len(s.headerSet)
 	return
 }
 
 func (s *Sheet) Header() []string {
-	header := models.BookEntryFields()
-	removeIdx := removeHiddenColumns(s.cfg)
-	for _, idx := range removeIdx {
-		header = slices.Delete(header, idx, idx+1)
+	header := make([]string, 0)
+	for idx, label := range models.BookEntryFields() {
+		if slices.Contains(s.headerSet, idx) {
+			header = append(header, label)
+		}
 	}
 	return header
-}
-
-func (s *Sheet) Load() error {
-
-	by := s.cfg.UI.TableSortBy
-	asc := s.cfg.UI.TableAscending
-
-	books, err := s.fetch()
-	if err != nil {
-		return err
-	}
-
-	// load the unsorted data, sort, then add to sort lookup.
-	_ = s.data.Load(books)
-	if err := app.SortBooks(books, by, asc); err != nil {
-		return err
-	}
-	clear(s.sortedLookup)
-	for sRow := range books {
-		id := books[sRow].ID
-		s.sortedLookup[sRow] = id
-	}
-
-	s.notify()
-	return nil
-}
-
-func (s *Sheet) AddListener(fn func()) {
-	if s.l == nil {
-		s.l = make([]func(), 0)
-	}
-	s.l = append(s.l, fn)
-}
-
-func (s *Sheet) notify() {
-	for _, fn := range s.l {
-		fn()
-	}
 }
 
 //
@@ -386,54 +187,38 @@ func (s *Sheet) notify() {
 //
 
 type Sorting struct {
-	cfg *config.Config
-
-	l []func()
+	eb *eventBus
+	column string
+	asc    bool
 }
 
-func NewSorting(cfg *config.Config) *Sorting {
+func NewSorting(eb *eventBus, column string, asc bool) *Sorting {
 	s := &Sorting{
-		cfg: cfg,
+		eb: eb,
+		column: column,
+		asc: asc,
 	}
 	return s
 }
 
 func (s *Sorting) SetOrderBy(l string) {
-	idx := slices.Index(models.BookEntryFields(), l)
-	if idx == -1 {
-		return
-	}
-	s.cfg.UI.TableSortBy = idx
+	s.column = l
 }
 
 func (s *Sorting) SetAscending(t bool) {
-	s.cfg.UI.TableAscending = t
+	s.asc = t
 }
 
 func (s *Sorting) GetOrderBy() string {
-	return models.BookEntryFields()[s.cfg.UI.TableSortBy]
+	return s.column
 }
 
 func (s *Sorting) GetAscending() bool {
-	return s.cfg.UI.TableAscending
+	return s.asc
 }
 
 func (s *Sorting) Sort() {
-	s.notify()
-}
-
-// AddListener for Sort call.
-func (s *Sorting) AddListener(fn func()) {
-	if s.l == nil {
-		s.l = make([]func(), 0)
-	}
-	s.l = append(s.l, fn)
-}
-
-func (s *Sorting) notify() {
-	for _, fn := range s.l {
-		fn()
-	}
+	s.eb.Notify(eventSort{asc: s.asc, column: s.column})
 }
 
 //
@@ -441,6 +226,7 @@ func (s *Sorting) notify() {
 //
 
 type Settings struct {
+	eb       *eventBus
 	cfg      *config.Config
 	onHidden []func()
 }
@@ -453,33 +239,46 @@ func NewSettings(cfg *config.Config) *Settings {
 }
 
 func (ts *Settings) HeaderMinWidth() float32 {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	return ts.cfg.UI.TableMinWidth
 }
 
 func (ts *Settings) HeaderHeight() float32 {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	return ts.cfg.UI.TableHeaderHeight
 }
 
 func (ts *Settings) IsLoanHidden() bool {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	return isLoanHidden(ts.cfg)
 }
 
 func (ts *Settings) IsReadHidden() bool {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	return isReadHidden(ts.cfg)
 }
 
 func (ts *Settings) IsIDHidden() bool {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	return isIDHidden(ts.cfg)
 }
 
 func (ts *Settings) SetIDHidden(t bool) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 	header := ts.cfg.UI.Headers[models.IdxID]
 	header.IsHidden = t
 	ts.cfg.UI.Headers[models.IdxID] = header
-	ts.NotifyOnHidden()
 }
 
 func (ts *Settings) ToggleHiddenID() bool {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	header := ts.cfg.UI.Headers[models.IdxID]
 	t := !header.IsHidden
 	ts.SetIDHidden(t)
@@ -487,6 +286,8 @@ func (ts *Settings) ToggleHiddenID() bool {
 }
 
 func (ts *Settings) SetLoanHidden(t bool) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 
 	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
 	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
@@ -496,11 +297,11 @@ func (ts *Settings) SetLoanHidden(t bool) {
 
 	ts.cfg.UI.Headers[models.IdxLoanedAt] = loaned
 	ts.cfg.UI.Headers[models.IdxBorrower] = borrower
-
-	ts.NotifyOnHidden()
 }
 
 func (ts *Settings) ToggleHiddenLoan() bool {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 	loaned := ts.cfg.UI.Headers[models.IdxLoanedAt]
 	borrower := ts.cfg.UI.Headers[models.IdxBorrower]
 	t := !(loaned.IsHidden || borrower.IsHidden)
@@ -509,6 +310,8 @@ func (ts *Settings) ToggleHiddenLoan() bool {
 }
 
 func (ts *Settings) SetReadHidden(t bool) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 	rating := ts.cfg.UI.Headers[models.IdxRating]
 	completed := ts.cfg.UI.Headers[models.IdxCompletedAt]
 
@@ -517,11 +320,11 @@ func (ts *Settings) SetReadHidden(t bool) {
 
 	ts.cfg.UI.Headers[models.IdxRating] = rating
 	ts.cfg.UI.Headers[models.IdxCompletedAt] = completed
-
-	ts.NotifyOnHidden()
 }
 
 func (ts *Settings) ToggleHiddenRead() bool {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 	rating := ts.cfg.UI.Headers[models.IdxRating]
 	completed := ts.cfg.UI.Headers[models.IdxCompletedAt]
 	t := !(completed.IsHidden || rating.IsHidden)
@@ -530,6 +333,8 @@ func (ts *Settings) ToggleHiddenRead() bool {
 }
 
 func (ts *Settings) SetWidth(label string, width float32) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
@@ -545,6 +350,8 @@ func (ts *Settings) SetWidth(label string, width float32) {
 }
 
 func (ts *Settings) GetWidth(label string) float32 {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
 	idx := slices.Index(models.BookEntryFields(), label)
 	if idx == -1 {
 		log.Printf("Error: invalid header label '%s'", label)
@@ -555,32 +362,14 @@ func (ts *Settings) GetWidth(label string) float32 {
 	return width
 }
 
-// AddOnHidden for changes to hidden columns.
-func (ts *Settings) AddOnHidden(fn func()) {
-	if ts.onHidden == nil {
-		ts.onHidden = make([]func(), 0)
-	}
-	ts.onHidden = append(ts.onHidden, fn)
-}
-
-func (ts *Settings) NotifyOnHidden() {
-	for _, fn := range ts.onHidden {
-		fn()
-	}
-}
-
 //
 // Searching
 //
 
-const columnAll = -1
+const columnAll = "All"
 
 type Searchable struct {
 	table *Table
-
-	column int
-
-	l []func()
 }
 
 func NewSearchable(t *Table) *Searchable {
@@ -588,13 +377,10 @@ func NewSearchable(t *Table) *Searchable {
 		table: t,
 	}
 
-	t.settings.AddOnHidden(func() {
-		s.notify()
-	})
 	return s
 }
 
-func (s *Searchable) GetOptions() []string {
+func (s *Searchable) Options() []string {
 	o := []string{
 		"All",
 	}
@@ -603,30 +389,25 @@ func (s *Searchable) GetOptions() []string {
 }
 
 func (s *Searchable) SetBy(c string) {
+	var col int
 	if c == "All" {
-		s.column = columnAll
-		return
+		col = -1
+	} else {
+		col = slices.Index(s.table.sheet.Header(), c)
 	}
-	s.column = slices.Index(s.table.sheet.Header(), c)
-}
 
-func (s *Searchable) AddListener(fn func()) {
-	if s.l == nil {
-		s.l = make([]func(), 0)
-	}
-	s.l = append(s.l, fn)
-}
-
-func (s *Searchable) notify() {
-	for _, fn := range s.l {
-		fn()
-	}
+	s.table.eb.Notify(eventSearchBy{
+		column: col,
+	})
 }
 
 type Searching struct {
-	table *Table
 
-	Searchable *Searchable
+	sheet *Sheet
+
+	eb *eventBus
+
+	byColumn string
 
 	// The row that is selected from the scored matches.
 	row    int
@@ -635,63 +416,69 @@ type Searching struct {
 	l []func()
 }
 
-func NewSearching(t *Table) *Searching {
+func NewSearching(s *Sheet, eb *eventBus) *Searching {
 	sr := &Searching{
-		table:      t,
-		Searchable: NewSearchable(t),
+		sheet:      s,
+		eb: eb,
 	}
 	return sr
 }
 
-func (s *Searching) Selected() Point {
-	return s.scored[s.row]
-}
-
-func (s *Searching) Has() bool {
+func (s *Searching) has() bool {
 	return len(s.scored) != 0
 }
 
+func (s *Searching) ByColumn(label string) {
+	s.byColumn = label
+}
+
 func (s *Searching) Prev() {
+	if !s.has() {
+		return
+	}
 	s.row -= 1
 	if s.row < 0 {
 		s.row = len(s.scored) - 1
 	}
-	s.notify()
+	s.eb.Notify(eventSelected{
+		has: true,
+		point: s.scored[s.row],
+	})
 }
 
 func (s *Searching) Next() {
 	s.row += 1
+	if !s.has() {
+		return
+	}
 	if s.row == len(s.scored) {
 		s.row = 0
 	}
-	s.notify()
+	s.eb.Notify(eventSelected{
+		has: true,
+		point: s.scored[s.row],
+	})
 }
 
-func (s *Searching) AddListener(fn func()) {
-	if s.l == nil {
-		s.l = make([]func(), 0)
-	}
-	s.l = append(s.l, fn)
-}
-
-func (s *Searching) notify() {
-	for _, fn := range s.l {
-		fn()
-	}
-}
-
-func (s *Searching) search(pattern string) {
-	data := s.table.sheet.data
-
+func (s *Searching) search(sh *Sheet, by string, pattern string) {
 	var trv search.Traverser
-	if s.Searchable.column == columnAll {
-		trv = (&search.TableTraverse{}).Set(data)
+	if s.byColumn == columnAll {
+		trv = newTableTraverse(sh)
 	} else {
-		trv = (&search.ColumnTraverse{}).Set(data, s.Searchable.column)
+		idx := slices.Index(sh.Header(), by)
+		trv = newColumnTraverse(sh, idx)
 	}
 	srch := (&search.Searcher{}).Set(trv, pattern)
 	s.searchToScored(srch)
-	s.notify()
+
+	if !s.has() {
+		s.eb.Notify(eventSelected{
+			has: false,
+		})
+	}
+
+	s.row = -1
+	s.Next()
 }
 
 func (s *Searching) searchToScored(srch *search.Searcher) {
@@ -740,49 +527,28 @@ func (s *Searching) searchToScored(srch *search.Searcher) {
 //
 
 type Selected struct {
-	point Point
-	l     []func(has bool, p Point)
+	eb    *eventBus
 }
 
 func newSelected() *Selected {
 	es := &Selected{
-		point: Point{
-			Row: -1,
-			Col: -1,
-		},
+		eb: newEventBus(),
 	}
 	return es
 }
 
 func (es *Selected) Select(p Point) {
-	es.point = p
-	es.notify()
+	es.eb.Notify(eventSelected{point: p, has: true})
 }
 func (es *Selected) Unselect() {
-	es.point.Row = -1
-	es.point.Col = -1
-	es.notify()
-}
-
-func (es *Selected) get() Point {
-	return es.point
-}
-
-func (es *Selected) has() bool {
-	return es.point.IsSelectable()
+	es.eb.Notify(eventSelected{has: false})
 }
 
 func (es *Selected) AddListener(fn func(has bool, p Point)) {
-	if es.l == nil {
-		es.l = make([]func(has bool, p Point), 0)
-	}
-	es.l = append(es.l, fn)
-}
-
-func (es *Selected) notify() {
-	for _, fn := range es.l {
-		fn(es.has(), es.get())
-	}
+	es.eb.Subscribe("eventSelected", func(v any) {
+		e := v.(eventSelected)
+		fn(e.has, e.point)
+	})
 }
 
 func isLoanHidden(cfg *config.Config) bool {
@@ -825,6 +591,16 @@ func includedColumns(cfg *config.Config) []int {
 		}
 	}
 	return indexes
+}
+
+func getHeaderSet(cfg *config.Config) []int {
+	set := make([]int, 0)
+	for idx, h := range cfg.UI.Headers {
+		if !h.IsHidden {
+			set = append(set, idx)
+		}
+	}
+	return set
 }
 
 func columnLookaside(cfg *config.Config, col int) (int, error) {

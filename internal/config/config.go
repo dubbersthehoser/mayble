@@ -51,7 +51,7 @@ type Config struct {
 
 type UI struct {
 	Headers              map[int]Header `json:"headers"`
-	TableSortBy          int            `json:"table_sort_by"`
+	TableSortBy          string         `json:"table_sort_by"`
 	TableAscending       bool           `json:"table_ascending"`
 	TableMinWidth        float32        `json:"header_min_width"`
 	TableHeaderHeight    float32        `json:"header_min_height"`
@@ -70,7 +70,7 @@ func NewConfigWithDefaults(configFile string) *Config {
 			Headers:           make(map[int]Header),
 			TableHeaderHeight: minHeaderBtnHeight,
 			TableMinWidth:     minHeaderBtnWidth,
-			TableSortBy:       tableSortByIdx,
+			TableSortBy:       models.BookEntryFields()[tableSortByIdx],
 			WindowHeight:      windowHeight,
 			WindowWidth:       windowWidth,
 			WindowFullScreen:  windowFullScreen,
