@@ -1,84 +1,38 @@
 package table
 
 import (
-	"fmt"
-	"sync"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
 )
 
-type eventBus struct {
-
-	// I'm worried that not having a mutex may bite me.
-
-	mu sync.Mutex
-	handlers map[string][]func(any)
+type EventSelected struct {
+	Has     bool
+	Point   Point
+	Version int64
 }
 
-func newEventBus() *eventBus {
-	eb := &eventBus{
-		handlers: make(map[string][]func(any)),
-	}
-	return eb
+type EventSnapshotSelected struct {
+	Has      bool
+	Point    snapshot.Point
+	Versiont int64
 }
 
-func (eb *eventBus) Subscribe(name string, h func(any)) {
-	eb.mu.Lock()
-	defer eb.mu.Unlock()
-
-	handlers, ok := eb.handlers[name]
-	if !ok {
-		handlers = make([]func(any), 0)
-	}
-
-	handlers = append(handlers, h)
-	eb.handlers[name] = handlers
+type EventSorted struct {
+	snapshot *snapshot.Snapshot
+	ids      []int64
+	column   string
+	asc      bool
 }
 
-func (eb *eventBus) Notify(event any) error {
-	eb.mu.Lock()
-	defer eb.mu.Unlock()
-
-	var name string
-	switch event.(type) {
-	case eventSelected:
-		name = "eventSelected"
-	case eventHiddenColumn:
-		name = "eventHiddenColumn"
-	case eventSearchBy:
-		name = "eventSearchBy"
-	default:
-		return fmt.Errorf("event_bus: event type not found")
-	}
-
-	handlers, ok := eb.handlers[name]
-	if !ok {
-		return fmt.Errorf("event_bus %s: name not found", name)
-	}
-	for _, h := range handlers {
-		h(event)
-	}
-	return nil
+type EventColumnHidden struct {
+	hidden  []bool
 }
 
-// Event Types
-
-type eventSelected struct {
-	has     bool
-	point   Point
-	id      int64
-	version int64
+type EventSnapshotSearched struct {
+	snapshot *snapshot.Snapshot
+	searched []snapshot.Point
 }
 
-type eventSort struct {
-	column  string
-	asc     bool
-	version int64
+type EventNewSnapshot struct {
+	snapshot *snapshot.Snapshot
 }
 
-type eventHiddenColumn struct {
-	label  string
-	hidden bool
-}
-
-type eventSearchBy struct {
-	column int
-}

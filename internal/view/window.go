@@ -36,6 +36,14 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 	cb := NewCommandBus()
 	eb := NewEventBus()
 
+	go func() {
+		for event := range vm.Worker.Events {
+			fyne.Do(func() {
+				vm.HandleWorkerEvent(event)
+			})
+		}
+	}()
+
 	setupCommandBus(cb, vm, f)
 	setupEventBus(eb, vm)
 

@@ -10,11 +10,17 @@ import (
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
+	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
 
 type Window struct {
 	cfg *config.Config
+	eb  *event.EventBus
+	cb  *command.CommandBus
 
 	Body         *Body
 	StatusLine   *StatusLine
@@ -26,24 +32,53 @@ type Window struct {
 	Form         *BookForm
 	NoData       *NoDataBody
 	ShowError    *ShowError
+	Worker       *worker.Worker
 }
 
 func NewWindow(cfg *config.Config) *Window {
 
 	srv := app.NewService(cfg)
 
-	tbl := table.NewTable(cfg, srv.GetAllBooks)
-
 	w := &Window{
 		cfg:          cfg,
+		eb:           event.NewEventBus(),
+		cb:           command.NewCommandBus(),
 		Body:         &Body{},
 		StatusLine:   newStatusLine(),
 		DBPath:       newDBPath(cfg),
-		Table:        tbl,
+		Table:        nil, // assgned latter down
 		UniqueGenres: newUniqueGenres(srv),
 		NoData:       &NoDataBody{},
 		ShowError:    &ShowError{},
+		Worker:       worker.NewWorker(),
 	}
+
+	// start with table view at start up.
+	w.Body.Set(BodyTable)
+
+	// only when body can change to NoData is with NoData calls.
+	w.NoData.AddListener(func() {
+		// The only place this function should be called durring run time.
+		w.Body.Set(BodyNoData)
+	})
+
+
+	// try and load database at first start.
+	if err := srv.OpenDatabase(w.cfg.DBFile); err != nil {
+		log.Println("Warning:", err)
+		if w.cfg.DBFile == "" {
+			w.NoData.SetNoDB()
+		} else {
+			w.StatusLine.sendError(err.Error())
+			w.NoData.SetDataErr(w.DBPath.Get(), err)
+		}
+	}
+
+	tbl := table.NewTable(cfg, )
+	if err := tbl.Sheet.Load(); err != nil {
+		log.Println("error:", err)
+	}
+
 
 	//
 	// Set Up Handlers
@@ -59,9 +94,10 @@ func NewWindow(cfg *config.Config) *Window {
 			}
 
 			row := w.Table.Selected.Get().Row
-			id, ok := w.Table.Sheet.RowToID(row)
-			if !ok {
-				log.Printf("Error: row '%d' not found in ids", row)
+
+			id, err := w.Table.Sheet.RowToID(row)
+			if err != nil {
+				log.Printf("Error: %s", err)
 				return
 			}
 			book.ID = id
@@ -218,32 +254,19 @@ func NewWindow(cfg *config.Config) *Window {
 	// Allow table sheet to load data from database when there is a change.
 	// Be it from regular CRUD operations, and the opening, and creation of a database file.
 	srv.AddListener(func() {
-		w.Table.Sheet.Load()
+		w.Table.Message <- table.MessageLoadingSnapshot
+		go func() {
+			books, err := srv.GetAllBooks()
+			if err != nil {
+				log.Println("Error:", err)
+				return
+			}
+			snapshot := snapshot.NewSnapshot(books)
+			w.Table.Snapshot <- snapshot
+			w.Table.Message <- table.MessageNewSnapshot
+		}()
 	})
 
-	// start with table view at start up.
-	w.Body.Set(BodyTable)
-
-	// only when body can change to NoData is with NoData calls.
-	w.NoData.AddListener(func() {
-		// The only place this function should be called durring run time.
-		w.Body.Set(BodyNoData)
-	})
-
-	// try and load database at first start.
-	if err := srv.OpenDatabase(w.cfg.DBFile); err != nil {
-		log.Println("Warning:", err)
-		if w.cfg.DBFile == "" {
-			w.NoData.SetNoDB()
-		} else {
-			w.StatusLine.sendError(err.Error())
-			w.NoData.SetDataErr(w.DBPath.Get(), err)
-		}
-	}
-
-	if err := tbl.Sheet.Load(); err != nil {
-		log.Println("error:", err)
-	}
 
 	return w
 }

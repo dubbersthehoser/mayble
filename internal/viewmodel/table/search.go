@@ -1,36 +1,32 @@
 package table
 
 import (
-	"sync"
 	"github.com/dubbersthehoser/mayble/internal/search"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
 )
 
 type tableTraverse struct {
-	sheet    *Sheet
+	snapshot    *snapshot.Snapshot
 	row, col int
 	isDone   bool
 	setDone  func()
 }
 
-func newTableTraverse(sh *Sheet) *tableTraverse {
+func newTableTraverse(ss *snapshot.Snapshot) *tableTraverse {
 	tt := &tableTraverse{
-		sheet: sh,
+		snapshot: ss,
 		row: 0,
 		col: -1,
 	}
-
-	tt.sheet.data.mu.RLock()
-
-	tt.setDone = sync.OnceFunc(func() {
+	tt.setDone = func() {
 		tt.isDone = true
-		tt.sheet.data.mu.RUnlock()
-	})
+	}
 
 	return tt
 }
 
 func (tt *tableTraverse) Next() (string, bool) {
-	rows, cols := tt.sheet.Size()
+	rows, cols := tt.snapshot.Size()
 	if rows == 0 {
 		return tt.retDone()
 	}
@@ -41,7 +37,7 @@ func (tt *tableTraverse) Next() (string, bool) {
 	if rows <= tt.row {
 		return tt.retDone()
 	}
-	v, err := tt.sheet.Get(Point{Row: tt.row, Col: tt.col})
+	v, err := tt.snapshot.Get(snapshot.Point{Row: tt.row, Col: tt.col})
 	if err != nil {
 		return tt.retDone()
 	}
@@ -57,34 +53,29 @@ func (tt *tableTraverse) Point() search.Point {
 }
 
 func (tt *tableTraverse) retDone() (string, bool) {
-	tt.setDone()
+	tt.isDone = true
 	return "", true
 }
 
 type columnTraverse struct {
-	sheet *Sheet
+	snapshot *snapshot.Snapshot
 	row, col int
 	setDone func()
 	isDone  bool
 }
 
-func newColumnTraverse(s *Sheet, col int) *columnTraverse {
+func newColumnTraverse(ss *snapshot.Snapshot, col int) *columnTraverse {
 	ct := &columnTraverse{
-		sheet: s,
+		snapshot: ss,
 		row: -1,
 		col: col,
 
 	}
-	ct.sheet.data.mu.RLock()
-	ct.setDone = sync.OnceFunc(func() {
-		ct.isDone = true
-		ct.sheet.data.mu.RUnlock()
-	})
 	return ct
 }
 
 func (ct *columnTraverse) Next() (string, bool) {
-	rows, cols := ct.sheet.Size()
+	rows, cols := ct.snapshot.Size()
 	ct.row += 1
 	if rows <= ct.row {
 		return ct.retDone()
@@ -93,7 +84,7 @@ func (ct *columnTraverse) Next() (string, bool) {
 		return ct.retDone()
 	}
 
-	v, err := ct.sheet.Get(Point{Row: ct.row, Col: ct.col})
+	v, err := ct.snapshot.Get(snapshot.Point{Row: ct.row, Col: ct.col})
 	if err != nil {
 		return ct.retDone()
 	}
@@ -109,6 +100,6 @@ func (ct *columnTraverse) IsDone() bool {
 }
 
 func (ct *columnTraverse) retDone() (string, bool) {
-	ct.setDone()
+	ct.isDone = true
 	return "", true
 }
