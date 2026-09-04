@@ -26,21 +26,17 @@ type Event struct {
 }
 
 type Worker struct {
-	Jobs  chan <- Job
-	Events <- chan Event
-
-	jobs  <- chan Job
-	events chan <- Event
+	Jobs chan Job
+	Events chan Event
+	cancel context.CancelFunc
 }
 
 func NewWorker() *Worker {
 	jobs := make(chan Job)
 	events := make(chan Event)
 	w := &Worker{
-		jobs: jobs,
 		Jobs: jobs,
 		Events: events,
-		events: events,
 	}
 	go w.run()
 	return w
@@ -48,32 +44,56 @@ func NewWorker() *Worker {
 
 
 func (w *Worker) run() {
-	for job := range w.jobs {
+	for job := range w.Jobs {
 		ctx := context.Background()
 
-		w.events <- Event{
+		if w.cancel != nil {
+			w.cancel()
+		}
+
+		w.Events <- Event{
 			JobID: job.ID,
 			Type:  Started,
 			Message: "job started",
 		}
 
-		var event Event
-		event = Event{
-			JobID: job.ID,
-			Type: Finished,
-			Message: "job finished",
-		}
-
-		err := job.Run(ctx, w.events)
-		if err != nil {
-			event = Event{
-				JobID: job.ID,
-				Type: Failed,
-				Message: "job failed",
+		go func(){
+			select {
+			case <- ctx.Done():
+				w.Events <- Event{
+					JobID: job.ID,
+					Type:  Failed,
+					Err: ctx.Err(),
+				}
+			default:
+				err := job.Run(ctx, w.Events)
+				if err != nil {
+					w.Events <- Event{
+						JobID:   job.ID,
+						Type:    Failed,
+						Err:     err,
+						Message: "job failed",
+					}
+					return
+				}
+				w.Events <- Event{
+					JobID: job.ID,
+					Type: Finished,
+					Message: "job finished",
+				}
 			}
-		}
-		w.events <- event
+
+		}()
+
 	}
 }
 
+func NewFailedEvent(err error, jobID int) Event {
+	return Event{
+		JobID: jobID,
+		Type: Failed,
+		Message: "job failed",
+		Err: err,
+	}
+}
 

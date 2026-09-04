@@ -24,4 +24,3 @@ type CommandSearch struct {
 	column  string
 	pattern string
 }
-

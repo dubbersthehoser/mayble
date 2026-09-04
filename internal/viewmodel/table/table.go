@@ -44,14 +44,30 @@ func NewTable(cfg *config.Config, cb *command.CommandBus, eb *event.EventBus) *T
 		Settings:   newSettings(eb, cfg),
 		Selected:   newSelected(eb, cb),
 	}
+	return t
+}
 
+func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 	cb.Register(CommandSnapshotSelect{}, func(v command.Command) error{
 
 		e := v.(CommandSnapshotSelect)
 
 		pp := snapshot.Current.Load()
+		if pp.Version() != e.Version {
+			return nil
+		}
 
-		var p Point
+		if !e.Has {
+			eb.Notify(EventSelected{
+				Has: e.Has,
+			})
+			return nil
+		}
+
+		p, err := toSheetPoint(t.Sheet.Header(), e.Point, t.Sheet.IDToRow)
+		if err != nil {
+			return err
+		}
 
 		eb.Notify(EventSelected {
 			Has: e.Has,
@@ -59,8 +75,9 @@ func NewTable(cfg *config.Config, cb *command.CommandBus, eb *event.EventBus) *T
 		})
 		return nil
 	})
-
-	return t
+	cb.Register(CommandSearch, func(v command.Command) error {
+		e := v.(CommandSearch)
+	}
 }
 
 
@@ -208,7 +225,8 @@ func (s *Searchable) Options() []string {
 //
 
 type Searching struct {
-	cb *command.CommandBus
+	cb        *command.CommandBus
+	debouncer *search.Debouncer
 }
 
 func newSearching(cb *command.CommandBus) *Searching {
@@ -587,7 +605,6 @@ func toSnapshotRow(sorted []int64, row int, getRowByID func(int64) (int, error))
 
 func toSheetPoint(
 	header []string,
-	sorted []int64,
 	p snapshot.Point,
 	getRowByID func(int64) (int, error),
 ) (Point, error) {
@@ -597,7 +614,7 @@ func toSheetPoint(
 		return Point{}, err
 	}
 
-	row, err := toSheetRow(sorted, p.Row, getRowByID)
+	row, err := getRowByID(p.ID)
 	if err != nil {
 		return Point{}, err
 	}
@@ -607,7 +624,6 @@ func toSheetPoint(
 		Col: col,
 	}, err
 }
-
 
 func toSheetColumn(header []string, column int) (int, error) {
 	if column >= len(models.BookEntryFields()) || column < 0 {
@@ -619,14 +635,6 @@ func toSheetColumn(header []string, column int) (int, error) {
 		return 0, fmt.Errorf("to_sheet_column %s: label not found", label)
 	}
 	return col, nil
-}
-
-func toSheetRow(sorted []int64, row int, getRowByID func(int64) (int, error)) (int, error) {
-	if row >= len(sorted) || row < 0 {
-		return 0, fmt.Errorf("to_sheet_row %d: index out of range", row)
-	}
-	id := sorted[row]
-	return getRowByID(id)
 }
 
 
