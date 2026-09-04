@@ -27,17 +27,17 @@ func TestWorker(t *testing.T) {
 	worker.Jobs <- job
 
 	go func() {
-		exitTime := totalTime / 2
 		job2 := job
 		job2.ID = 1234
 		job2.Name = "test-two"
-		time.Sleep(exitTime)
+		time.Sleep(time.Second)
+		t.Logf("passing job: %d", job.ID)
 		worker.Jobs <- job2
 	}()
 
 	for event := range worker.Events {
 		t.Log(event.Message)
-		if event.Type == Finished {
+		if event.Type == Failed {
 			break
 		}
 	}
