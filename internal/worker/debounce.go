@@ -29,9 +29,9 @@ func (d *Debouncer) Debounce() {
 	d.timer.Reset(d.delay)
 }
 
-func Debounce(d time.Duration, fn func()) func() {
+func Debounce(d time.Duration) func(func()) {
 	var timer *time.Timer
-	return func() {
+	return func(fn func()) {
 		if timer != nil {
 			timer.Stop()
 		}

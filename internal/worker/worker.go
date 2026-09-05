@@ -12,12 +12,12 @@ const (
 	Failed
 )
 
-type Handler func(context.Context, chan <- Event) error
+type Handler func(context.Context, chan <- Event)
 
 type Job struct {
 	ID    int
 	Name string
-	Run  func(ctx context.Context, events chan <- Event) error
+	Run  Handler
 }
 
 type Event struct {
@@ -25,6 +25,7 @@ type Event struct {
 	Type    EventType
 	Message string
 	Err     error
+	Data    any
 }
 
 type Worker struct {
@@ -58,8 +59,6 @@ func (w *Worker) NewJob(name string, fn Handler) Job {
 
 func (w *Worker) run() {
 	
-	result := make(chan error, 1)
-
 	for job := range w.Jobs {
 
 		if w.cancel != nil {
@@ -77,8 +76,7 @@ func (w *Worker) run() {
 
 
 		go func() {
-			err := job.Run(ctx, w.Events)
-			result <- err
+			job.Run(ctx, w.Events)
 		}()
 
 		go func () {
@@ -90,27 +88,12 @@ func (w *Worker) run() {
 					Err: ctx.Err(),
 					Message: "job canceled",
 				}
-			case err := <- result:
-				if err != nil {
-					w.Events <- Event{
-						JobID:   job.ID,
-						Type:    Failed,
-						Err:     err,
-						Message: "job failed",
-					}
-					return
-				}
-				w.Events <- Event{
-					JobID: job.ID,
-					Type: Finished,
-					Message: "job finished",
-				}
 			}
 		}()
 	}
 }
 
-func NewFailedEvent(err error, jobID int) Event {
+func NewFailedEvent(jobID int, err error) Event{
 	return Event{
 		JobID: jobID,
 		Type: Failed,
@@ -119,3 +102,12 @@ func NewFailedEvent(err error, jobID int) Event {
 	}
 }
 
+func NewFinishedEvent(jobID int, data any) Event{
+	return Event{
+		JobID: jobID,
+		Type: Finished,
+		Message: "job finished",
+		Err: nil,
+		Data: data,
+	}
+}

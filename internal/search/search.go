@@ -6,8 +6,8 @@ import (
 )
 
 type Point struct {
-	Col int
-	Row int
+	Col   int
+	Row   int
 }
 
 type Traverser interface {

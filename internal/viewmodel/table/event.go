@@ -28,8 +28,9 @@ type EventColumnHidden struct {
 }
 
 type EventSnapshotSearched struct {
-	snapshot *snapshot.Snapshot
-	searched []snapshot.Point
+	Version int64
+	Points  []snapshot.Point
+	Scores  []int
 }
 
 type EventNewSnapshot struct {

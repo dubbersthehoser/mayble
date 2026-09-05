@@ -18,27 +18,36 @@ func TestWorker(t *testing.T) {
 			return nil
 		}
 
-	job := Job{
-		ID: 123,
-		Name: "test-one",
-		Run: run,
-	}
+	job := worker.NewJob("test-one", run)
 
 	worker.Jobs <- job
 
 	go func() {
-		job2 := job
-		job2.ID = 1234
-		job2.Name = "test-two"
-		time.Sleep(time.Second)
+		job := worker.NewJob("test-two", run)
+		time.Sleep(totalTime / 2)
 		t.Logf("passing job: %d", job.ID)
-		worker.Jobs <- job2
+		worker.Jobs <- job
 	}()
+
+	finished := 0
+	canceled := 0
 
 	for event := range worker.Events {
 		t.Log(event.Message)
-		if event.Type == Failed {
+
+		switch {
+		case event.Message == "job canceled":
+			canceled+=1
+			continue
+		case event.Type == Finished:
+			finished += 1
+		}
+		if finished == 1 {
 			break
 		}
+	}
+
+	if canceled != 1 {
+		t.Fatalf("first job was not canceled from incoming second job.")
 	}
 }

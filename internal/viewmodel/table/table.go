@@ -5,6 +5,8 @@ import (
 	"log"
 	"fmt"
 	"slices"
+	"time"
+	"context"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/event"
@@ -13,6 +15,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
 	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
 
@@ -23,8 +26,8 @@ type Point struct {
 }
 
 type Table struct {
+	worker     *worker.Worker
 	Searching  *Searching
-
 	Selected   *Selected
 	Sorting    *Sorting
 	Sheet      *Sheet
@@ -35,14 +38,16 @@ type Table struct {
 }
 
 
-func NewTable(cfg *config.Config, cb *command.CommandBus, eb *event.EventBus) *Table {
+func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *event.EventBus) *Table {
 	t := &Table{
+		worker:     w,
 		Sheet:      newSheet(eb, getShownHeader(cfg)),
 		Searchable: newSearchable(getShownHeader(cfg), ColumnAll),
 		Searching:  newSearching(cb),
 		Sorting:    newSorting(cb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
 		Settings:   newSettings(eb, cfg),
 		Selected:   newSelected(eb, cb),
+
 	}
 	return t
 }
@@ -75,9 +80,13 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 		})
 		return nil
 	})
-	cb.Register(CommandSearch, func(v command.Command) error {
+	cb.Register(CommandSearch{}, func(v command.Command) error {
 		e := v.(CommandSearch)
-	}
+		pattern := e.pattern
+		column
+		t.worker.Jobs <- NewJobSearchSnapshot(t.worker, pattern) 
+		return nil
+	})
 }
 
 
@@ -226,18 +235,21 @@ func (s *Searchable) Options() []string {
 
 type Searching struct {
 	cb        *command.CommandBus
-	debouncer *search.Debouncer
+	debounce func(func())
 }
 
 func newSearching(cb *command.CommandBus) *Searching {
 	sr := &Searching{
 		cb: cb,
+		debounce: worker.Debounce(time.Millisecond * 300),
 	}
 	return sr
 }
 
 func (s *Searching) Search(pattern string) {
-	s.cb.Dispatch(CommandSearch{pattern: pattern})
+	s.debounce(func() {
+		s.cb.Dispatch(CommandSearch{pattern: pattern})
+	})
 }
 
 //
@@ -450,73 +462,53 @@ func (ts *Settings) notifyHidden() {
 }
 
 //
-// Helper Functions
+// Functions and Helpers
 //
 
-//func snapshotSearch(result chan <- searchResult, ss *snapshot.Snapshot, by string, pattern string) {
-//	var trv search.Traverser
-//	if by == ColumnAll {
-//		trv = newTableTraverse(ss)
-//	} else {
-//		idx := slices.Index(models.BookEntryFields(), by)
-//		if idx == -1 {
-//			log.Printf("search %s: invalid column label", by)
-//			return
-//		}
-//		trv = newColumnTraverse(ss, idx)
-//	}
-//	srch := (&search.Searcher{}).Set(trv, pattern)
-//	points, score := searchSearcher(srch)
-//	result <- searchResult{
-//		Points: points,
-//		Version: ss.Version(),
-//		Score: score,
-//	}
-//
-//}
-
-func searchSearcher(srch *search.Searcher) ([]Point, []int) {
-	type result struct {
-		row,
-		col,
-		score int
-		id    int64
+func snapshotSearchWithContext(ctx context.Context, ss *snapshot.Snapshot, by string, pattern string) ([]snapshot.Point, []int, error) {
+	var trv search.Traverser
+	if by == ColumnAll {
+		trv = newTableTraverse(ss)
+	} else {
+		idx := slices.Index(models.BookEntryFields(), by)
+		if idx == -1 {
+			return nil, nil, fmt.Errorf("search %s: invalid column label", by)
+		}
+		trv = newColumnTraverse(ss, idx)
 	}
-	results := make([]result, 0)
+	srch := (&search.Searcher{}).Set(trv, pattern)
+	points, score := searchSearcherWithContext(ctx, srch)
+	return points, score, nil
+}
+
+func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]search.Point, []int) {
+	
+	points := make([]search.Point, 0)
+	scores := make([]int, 0)
+
 	for srch.Next() {
+		if ctx.Err() != nil {
+			return []search.Point{}, []int{}
+		}
 		point := srch.Point()
 		score := srch.Score()
 		if score == -1 {
 			continue
 		}
-		r := result{
-			row:   point.Row,
-			col:   point.Col,
-			score: srch.Score(),
-		}
-		results = append(results, r)
+		points = append(points, point)
+		scores = append(scores, score)
 	}
+
 	if len(results) == 0 {
-		return []Point{}, []int{}
+		return []search.Point{}, []int{}
 	}
-	slices.SortFunc(results, func(a, b result) int {
-		r := cmp.Compare(a.score, b.score)
+	slices.SortFunc(points, func(a, b search.Point) int {
+		r := cmp.Compare(a, b)
 		if r == 0 {
 			return cmp.Compare(a.row, b.row)
 		}
 		return r * -1
 	})
-	points := make([]Point, len(results))
-	score := make([]int, len(results))
-	for i, r := range results {
-		p := Point{
-			Row: r.row,
-			Col: r.col,
-			ID: r.id,
-		}
-		points[i] = p
-		score[i] = r.score
-	}
 	return points, score
 }
 

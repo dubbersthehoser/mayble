@@ -23,7 +23,6 @@ func (db *Debouncer) Search(pattern string, fn func(context.Context, string)) {
 	db.timer = time.AfterFunc(db.delay, func(){
 		ctx, cancel := context.WithCancel(context.Background())
 		db.cancel = cancel
-
 		fn(ctx, pattern)
 	})
 

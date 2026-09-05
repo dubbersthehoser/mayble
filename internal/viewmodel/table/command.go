@@ -16,11 +16,11 @@ type CommandSheetSelect struct {
 }
 
 type CommandSort struct {
-	column string
-	asc    bool
+	Column string
+	Asc    bool
 }
 
 type CommandSearch struct {
-	column  string
-	pattern string
+	Column  string
+	Pattern string
 }

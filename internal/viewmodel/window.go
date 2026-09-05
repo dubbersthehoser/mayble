@@ -35,6 +35,20 @@ type Window struct {
 	Worker       *worker.Worker
 }
 
+func (w *Window) HandleWorkerEvent(ev worker.Event) {
+	switch ev.Type {
+	case worker.Started:
+
+	case worker.Finished:
+
+	case worker.Failed:
+		log.Printf("Error: job %d %s: %s", ev.JobID, ev.Message, ev.Err)
+		
+	default:
+		log.Printf("Warning: %d unknown worker event type", ev.Type)
+	}
+}
+
 func NewWindow(cfg *config.Config) *Window {
 
 	srv := app.NewService(cfg)
@@ -316,3 +330,4 @@ func WrapFyneFileCreate(fn func(string, error)) func(fyne.URIWriteCloser, error)
 		fn(path, err)
 	}
 }
+
