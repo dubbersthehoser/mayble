@@ -8,29 +8,52 @@ import (
 )
 
 const (
-	JobSearchSnapshot string = "job searching"
+	JobSearchSnapshot  string = "job searching"
 	JobLoadingSnapshot string = "job loading"
-	JobSorting string = "job searching"
+	JobSortSnapshot    string = "job searching"
 )
-
 
 func NewJobSearchSnapshot(w *worker.Worker, pattern string, column string) worker.Job {
 	job := w.NewJob(JobSearchSnapshot, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
 		ss := snapshot.Current.Load()
-		points, score, err := snapshotSearch(ss, pattern, column)
-		if err := ctx.Err(); err != nil {
+		points, score, err := snapshotSearchWithContext(ctx, ss, pattern, column)
+		if ctx.Err() != nil {
 			return
 		}
 		if err != nil {
-			events <- worker.NewFailedEvent(job.ID, err)
+			events <- worker.NewFailedEvent(job.Name, job.ID, err)
+			return
 		}
 		data := EventSnapshotSearched{
 			Version: ss.Version(),
 			Points: points,
 			Scores: score,
 		}
-		events <- worker.NewFinished(job.ID, )
+		events <- worker.NewFinishedEvent(job.Name, job.ID, data)
+	}
+	return job
+}
+
+func NewJobSortSnapshot(w *worker.Worker, column string, asc bool) worker.Job {
+	job := w.NewJob(JobSortSnapshot, nil)
+	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		ss := snapshot.Current.Load()
+		sorted, err := snapshotSort(ss, column, asc)
+		if ctx.Err() != nil {
+			return
+		}
+		if err != nil {
+			events <- worker.NewFailedEvent(job.Name, job.ID, err)
+			return
+		}
+		data := EventSnapshotSorted{
+			Version: ss.Version(),
+			Sorted: sorted,
+			Asc: asc,
+			Column: column,
+		}
+		events <- worker.NewFinishedEvent(job.Name, job.ID, data)
 	}
 	return job
 }

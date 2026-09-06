@@ -15,68 +15,32 @@ import (
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 	search := NewSearchEntry(
-		vm.Table.Selected.NextSearched,
-		vm.Table.Selected.PrevSearched,
+		vm.Table.SearchSelection.Next,
+		vm.Table.SearchSelection.Prev,
 	)
-	search.OnChanged = func(s string) {
-		vm.Table.Searching.C <- s
-	}
+	search.OnChanged = vm.Table.Searching.Search
+	
 	searchBy := widget.NewSelect(
 		vm.Table.Searchable.Options(),
-		vm.Table.Searchable.Select,
+		vm.Table.Searchable.SetSearchBy,
 	)
+
 	searchBy.SetSelected(vm.Table.Searchable.Options()[0])
+
+	vm.Table.Searchable.OnChangedOptions = func() {
+		searchBy.SetOptions(vm.Table.Searchable.Options())
+	}
 
 	top := container.NewGridWithColumns(2, search, searchBy)
 	// Wrapped table view with stack layout, so table can be changed with out needing to know its exact location in body container.
 	tbl := container.NewStack(newTable(vm))
-	body := container.NewBorder(top, nil, nil, nil, tbl)
-
-	actOnMessage := func(msg string) {
-		var searchByIdx int = 1
-		switch msg {
-		case table.MessageChangedHeaders:
-			fyne.Do(func() {
-				tbl.RemoveAll()
-				tbl.Refresh()
-
-				ntbl := newTable(vm)
-				top.Objects[searchByIdx].(*widget.Select).SetOptions(
-					vm.Table.Searchable.Options(),
-				)
-				top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-				tbl.Add(ntbl)
-
-				tbl.Refresh()
-			})
-			
-		case table.MessageNewSnapshot:
-			fyne.Do(func() {
-				tbl.RemoveAll()
-				tbl.Refresh()
-
-				ntbl := newTable(vm)
-				top.Objects[searchByIdx].(*widget.Select).SetOptions(
-					vm.Table.Searchable.Options(),
-				)
-				top.Objects[searchByIdx].(*widget.Select).SetSelectedIndex(0)
-				tbl.Add(ntbl)
-
-				tbl.Refresh()
-				tbl.Show()
-			})
-		case table.MessageLoadingSnapshot:
-			fyne.Do(func() {
-				tbl.Hide()
-			})
-		}
+	// Half to create a new table widget since updating the underling widget with new headers is complicated. Easier to recreate the entire widget.
+	vm.Table.Sheet.OnHeaderChanged = func() {
+		tbl.Objects[0] = newTable(vm)
+		tbl.Refresh()
 	}
 
-	go func() {
-		for msg := range vm.Table.Message {
-			actOnMessage(msg)
-		}
-	}()
+	body := container.NewBorder(top, nil, nil, nil, tbl)
 
 	return body
 }
@@ -189,29 +153,19 @@ func newTable(vm *viewmodel.Window) *Table {
 	}
 
 	// Listen for select events, then select, or unselect.
-	updateOnCommingSelect := func(point table.Point, has bool) {
-		if has {
-			maxRow, maxCol := vm.Table.Sheet.Size()
-			if point.Row >= maxRow || point.Col >= maxCol { // (A) unselect the hidden cell if selected.
-				id := widget.TableCellID{Row: point.Row, Col: point.Col}
-				tbl.Unselect(id)
-				return
-			}
-			tbl.Select(widget.TableCellID{Row: point.Row, Col: point.Col})
-
-		} else {
+	vm.Table.Selected.OnSelected = func(point table.Point, has bool) {
+		if !has {
 			tbl.UnselectAll()
+			return
 		}
-			
+		maxRow, maxCol := vm.Table.Sheet.Size()
+		if point.Row >= maxRow || point.Col >= maxCol { // (A) unselect the hidden cell if selected.
+			id := widget.TableCellID{Row: point.Row, Col: point.Col}
+			tbl.Unselect(id)
+			return
+		}
+		tbl.Select(widget.TableCellID{Row: point.Row, Col: point.Col})
 	}
-	go func() {
-		ch := vm.Table.Sync.Add()
-		for range ch {
-			fyne.Do(func() {
-				updateOnCommingSelect(vm.Table.Selected.Get())
-			})
-		}
-	}()
 	return tbl
 }
 

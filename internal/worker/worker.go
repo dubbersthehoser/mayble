@@ -22,6 +22,7 @@ type Job struct {
 
 type Event struct {
 	JobID   int
+	JobName string
 	Type    EventType
 	Message string
 	Err     error
@@ -93,18 +94,20 @@ func (w *Worker) run() {
 	}
 }
 
-func NewFailedEvent(jobID int, err error) Event{
+func NewFailedEvent(name string, jobID int, err error) Event{
 	return Event{
 		JobID: jobID,
+		JobName: name,
 		Type: Failed,
 		Message: "job failed",
 		Err: err,
 	}
 }
 
-func NewFinishedEvent(jobID int, data any) Event{
+func NewFinishedEvent(name string, jobID int, data any) Event{
 	return Event{
 		JobID: jobID,
+		JobName: name,
 		Type: Finished,
 		Message: "job finished",
 		Err: nil,

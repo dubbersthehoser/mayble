@@ -16,15 +16,15 @@ type EventSnapshotSelected struct {
 	Versiont int64
 }
 
-type EventSorted struct {
-	snapshot *snapshot.Snapshot
-	ids      []int64
-	column   string
-	asc      bool
+type EventSnapshotSorted struct {
+	Version  int64
+	Sorted   []int64
+	Column   string
+	Asc      bool
 }
 
-type EventColumnHidden struct {
-	hidden  []bool
+type EventHiddenColumn struct {
+	Hidden  []bool
 }
 
 type EventSnapshotSearched struct {

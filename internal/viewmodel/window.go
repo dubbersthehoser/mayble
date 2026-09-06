@@ -40,12 +40,13 @@ func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	case worker.Started:
 
 	case worker.Finished:
+		w.Table.HandleWorkerEvent(ev)
 
 	case worker.Failed:
 		log.Printf("Error: job %d %s: %s", ev.JobID, ev.Message, ev.Err)
 		
 	default:
-		log.Printf("Warning: %d unknown worker event type", ev.Type)
+		log.Printf("Error: %d unknown worker event type", ev.Type)
 	}
 }
 

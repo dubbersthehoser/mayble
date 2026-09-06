@@ -18,6 +18,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
+const ColumnAll = "All"
 
 type Point struct {
 	Col int
@@ -31,7 +32,8 @@ type Table struct {
 	Selected   *Selected
 	Sorting    *Sorting
 	Sheet      *Sheet
-	Searchable *Searchable
+	Searchable      *Searchable
+	SearchSelection *SearchSelection
 	Settings   *Settings
 
 	eb *event.EventBus
@@ -42,23 +44,43 @@ func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *
 	t := &Table{
 		worker:     w,
 		Sheet:      newSheet(eb, getShownHeader(cfg)),
-		Searchable: newSearchable(getShownHeader(cfg), ColumnAll),
-		Searching:  newSearching(cb),
+		Searchable: newSearchable(getShownHeader(cfg)),
+		Searching:  newSearching(ColumnAll, cb),
 		Sorting:    newSorting(cb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
 		Settings:   newSettings(eb, cfg),
-		Selected:   newSelected(eb, cb),
-
+		Selected:   newSelected(cb),
+		SearchSelection: newSearchSelection(eb, cb),
 	}
+	SetupCommands(t, eb, cb)
+	t.Searchable.onChangedSearchBy = t.Searching.setSearchColumn
 	return t
 }
 
+func (t *Table) HandleWorkerEvent(ev worker.Event) {
+	v, ok := ev.Data.(event.Event)
+	if !ok {
+		log.Println("Error: invalid worker event data")
+		return
+	}
+	
+	switch v.(type) {
+	case EventSnapshotSorted, EventSnapshotSearched:
+		t.eb.Notify(v)
+	default:
+		log.Println("Error: invalid worker event data")
+	}
+}
+
 func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
+
+	// CommandSnapshotSelect
 	cb.Register(CommandSnapshotSelect{}, func(v command.Command) error{
 
 		e := v.(CommandSnapshotSelect)
 
 		pp := snapshot.Current.Load()
 		if pp.Version() != e.Version {
+			log.Printf("Warning: de-synced versions: %d != %d", pp.Version(), e.Version)
 			return nil
 		}
 
@@ -71,7 +93,8 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
 		p, err := toSheetPoint(t.Sheet.Header(), e.Point, t.Sheet.IDToRow)
 		if err != nil {
-			return err
+			log.Println("Error:", err)
+			return nil
 		}
 
 		eb.Notify(EventSelected {
@@ -80,11 +103,41 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 		})
 		return nil
 	})
+
+	// CommandSheetSelect
+	cb.Register(CommandSheetSelect{}, func(v command.Command) error {
+		e := v.(CommandSheetSelect)
+
+		if !e.Has {
+			eb.Notify(EventSelected{
+				Has: e.Has,
+			})
+			return nil
+		}
+
+		eb.Notify(EventSelected{
+			Has:   e.Has,
+			Point: e.Point,
+		})
+
+		return nil
+	})
+
+	// CommandSearch
 	cb.Register(CommandSearch{}, func(v command.Command) error {
 		e := v.(CommandSearch)
-		pattern := e.pattern
-		column
-		t.worker.Jobs <- NewJobSearchSnapshot(t.worker, pattern) 
+		pattern := e.Pattern
+		column := e.Column
+		t.worker.Jobs <- NewJobSearchSnapshot(t.worker, pattern, column) 
+		return nil
+	})
+
+	// CommandSort
+	cb.Register(CommandSort{}, func(v command.Command) error {
+		e := v.(CommandSort)
+		column := e.Column
+		asc := e.Asc
+		t.worker.Jobs <- NewJobSortSnapshot(t.worker, column, asc)
 		return nil
 	})
 }
@@ -97,11 +150,11 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 // Sheet a refrence view for table. 
 // Methods should only be called by UI thread.
 type Sheet struct {
-	header       []string
-	sorted       []int64
-	idToRow      map[int64]int
-	OnNewHeaders func()
-	OnSorted     func()
+	header          []string
+	sorted          []int64
+	idToRow         map[int64]int
+	OnHeaderChanged func()
+	OnSorted        func()
 }
 
 func newSheet(eb *event.EventBus, header []string) *Sheet {
@@ -109,24 +162,24 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		header: header,
 		sorted: make([]int64, 0),
 		OnSorted: func() {},
-		OnNewHeaders: func() {},
+		OnHeaderChanged: func() {},
 	}
-	eb.Subscribe(EventColumnHidden{}, func(v event.Event) {
-		e := v.(EventColumnHidden)
+	eb.Subscribe(EventHiddenColumn{}, func(v event.Event) {
+		e := v.(EventHiddenColumn)
 		header := make([]string, 0)
 		for i, label := range models.BookEntryFields() {
-			if !e.hidden[i] {
+			if !e.Hidden[i] {
 				header = append(header, label)
 			}
 		}
 		s.header = header
-		s.OnNewHeaders()
+		s.OnHeaderChanged()
 	})
-	eb.Subscribe(EventSorted{}, func(v event.Event){
+	eb.Subscribe(EventSnapshotSorted{}, func(v event.Event){
 		ss := snapshot.Current.Load()
-		e := v.(EventSorted)
-		if ss.Version() == e.snapshot.Version() {
-			s.sorted = e.ids
+		e := v.(EventSnapshotSorted)
+		if ss.Version() == e.Version {
+			s.sorted = e.Sorted
 			s.OnSorted()
 		}
 	})
@@ -174,7 +227,7 @@ func (s *Sheet) Header() []string {
 //
 
 type Sorting struct {
-	cb     *command.CommandBus
+	cb        *command.CommandBus
 	Column    string
 	Ascending bool
 }
@@ -190,35 +243,39 @@ func newSorting(cb *command.CommandBus, column string, asc bool) *Sorting {
 
 func (s *Sorting) Sort() {
 	s.cb.Dispatch(CommandSort{
-		asc: s.Ascending,
-		column: s.Column,
+		Asc: s.Ascending,
+		Column: s.Column,
 	})
 }
 
 //
-// Searchiable
+// Searchable
 //
 
-const ColumnAll = "All"
 
 type Searchable struct {
 	headers  []string
-	Selected string
-	OnUpdate func()
+	OnChangedOptions  func()
+	onChangedSearchBy func(s string)
 }
 
-func newSearchable(headers []string, by string) *Searchable {
+func newSearchable(headers []string) *Searchable {
 	s := &Searchable{
 		headers: headers,
-		OnUpdate: func() {},
-		Selected: by,
+		OnChangedOptions: func() {},
+		onChangedSearchBy: func(_ string) {},
+
 	}
 	return s
 }
 
+func (s *Searchable) SetSearchBy(h string) {
+	s.onChangedSearchBy(h)
+}
+
 func (s *Searchable) setSelectable(headers []string) {
 	s.headers = headers
-	s.OnUpdate()
+	s.OnChangedOptions()
 }
 
 func (s *Searchable) Options() []string {
@@ -234,21 +291,27 @@ func (s *Searchable) Options() []string {
 //
 
 type Searching struct {
-	cb        *command.CommandBus
+	cb       *command.CommandBus
 	debounce func(func())
+	column   string
 }
 
-func newSearching(cb *command.CommandBus) *Searching {
+func newSearching(column string, cb *command.CommandBus) *Searching {
 	sr := &Searching{
+		column: column,
 		cb: cb,
 		debounce: worker.Debounce(time.Millisecond * 300),
 	}
 	return sr
 }
 
+func (s *Searching) setSearchColumn(h string) {
+	s.column = h
+}
+
 func (s *Searching) Search(pattern string) {
 	s.debounce(func() {
-		s.cb.Dispatch(CommandSearch{pattern: pattern})
+		s.cb.Dispatch(CommandSearch{Pattern: pattern, Column: s.column})
 	})
 }
 
@@ -258,65 +321,84 @@ func (s *Searching) Search(pattern string) {
 
 // Selected 
 type Selected struct {
-	cb        *command.CommandBus
-	eb        *event.EventBus
-	selected  Point
-	has       bool
-	OnChanged func()
+	cb         *command.CommandBus
+	OnSelected func(Point, bool)
+	onSelected func(Point, bool)
 }
 
-func newSelected(eb *event.EventBus, cb *command.CommandBus) *Selected {
+func newSelected(cb *command.CommandBus) *Selected {
 	es := &Selected{
 		cb: cb,
-		eb: eb,
-		OnChanged: func(){},
-		has: false,
+		OnSelected: func(_ Point, _ bool) {},
 	}
-	es.eb.Subscribe(EventSelected{}, func(v event.Event) {
-		e := v.(EventSelected)
-		es.has = e.Has
-		es.selected = e.Point
-		es.OnChanged()
-	})
+	es.onSelected = func(p Point, has bool) {
+		es.OnSelected(p, has)
+	}
 	return es
 }
 
 func (es *Selected) Set(p Point, ok bool) {
-	es.selected = p
-	es.has = ok
-	es.cb.Dispatch(CommandSelect{point: p, has: ok})
+	es.cb.Dispatch(CommandSheetSelect{Point: p, Has: ok})
 }
 
-func (es *Selected) Get() (Point, bool) {
-	return es.selected, es.has
+//
+// Search Selection
+//
+
+type SearchSelection struct {
+	eb *event.EventBus
+	cb *command.CommandBus
+	ssVersion int64
+	selection []snapshot.Point
+	position  int
 }
 
-//func (es *Selected) NextSearched() {
-//	if es.searchedRow == -1 {
-//		return
-//	}
-//	es.searchedRow += 1
-//	if es.searchedRow >= len(es.searched) {
-//		es.searchedRow = 0
-//	}
-//	es.selected = es.searched[es.searchedRow]
-//	es.has = true
-//	es.onChanged()
-//}
-//
-//func (es *Selected) PrevSearched() {
-//	if es.searchedRow == -1 {
-//		return
-//	}
-//
-//	es.searchedRow -= 1
-//	if es.searchedRow < 0 {
-//		es.searchedRow = len(es.searched)-1
-//	}
-//	es.selected = es.searched[es.searchedRow]
-//	es.has = true
-//	es.onChanged()
-//}
+func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelection {
+	sc := &SearchSelection{
+		eb: eb,
+		cb: cb,
+		position: -1,
+	}
+	eb.Subscribe(EventSnapshotSearched{}, func(v event.Event){
+		e := v.(EventSnapshotSearched)
+		sc.ssVersion = e.Version
+		sc.selection = e.Points
+		sc.position = 0
+	})
+	return sc
+}
+
+func (es *SearchSelection) Next() {
+	if len(es.selection) == 0 {
+		return
+	}
+	es.position += 1
+	if es.position >= len(es.selection) {
+		es.position = 0
+	}
+	es.selected()
+}
+
+func (es *SearchSelection) Prev() {
+	if len(es.selection) == 0 {
+		return
+	}
+	es.position -= 1
+	if es.position < 0 {
+		es.position = len(es.selection)-1
+	}
+	es.selected()
+}
+
+func (es *SearchSelection) selected() {
+	p := es.selection[es.position]
+	es.cb.Dispatch(CommandSnapshotSelect{
+		Version: es.ssVersion,
+		Point: p,
+		Has: true,
+	})
+}
+
 
 //
 // Settings
@@ -330,11 +412,12 @@ type Settings struct {
 func newSettings(eb *event.EventBus, cfg *config.Config) *Settings {
 	cs := &Settings{
 		cfg: cfg,
+		eb: eb,
 	}
-	cs.eb.Subscribe(eventSorted{}, func(v event.Event) {
-		e := v.(eventSorted)
-		cfg.UI.TableSortBy = e.column
-		cfg.UI.TableAscending = e.asc
+	cs.eb.Subscribe(EventSnapshotSorted{}, func(v event.Event) {
+		e := v.(EventSnapshotSorted)
+		cfg.UI.TableSortBy = e.Column
+		cfg.UI.TableAscending = e.Asc
 	})
 	return cs
 }
@@ -456,8 +539,8 @@ func (ts *Settings) notifyHidden() {
 	for idx := range models.BookEntryFields() {
 		hidden[idx] = ts.cfg.UI.Headers[idx].IsHidden
 	}
-	ts.eb.Notify(eventHiddenColumn{
-		hidden: hidden,
+	ts.eb.Notify(EventHiddenColumn{
+		Hidden: hidden,
 	})
 }
 
@@ -477,39 +560,63 @@ func snapshotSearchWithContext(ctx context.Context, ss *snapshot.Snapshot, by st
 		trv = newColumnTraverse(ss, idx)
 	}
 	srch := (&search.Searcher{}).Set(trv, pattern)
-	points, score := searchSearcherWithContext(ctx, srch)
-	return points, score, nil
+
+	//points, score := searchSearcherWithContext(ctx, srch)
+	results := searchSearcherWithContext(ctx, srch)
+
+	scores := make([]int, len(results))
+	points := make([]snapshot.Point, len(results))
+	for i, r := range results {
+		if ctx.Err() != nil {
+			return points, scores, nil
+		}
+		scores[i] = r.Score
+		p := snapshot.Point{
+			Row: r.Point.Row,
+			Col: r.Point.Col,
+		}
+		points[i] = p
+	}
+	return points, scores, nil
 }
 
-func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]search.Point, []int) {
+type SearchResult struct {
+	Point search.Point
+	Score int
+}
+
+func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]SearchResult) {
 	
-	points := make([]search.Point, 0)
-	scores := make([]int, 0)
+	results := make([]SearchResult, 0)
 
 	for srch.Next() {
 		if ctx.Err() != nil {
-			return []search.Point{}, []int{}
+			return []SearchResult{}
 		}
 		point := srch.Point()
 		score := srch.Score()
 		if score == -1 {
 			continue
 		}
-		points = append(points, point)
-		scores = append(scores, score)
+		r := SearchResult{
+			Score: score,
+			Point: point,
+		}
+		results = append(results, r)
 	}
 
 	if len(results) == 0 {
-		return []search.Point{}, []int{}
+		return []SearchResult{}
 	}
-	slices.SortFunc(points, func(a, b search.Point) int {
-		r := cmp.Compare(a, b)
+
+	slices.SortFunc(results, func(a, b SearchResult) int {
+		r := cmp.Compare(a.Score, b.Score)
 		if r == 0 {
-			return cmp.Compare(a.row, b.row)
+			return cmp.Compare(a.Point.Row, b.Point.Row)
 		}
 		return r * -1
 	})
-	return points, score
+	return results
 }
 
 func isLoanHidden(cfg *config.Config) bool {
@@ -541,23 +648,45 @@ func getShownHeader(cfg *config.Config) []string {
 	return set
 }
 
-func sortIDs(ids []int64, ss *snapshot.Snapshot, column string, asc bool) {
-	colIdx := slices.Index(models.BookEntryFields(), column)
-	comp, err := app.CompareBookEntry(colIdx, asc)
+func snapshotSort(ss *snapshot.Snapshot, column string, asc bool) ([]int64, error) {
+	idx := slices.Index(models.BookEntryFields(), column)
+	if idx == -1 {
+		return nil, fmt.Errorf("sort %s: invalid column", column)
+	}
+	comp, err := app.CompareBookEntry(idx, asc)
 	if err != nil {
-		log.Println("sorting:", err)
-		return
+		return nil, err
+	}
+	ids := make([]int64, ss.Length())
+	for i := range ss.Length() {
+		id, _ := ss.RowToID(i)
+		ids[i] = id
 	}
 	slices.SortFunc(ids, func(a, b int64) int {
-		bookA, _ := ss.GetBookEntryByID(a)
-		bookB, _ := ss.GetBookEntryByID(b)
-		return comp(*bookA, *bookB)
+		ba, _ := ss.GetBookEntryByID(a)
+		bb, _ := ss.GetBookEntryByID(b)
+		return comp(*ba, *bb)
 	})
+	return  ids, nil
 }
 
-func isValidVersion(curr, result *snapshot.Snapshot) bool {
-	return curr != nil && curr.Version() != result.Version()
-}
+//func sortIDs(ids []int64, ss *snapshot.Snapshot, column string, asc bool) {
+//	colIdx := slices.Index(models.BookEntryFields(), column)
+//	comp, err := app.CompareBookEntry(colIdx, asc)
+//	if err != nil {
+//		log.Println("sorting:", err)
+//		return
+//	}
+//	slices.SortFunc(ids, func(a, b int64) int {
+//		bookA, _ := ss.GetBookEntryByID(a)
+//		bookB, _ := ss.GetBookEntryByID(b)
+//		return comp(*bookA, *bookB)
+//	})
+//}
+
+//func isValidVersion(curr, result *snapshot.Snapshot) bool {
+//	return curr != nil && curr.Version() != result.Version()
+//}
 
 func toSnapshotPoint(
 	header []string, 
@@ -619,7 +748,7 @@ func toSheetPoint(
 
 func toSheetColumn(header []string, column int) (int, error) {
 	if column >= len(models.BookEntryFields()) || column < 0 {
-		return 0, fmt.Errorf("to_sheet_column %s: index out of range", column)
+		return 0, fmt.Errorf("to_sheet_column %d: index out of range", column)
 	}
 	label := models.BookEntryFields()[column]
 	col := slices.Index(header, label)
