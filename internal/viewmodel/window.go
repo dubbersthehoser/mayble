@@ -40,7 +40,7 @@ func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	case worker.Started:
 
 	case worker.Finished:
-		w.Table.HandleWorkerEvent(ev)
+		w.Table.HandleWorkerFinishedEvent(ev)
 
 	case worker.Failed:
 		log.Printf("Error: job %d %s: %s", ev.JobID, ev.Message, ev.Err)

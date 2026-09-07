@@ -56,7 +56,7 @@ func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *
 	return t
 }
 
-func (t *Table) HandleWorkerEvent(ev worker.Event) {
+func (t *Table) HandleWorkerFinishedEvent(ev worker.Event) {
 	v, ok := ev.Data.(event.Event)
 	if !ok {
 		log.Println("Error: invalid worker event data")
@@ -91,7 +91,7 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 			return nil
 		}
 
-		p, err := toSheetPoint(t.Sheet.Header(), e.Point, t.Sheet.IDToRow)
+		p, err := toSheetPoint(e.Point, t.Sheet.Header(), t.Sheet.IDToRow)
 		if err != nil {
 			log.Println("Error:", err)
 			return nil
@@ -204,7 +204,7 @@ func (s *Sheet) IDToRow(id int64) (int, error) {
 
 func (s *Sheet) Get(p Point) (string, error) {
 	ss := snapshot.Current.Load()
-	ssp, err := toSnapshotPoint(s.header, s.sorted, p, ss.IDToRow)
+	ssp, err := toSnapshotPoint(p, s.header, s.sorted, ss.IDToRow)
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +273,7 @@ func (s *Searchable) SetSearchBy(h string) {
 	s.onChangedSearchBy(h)
 }
 
-func (s *Searchable) setSelectable(headers []string) {
+func (s *Searchable) SetSelectable(headers []string) {
 	s.headers = headers
 	s.OnChangedOptions()
 }
@@ -689,9 +689,9 @@ func snapshotSort(ss *snapshot.Snapshot, column string, asc bool) ([]int64, erro
 //}
 
 func toSnapshotPoint(
+	p Point, 
 	header []string, 
 	sorted []int64, 
-	p Point, 
 	getRowByID func(int64) (int, error),
 ) (snapshot.Point, error) {
 
@@ -725,8 +725,8 @@ func toSnapshotRow(sorted []int64, row int, getRowByID func(int64) (int, error))
 }
 
 func toSheetPoint(
-	header []string,
 	p snapshot.Point,
+	header []string,
 	getRowByID func(int64) (int, error),
 ) (Point, error) {
 
@@ -757,5 +757,3 @@ func toSheetColumn(header []string, column int) (int, error) {
 	}
 	return col, nil
 }
-
-

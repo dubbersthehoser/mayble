@@ -36,6 +36,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 	tbl := container.NewStack(newTable(vm))
 	// Half to create a new table widget since updating the underling widget with new headers is complicated. Easier to recreate the entire widget.
 	vm.Table.Sheet.OnHeaderChanged = func() {
+		vm.Table.Searchable.SetSelectable(vm.Table.Sheet.Header())
 		tbl.Objects[0] = newTable(vm)
 		tbl.Refresh()
 	}
