@@ -89,7 +89,9 @@ func NewWindow(cfg *config.Config) *Window {
 		}
 	}
 
-	tbl := table.NewTable(cfg, )
+	tbl := table.NewTable(cfg, w.Worker, w.cb, w.eb)
+
+	// Todo: fix this
 	if err := tbl.Sheet.Load(); err != nil {
 		log.Println("error:", err)
 	}

@@ -73,7 +73,9 @@ func newTable(vm *viewmodel.Window) *Table {
 	UpdateCell := func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		_, colLen := vm.Table.Sheet.Size()
 		if cellID.Col < colLen {
-			point := table.Point{Row: cellID.Row, Col: cellID.Col}
+			col := vm.Table.Sheet.Header()[cellID.Col]
+			id, _ := vm.Table.Sheet.RowToID(cellID.Row)
+			point := table.Point{ID: id, Col: col}
 			data, err := vm.Table.Sheet.Get(point)
 			if err != nil {
 				log.Println("view table:", err)
@@ -143,8 +145,10 @@ func newTable(vm *viewmodel.Window) *Table {
 	}
 
 	// Selection Events
-	tbl.OnSelected = func(id widget.TableCellID) {
-		point := table.Point{Row: id.Row, Col: id.Col}
+	tbl.OnSelected = func(cell widget.TableCellID) {
+		col := vm.Table.Sheet.Header()[cell.Col]
+		id, _ := vm.Table.Sheet.RowToID(cell.Row)
+		point := table.Point{ID: id, Col: col}
 		vm.Table.Selected.Set(point, true)
 	}
 
@@ -159,8 +163,10 @@ func newTable(vm *viewmodel.Window) *Table {
 			tbl.UnselectAll()
 			return
 		}
+		row, _ := vm.Table.Sheet.IDToRow(point.ID)
+		col := slices.Index(vm.Table.Sheet.Header(), point.Col)
 		maxRow, maxCol := vm.Table.Sheet.Size()
-		if point.Row >= maxRow || point.Col >= maxCol { // (A) unselect the hidden cell if selected.
+		if row >= maxRow || row >= maxCol { // (A) unselect the hidden cell if selected.
 			id := widget.TableCellID{Row: point.Row, Col: point.Col}
 			tbl.Unselect(id)
 			return

@@ -1,95 +1,18 @@
 package table
 
 import (
-//	"fmt"
 	"testing"
-//
-//	"github.com/dubbersthehoser/mayble/internal/config"
+
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
-//func TestTable(t *testing.T) {
-//
-//	books := make([]models.BookEntry, 0)
-//
-//	// Note: only having only title, author and genre may bite me.
-//	// Note: it did.
-//	for i := range 6 {
-//		book := models.BookEntry{
-//			ID: int64(i),
-//			Book: models.Book{
-//				Title:  fmt.Sprintf("title-%d", i),
-//				Author: fmt.Sprintf("author-%d", i),
-//				Genre:  fmt.Sprintf("genre-%d", i),
-//			},
-//		}
-//		books = append(books, book)
-//	}
-//
-//	source := func() ([]models.BookEntry, error) {
-//		return books, nil
-//	}
-//
-//	cfg := config.NewConfigWithDefaults("")
-//
-//	table := NewTable(cfg, source)
-//
-//	// Load
-//	err := table.Sheet.Load()
-//	if err != nil {
-//		t.Fatalf("unexpected error: %s", err)
-//	}
-//
-//	table.Settings.SetIDHidden(true)
-//	table.Sorting.SetOrderBy(models.BookEntryFields()[models.IdxGenre])
-//	table.Sorting.SetAscending(true)
-//	table.Sorting.Sort()
-//
-//	{ // Get
-//		p := Point{
-//			Row: len(books) - 1,
-//			Col: 2,
-//		}
-//		expect := fmt.Sprintf("genre-%d", len(books)-1)
-//		actual, err := table.Sheet.Get(p)
-//		if err != nil {
-//			t.Fatalf("unexpected error: %s", err)
-//		}
-//
-//		if expect != actual {
-//			t.Fatalf("expect '%s', got '%s'", expect, actual)
-//		}
-//	}
-//
-//	{ // Search
-//		expect := "title-0"
-//		table.Settings.SetIDHidden(true)
-//		title := table.Searching.Searchable.GetOptions()[1]
-//		table.Searching.Searchable.SetBy(title)
-//		table.Search(expect)
-//		selected := table.Selected.Get()
-//		actual, err := table.Sheet.Get(selected)
-//		if err != nil {
-//			t.Fatalf("unexpected error: %s", err)
-//		}
-//		if actual != expect {
-//			t.Fatalf("expect '%s', got '%s'", expect, actual)
-//		}
-//	}
-//}
-
-
-
-
-
-func Test_toSheetColumn(t *testing.T) {
-	
+func TestRoundTrip_toColumn(t *testing.T) {
 	tests := []struct{
-		name    string
-		column  int
-		header  []string
-		expect  int
-		willErr bool
+		name        string
+		header      []string
+		sheetCol    int
+		snapshotCol int
+		willErr     bool
 	}{
 		{
 			name: "test-0: with only Title and Author",
@@ -97,78 +20,46 @@ func Test_toSheetColumn(t *testing.T) {
 				models.BookEntryFields()[models.IdxTitle],
 				models.BookEntryFields()[models.IdxAuthor],
 			},
-			column: 1,
-			expect: 0,
+			sheetCol: 0,
+			snapshotCol: models.IdxTitle,
 			willErr: false,
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual, err := toSheetColumn(tt.header, tt.column)
-			if tt.willErr {
-				if err == nil {
-					t.Fatal("expected err")
-				}
-				return
-			}
-			if actual != tt.expect {
-				t.Fatalf("expect %d, got %d", tt.expect, actual)
-			}
-		})
-	}
-}
-
-func Test_toSnapshotColumn(t *testing.T) {
-	
-	tests := []struct{
-		name    string
-		column  int
-		header  []string
-		expect  int
-		willErr bool
-	}{
 		{
-			name: "test-0: with only Title and Author",
+			name: "test-1: with only Title and Completed",
 			header: []string{
 				models.BookEntryFields()[models.IdxTitle],
-				models.BookEntryFields()[models.IdxAuthor],
+				models.BookEntryFields()[models.IdxCompletedAt],
 			},
-			column: 0,
-			expect: 1,
+			sheetCol: 1,
+			snapshotCol: models.IdxCompletedAt,
 			willErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := toSnapshotColumn(tt.header, tt.column)
+			actual, err := toSheetColumn(tt.header, tt.snapshotCol)
 			if tt.willErr {
 				if err == nil {
 					t.Fatal("expected err")
 				}
 				return
 			}
-			if actual != tt.expect {
-				t.Fatalf("expect %d, got %d", tt.expect, actual)
+			if actual != tt.sheetCol {
+				t.Fatalf("expect %d, got %d", tt.sheetCol, actual)
+			}
+
+			actual, err = toSnapshotColumn(tt.header, tt.sheetCol)
+			if tt.willErr {
+				if err == nil {
+					t.Fatal("expected err")
+				}
+				return
+			}
+			if actual != tt.snapshotCol {
+				t.Fatalf("expect %d, got %d", tt.snapshotCol, actual)
 			}
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

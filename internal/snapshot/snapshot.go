@@ -2,8 +2,9 @@ package snapshot
 
 import (
 	"sync/atomic"
+	"slices"
 	"fmt"
-	"errors"
+
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
@@ -13,8 +14,7 @@ var version atomic.Int64
 var Current atomic.Pointer[Snapshot]
 
 type Point struct {
-	Col  int
-	Row  int
+	Col  string
 	ID   int64
 }
 
@@ -44,18 +44,16 @@ func (ss *Snapshot) Version() int64 {
 }
 
 func (ss *Snapshot) Get(p Point) (string, error) {
-	if p.Row >= len(ss.data) || p.Row < 0 {
-		return "", errors.New("point.row out of range")
+	row, err := ss.IDToRow(p.ID)
+	if err != nil {
+		return "", fmt.Errorf("get %d: %w", row, err)
 	}
-	entry := &ss.data[p.Row]
-	if entry.ID != p.ID {
-		return "", fmt.Errorf("get %#v: invalid id for point", p)
+	fields := display.EntryValues(&ss.data[row])
+	idx := slices.Index(fields, p.Col)
+	if idx == -1 {
+		return "", fmt.Errorf("get %s: invalid column", p.Col)
 	}
-	fields := display.EntryValues(&ss.data[p.Row])
-	if p.Col >= len(fields) || p.Col < 0 {
-		return "", errors.New("point.col out of range")
-	}
-	return fields[p.Col], nil
+	return fields[idx], nil
 }
 
 func (ss *Snapshot) GetBookEntryByRow(row int) (*models.BookEntry, error) {

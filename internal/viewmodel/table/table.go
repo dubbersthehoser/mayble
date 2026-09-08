@@ -21,24 +21,22 @@ import (
 const ColumnAll = "All"
 
 type Point struct {
-	Col int
-	Row int
+	Col string
 	ID  int64
 }
 
 type Table struct {
-	worker     *worker.Worker
-	Searching  *Searching
-	Selected   *Selected
-	Sorting    *Sorting
-	Sheet      *Sheet
+	worker *worker.Worker
+	eb     *event.EventBus
+
+	Searching       *Searching
+	Selected        *Selected
+	Sorting         *Sorting
+	Sheet           *Sheet
 	Searchable      *Searchable
 	SearchSelection *SearchSelection
-	Settings   *Settings
-
-	eb *event.EventBus
+	Settings        *Settings
 }
-
 
 func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *event.EventBus) *Table {
 	t := &Table{
@@ -62,7 +60,6 @@ func (t *Table) HandleWorkerFinishedEvent(ev worker.Event) {
 		log.Println("Error: invalid worker event data")
 		return
 	}
-	
 	switch v.(type) {
 	case EventSnapshotSorted, EventSnapshotSearched:
 		t.eb.Notify(v)
@@ -119,7 +116,6 @@ func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 			Has:   e.Has,
 			Point: e.Point,
 		})
-
 		return nil
 	})
 
@@ -188,7 +184,7 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 
 func (s *Sheet) RowToID(row int) (int64, error) {
 	if len(s.sorted) <= row || row < 0 {
-		return 0, fmt.Errorf("row_to_id %d: index out of range", row)
+		return 0, fmt.Errorf("row %d to id: index out of range", row)
 	}
 	id := s.sorted[row]
 	return id, nil
@@ -197,7 +193,7 @@ func (s *Sheet) RowToID(row int) (int64, error) {
 func (s *Sheet) IDToRow(id int64) (int, error) {
 	row, ok := s.idToRow[id]
 	if !ok {
-		return 0, fmt.Errorf("id_to_row %d: id not found", id)
+		return 0, fmt.Errorf("id %d to row: id not found", id)
 	}
 	return row, nil
 }
@@ -209,6 +205,30 @@ func (s *Sheet) Get(p Point) (string, error) {
 		return "", err
 	}
 	return ss.Get(ssp)
+}
+
+func (s *Sheet) CordsToPoint(row, col int) (Point, error) {
+	id, err := s.RowToID(row)
+	if err != nil {
+		return Point{}, err
+	}
+	coll := s.Header()[col]
+	return Point{
+		ID: id,
+		Col: coll,
+	}, nil
+}
+
+func (s *Sheet) PointToCords(p Point) (row, col int, err error) {
+	row, err = s.IDToRow(p.ID)
+	if err != nil {
+		return 0, 0, fmt.Errorf("cord %d to point: %w", err)
+	}
+	col = slices.Index(s.Header(), p.Col)
+	if col == -1 {
+		return 0, 0, fmt.Errorf("cord %s to point %s: invalid column label", p.Col)
+	}
+	return row, col, nil
 }
 
 func (s *Sheet) Size() (rows, cols int) {
@@ -322,6 +342,9 @@ func (s *Searching) Search(pattern string) {
 // Selected 
 type Selected struct {
 	cb         *command.CommandBus
+	eb         *event.Event
+	selected   int64
+	has        bool
 	OnSelected func(Point, bool)
 	onSelected func(Point, bool)
 }
@@ -670,24 +693,6 @@ func snapshotSort(ss *snapshot.Snapshot, column string, asc bool) ([]int64, erro
 	return  ids, nil
 }
 
-//func sortIDs(ids []int64, ss *snapshot.Snapshot, column string, asc bool) {
-//	colIdx := slices.Index(models.BookEntryFields(), column)
-//	comp, err := app.CompareBookEntry(colIdx, asc)
-//	if err != nil {
-//		log.Println("sorting:", err)
-//		return
-//	}
-//	slices.SortFunc(ids, func(a, b int64) int {
-//		bookA, _ := ss.GetBookEntryByID(a)
-//		bookB, _ := ss.GetBookEntryByID(b)
-//		return comp(*bookA, *bookB)
-//	})
-//}
-
-//func isValidVersion(curr, result *snapshot.Snapshot) bool {
-//	return curr != nil && curr.Version() != result.Version()
-//}
-
 func toSnapshotPoint(
 	p Point, 
 	header []string, 
@@ -706,6 +711,7 @@ func toSnapshotPoint(
 	return snapshot.Point{
 		Row: row,
 		Col: col,
+		ID: sorted[row],
 	}, err
 }
 
