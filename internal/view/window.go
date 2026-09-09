@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"slices"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -13,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/doc"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
@@ -60,9 +62,7 @@ func NewWindow(f *Fyne, vm *viewmodel.Window) *fyne.Container {
 	body := newBody(vm)
 
 	view := container.NewBorder(topBar, nil, nil, nil, body)
-
-	vm.Table.NotifyOnColumnHidden()
-
+	viewmodel.FirstLoad(vm)
 	return view
 }
 
@@ -80,13 +80,13 @@ func setupEventBus(eb *EventBus, vm *viewmodel.Window) {
 		eb.Notify(BodyChanged{Body: vm.Body.Value()})
 	})
 
-	vm.Table.Settings.AddOnHidden(func() {
+	vm.Table.Settings.OnColumnHidden = func() {
 		eb.Notify(ColumnHiddenChanged{
 			ID:      vm.Table.Settings.IsIDHidden(),
 			LoanSet: vm.Table.Settings.IsLoanHidden(),
 			ReadSet: vm.Table.Settings.IsReadHidden(),
 		})
-	})
+	}
 }
 
 func commandToggleHiddenColumn(args ToggleHiddenColumn, vm *viewmodel.Window) error {
@@ -159,24 +159,6 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 	selectedBind := binding.NewString()
 	selectedLbl := widget.NewLabelWithData(selectedBind)
 
-	vm.Table.Selected.AddListener(func() {
-		point := vm.Table.Selected.Get()
-		if vm.Table.Selected.Has() {
-			data, err := vm.Table.GetDataPoint(point)
-			if err != nil {
-				log.Println("view display select:", err)
-				return
-			}
-			if data != "" {
-				data = " | " + data
-			}
-			format := fmt.Sprintf("%d:%d%s", point.Row, point.Col, data)
-			selectedBind.Set(format)
-		} else {
-			selectedBind.Set("")
-		}
-	})
-
 	var timer *time.Timer
 	duration := time.Second * 2
 	final := false
@@ -214,13 +196,27 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		selectedLbl,
 	)
 
-	update := func() {
-		if vm.Body.Value() != viewmodel.BodyTable {
-			view.Hide()
+	vm.Table.Selected.OnSelected = func(cell models.Cell, has bool) {
+		// update display of the selection.
+		if has {
+			data, err := vm.Table.Sheet.Get(cell)
+			if err != nil {
+				log.Println("view display select:", err)
+				return
+			}
+			if data != "" {
+				data = " | " + data
+			}
+			row, _ := vm.Table.Sheet.IDToRow(cell.ID)
+			col := slices.Index(vm.Table.Sheet.Header(), cell.Column)
+			format := fmt.Sprintf("%d:%d%s", row, col, data)
+			selectedBind.Set(format)
 		} else {
-			view.Show()
+			selectedBind.Set("")
 		}
-		if vm.Table.Selected.Has() {
+
+		// update buttons based on selection.
+		if has {
 			deleteBtn.Enable()
 			edit.Enable()
 			unselect.Enable()
@@ -231,9 +227,13 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		}
 	}
 
-	vm.Table.Selected.AddListener(update)
-	vm.Body.AddListener(update)
-	update()
+	vm.Body.AddListener(func(){
+		if vm.Body.Value() != viewmodel.BodyTable {
+			view.Hide()
+		} else {
+			view.Show()
+		}
+	})
 	return view
 }
 

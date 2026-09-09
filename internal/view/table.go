@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
-	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
+	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
@@ -75,7 +75,7 @@ func newTable(vm *viewmodel.Window) *Table {
 		if cellID.Col < colLen {
 			col := vm.Table.Sheet.Header()[cellID.Col]
 			id, _ := vm.Table.Sheet.RowToID(cellID.Row)
-			point := table.Point{ID: id, Col: col}
+			point := models.Cell{ID: id, Column: col}
 			data, err := vm.Table.Sheet.Get(point)
 			if err != nil {
 				log.Println("view table:", err)
@@ -148,30 +148,36 @@ func newTable(vm *viewmodel.Window) *Table {
 	tbl.OnSelected = func(cell widget.TableCellID) {
 		col := vm.Table.Sheet.Header()[cell.Col]
 		id, _ := vm.Table.Sheet.RowToID(cell.Row)
-		point := table.Point{ID: id, Col: col}
+		point := models.Cell{ID: id, Column: col}
 		vm.Table.Selected.Set(point, true)
 	}
 
 	tbl.OnUnselected = func(id widget.TableCellID) {
-		vm.Table.Selected.Set(table.Point{}, false)
+		vm.Table.Selected.Set(models.Cell{}, false)
 		tbl.UnselectAll()
 	}
 
 	// Listen for select events, then select, or unselect.
-	vm.Table.Selected.OnSelected = func(point table.Point, has bool) {
+	vm.Table.Selected.OnSelected = func(c models.Cell, has bool) {
 		if !has {
 			tbl.UnselectAll()
 			return
 		}
-		row, _ := vm.Table.Sheet.IDToRow(point.ID)
-		col := slices.Index(vm.Table.Sheet.Header(), point.Col)
-		maxRow, maxCol := vm.Table.Sheet.Size()
-		if row >= maxRow || row >= maxCol { // (A) unselect the hidden cell if selected.
-			id := widget.TableCellID{Row: point.Row, Col: point.Col}
-			tbl.Unselect(id)
+		row, col, err := vm.Table.Sheet.PointToCords(c)
+		if err != nil {
+			log.Println(err)
 			return
 		}
-		tbl.Select(widget.TableCellID{Row: point.Row, Col: point.Col})
+		maxRow, maxCol := vm.Table.Sheet.Size()
+
+		// I don't know if the below line is needed.
+		// TODO check this is needed.
+		if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
+			cell := widget.TableCellID{Row: row, Col: col}
+			tbl.Unselect(cell)
+			return
+		}
+		tbl.Select(widget.TableCellID{Row: row, Col: col})
 	}
 	return tbl
 }

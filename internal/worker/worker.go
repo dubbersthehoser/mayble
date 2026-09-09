@@ -81,25 +81,24 @@ func (w *Worker) run() {
 		}()
 
 		go func () {
-			select {
-			case <- ctx.Done():
-				w.Events <- Event{
-					JobID: job.ID,
-					Type:  Failed,
-					Err: ctx.Err(),
-					Message: "job canceled",
-				}
+			<- ctx.Done()
+			w.Events <- Event{
+				JobID: job.ID,
+				Type:  Failed,
+				Err: ctx.Err(),
+				Message: "job canceled",
 			}
 		}()
 	}
 }
 
-func NewFailedEvent(name string, jobID int, err error) Event{
+func NewFailedEvent(name string, jobID int, data any, err error) Event{
 	return Event{
 		JobID: jobID,
 		JobName: name,
 		Type: Failed,
 		Message: "job failed",
+		Data: data,
 		Err: err,
 	}
 }

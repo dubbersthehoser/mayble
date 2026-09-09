@@ -2,6 +2,7 @@ package table
 
 import (
 	"github.com/dubbersthehoser/mayble/internal/search"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
 )
 
@@ -37,7 +38,9 @@ func (tt *tableTraverse) Next() (string, bool) {
 	if rows <= tt.row {
 		return tt.retDone()
 	}
-	v, err := tt.snapshot.Get(snapshot.Point{Row: tt.row, Col: tt.col})
+	label := models.BookEntryFields()[tt.col]
+	id, _ := tt.snapshot.RowToID(tt.row)
+	v, err := tt.snapshot.Get(models.Cell{ID: id, Column: label})
 	if err != nil {
 		return tt.retDone()
 	}
@@ -84,7 +87,9 @@ func (ct *columnTraverse) Next() (string, bool) {
 		return ct.retDone()
 	}
 
-	v, err := ct.snapshot.Get(snapshot.Point{Row: ct.row, Col: ct.col})
+	label := models.BookEntryFields()[ct.col]
+	id, _ := ct.snapshot.RowToID(ct.row)
+	v, err := ct.snapshot.Get(models.Cell{ID: id, Column: label})
 	if err != nil {
 		return ct.retDone()
 	}

@@ -1,34 +1,29 @@
 package viewmodel
 
 import (
-	"log"
-
-	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/config"
 )
 
 type UniqueGenres struct {
-	s *app.Service
-
-	l []func()
+	l  []func()
+	ss *snapshot.Snapshot
 }
 
-func newUniqueGenres(s *app.Service) *UniqueGenres {
+func newUniqueGenres(eb *event.EventBus) *UniqueGenres {
 	ug := &UniqueGenres{
-		s: s,
+		ss: snapshot.Current.Load(),
 	}
-	ug.s.AddListener(func() {
+	eb.Subscribe(event.StoredSnapshot{}, func(_ event.Event) {
+		ug.ss = snapshot.Current.Load()
 		ug.notify()
 	})
 	return ug
 }
 
 func (ug *UniqueGenres) Genres() []string {
-	g, err := ug.s.GetUniqueGenres()
-	if err != nil {
-		log.Println("Error:", err)
-	}
-	return g
+	return ug.ss.UniqueGenres()
 }
 
 func (ug *UniqueGenres) AddListener(fn func()) {

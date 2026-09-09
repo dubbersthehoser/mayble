@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
@@ -31,7 +32,7 @@ type BookForm struct {
 	OnCreate    func()
 }
 
-func newBookForm(onUpdate, onCreate func()) *BookForm {
+func newBookForm(eb *event.EventBus, onUpdate, onCreate func()) *BookForm {
 	bf := &BookForm{
 		OnUpdate: onUpdate,
 		OnCreate: onCreate,
@@ -61,6 +62,15 @@ func newBookForm(onUpdate, onCreate func()) *BookForm {
 			CompletedAt: binding.NewString(),
 		},
 	}
+
+	eb.Subscribe(event.UpdatedBookEntry{}, func(_ event.Event) {
+		bf.Reset()
+	})
+	eb.Subscribe(event.CreatedBookEntry{}, func(_ event.Event) {
+		bf.Reset()
+	})
+
+
 	return bf
 }
 

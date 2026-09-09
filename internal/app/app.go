@@ -1,108 +1,85 @@
 package app
 
 import (
-	"cmp"
-	"errors"
-	"fmt"
 	"os"
-	"slices"
-	"strings"
+	"context"
+	"sync"
 
-	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/csv"
 	"github.com/dubbersthehoser/mayble/internal/database"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
 type Service struct {
-	cfg *config.Config
-
-	db *database.Database
-
-	listeners []func()
+	path string
+	mu   sync.RWMutex
+	db   *database.Database
 }
 
-func NewService(cfg *config.Config) *Service {
+func NewService(w *worker.Worker, eb *event.EventBus, cb *command.CommandBus) *Service {
 	as := &Service{
-		cfg: cfg,
 		db:  nil,
-
-		listeners: make([]func(), 0),
 	}
+	as.setupCommands(w, eb, cb)
 	return as
 }
 
-func (as *Service) noDatabase() bool {
-	return as.db == nil
+func (as *Service) Path() string {
+	return as.path
 }
 
 func (as *Service) CloseDB() error {
-	if as.noDatabase() {
+	if !hasDatabase(as) {
 		return nil
 	}
 	return as.db.Conn.Close()
 }
 
-func (as *Service) CreateBook(b *models.BookEntry) (int64, error) {
-	if as.noDatabase() {
+func (as *Service) createBook(b *models.BookEntry) (int64, error) {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	if !hasDatabase(as) {
 		return 0, nil
 	}
-	id, err := as.db.CreateBook(b)
-	if err == nil {
-		as.notify()
-	}
+	id, err := as.db.CreateBookWithContext(context.Background(), b)
 	return id, err
 }
 
-func (as *Service) UpdateBook(b *models.BookEntry) error {
-	if as.noDatabase() {
+func (as *Service) updateBook(b *models.BookEntry) error {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	if !hasDatabase(as) {
 		return nil
 	}
 	err := as.db.UpdateBook(b)
-	if err == nil {
-		as.notify()
-	}
 	return err
 }
 
-func (as *Service) DeleteBook(id int64) error {
-	if as.noDatabase() {
+func (as *Service) deleteBook(id int64) error {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	if !hasDatabase(as) {
 		return nil
 	}
 	err := as.db.DeleteBook(id)
-	if err == nil {
-		as.notify()
-	}
 	return err
 }
 
-
-func (as *Service) GetUniqueGenres() ([]string, error) {
-	if as.noDatabase() {
-		return []string{}, nil
-	}
-	return as.db.GetUniqueGenres()
-}
-
-func (as *Service) GetAllBooks() ([]models.BookEntry, error) {
-	if as.noDatabase() {
+func (as *Service) getAllBooksWithContext(ctx context.Context) ([]models.BookEntry, error) {
+	if !hasDatabase(as) {
 		return []models.BookEntry{}, nil
 	}
-	return as.db.GetAllBooks()
+	return as.db.GetAllBooksWithContext(ctx)
 }
 
-func (as *Service) GetBookByID(id int64) (models.BookEntry, error) {
-	if as.noDatabase() {
-		return models.BookEntry{}, errors.New("nil database")
-	}
-	return as.db.GetBookByID(id)
-}
-
-func (as *Service) ExportFile(path string) error {
-	if as.noDatabase() {
+func (as *Service) exportFileWithContext(ctx context.Context, path string) error {
+	if !hasDatabase(as) {
 		return nil
 	}
-	books, err := as.db.GetAllBooks()
+	books, err := as.db.GetAllBooksWithContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -120,8 +97,10 @@ func (as *Service) ExportFile(path string) error {
 	return nil
 }
 
-func (as *Service) ImportFile(path string) error {
-	if as.noDatabase() {
+func (as *Service) importFileWithContext(ctx context.Context, path string) error {
+	as.mu.Lock()
+	defer as.mu.Unlock()
+	if !hasDatabase(as) {
 		return nil
 	}
 	file, err := os.Open(path)
@@ -133,42 +112,48 @@ func (as *Service) ImportFile(path string) error {
 		return err
 	}
 	for _, book := range books {
-		_, err = as.db.CreateBook(&book)
+		_, err = as.db.CreateBookWithContext(ctx, &book)
 		if err != nil {
 			return err
 		}
 	}
-	as.notify()
 	return nil
 }
 
-func (as *Service) CreateDatabase(path string) error {
+func (as *Service) createDatabase(path string) error {
+	as.mu.Lock()
+	defer as.mu.Unlock()
 	db, err := database.Create(path)
 	if err != nil {
 		return err
 	}
-	if err := as.swap(db); err != nil {
+	if err := swap(as, db); err != nil {
 		return err
 	}
-	as.cfg.DBFile = path
-	as.notify()
+	as.path = path
 	return nil
 }
 
-func (as *Service) OpenDatabase(path string) error {
+func (as *Service) openDatabase(path string) error {
+	as.mu.Lock()
+	defer as.mu.Unlock()
 	db, err := database.Open(path)
 	if err != nil {
 		return err
 	}
-	if err := as.swap(db); err != nil {
+	if err := swap(as, db); err != nil {
 		return err
 	}
-	as.cfg.DBFile = path
-	as.notify()
+	as.path = path
 	return nil
 }
 
-func (as *Service) swap(db *database.Database) error {
+func hasDatabase(as *Service) bool {
+	return as.db != nil
+}
+
+// swap database. Should only be called in [Service.openDatabase], and [Service.CreateDatabase].
+func swap(as *Service, db *database.Database) error {
 	if as.db == nil {
 		as.db = db
 	} else {
@@ -182,97 +167,115 @@ func (as *Service) swap(db *database.Database) error {
 	return nil
 }
 
-// AddListener listen for database changes.
-func (as *Service) AddListener(fn func()) {
-	as.listeners = append(as.listeners, fn)
-}
+func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *command.CommandBus) {
 
-func (as *Service) notify() {
-	for _, fn := range as.listeners {
-		fn()
-	}
-}
-
-type BookCompare func(a, b models.BookEntry) int
-
-
-func CompareBookEntry(index int, ascending bool) (BookCompare, error)  {
-	if !(models.IdxID <= index && models.IdxBorrower >= index) {
-		return nil, fmt.Errorf("compare_books %d: invalid index", index)
-	}
-	return func(a, b models.BookEntry) int {
-		// keep all the non-active values to the bottom of list.
-		switch index {
-		case models.IdxRating, models.IdxCompletedAt:
-			if !a.IsCompleted && !b.IsCompleted {
-				return 0
-			}
-			if !a.IsCompleted {
-				return 1
-			}
-			if !b.IsCompleted {
-				return -1
-			}
-		case models.IdxBorrower, models.IdxLoanedAt:
-			if !a.IsLoaned && !b.IsLoaned {
-				return 0
-			}
-			if !a.IsLoaned {
-				return 1
-			}
-			if !b.IsLoaned {
-				return -1
-			}
-		}
-
-		r := -1
-		switch index {
-		case models.IdxTitle:
-			r = cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title))
-		case models.IdxAuthor:
-			r = cmp.Compare(strings.ToLower(a.Author), strings.ToLower(b.Author))
-		case models.IdxGenre:
-			r = cmp.Compare(strings.ToLower(a.Genre), strings.ToLower(b.Genre))
-		case models.IdxBorrower:
-			r = cmp.Compare(strings.ToLower(a.Borrower), strings.ToLower(b.Borrower))
-		case models.IdxLoanedAt:
-			r = a.Loaned.LoanedAt.Compare(b.LoanedAt)
-		case models.IdxRating:
-			r = cmp.Compare(a.Rating, b.Rating)
-		case models.IdxCompletedAt:
-			r = a.CompletedAt.Compare(b.CompletedAt)
-		}
-		if ascending {
-			return r
+	//
+	// Opening and Creating Database.
+	//
+	cb.Register(command.OpenDatabase{}, func(v command.Command) error {
+		e := v.(command.OpenDatabase)
+		err := as.openDatabase(e.Path)
+		if err != nil {
+			eb.Notify(event.OpenedDatabase{
+				Path: e.Path,
+				Failed: true,
+				Message: err.Error(),
+			})
 		} else {
-			return r * -1
+			eb.Notify(event.OpenedDatabase{
+				Path: e.Path,
+				Failed: false,
+			})
 		}
-	}, nil
-}
-
-
-// SortBooks sort slice of book entries.
-func SortBooks(books []models.BookEntry, index int, ascending bool) error {
-	comp, err := CompareBookEntry(index, ascending)
-	if err != nil {
-		return err
-	}
-	slices.SortFunc(books, comp)
-	return nil
-}
-
-func SortIndexsThroughBooks(idxs []int, books []models.BookEntry, index int, ascending bool) error {
-	if len(idxs) != len(books) {
-		return errors.New("length missmatch of indexs and books")
-	}
-	comp, err := CompareBookEntry(index, ascending)
-	if err != nil {
-		return err
-	}
-	slices.SortFunc(idxs, func(a, b int) int {
-		return comp(books[idxs[a]], books[idxs[b]])
+		return nil
 	})
-	return nil
+	cb.Register(command.CreateDatabase{}, func(v command.Command) error {
+		e := v.(command.CreateDatabase)
+		err := as.createDatabase(e.Path)
+		if err != nil {
+			eb.Notify(event.CreatedDatabase{
+				Path: e.Path,
+				Failed: true,
+				Message: err.Error(),
+			})
+		} else {
+			eb.Notify(event.CreatedDatabase{
+				Path: e.Path,
+				Failed: false,
+			})
+		}
+		return nil
+	})
+
+	//
+	// Create, Update, and Delete Book Entry.
+	//
+	cb.Register(command.CreateBookEntry{}, func(v command.Command) error{
+		e := v.(command.CreateBookEntry)
+		_, err := as.createBook(&e.Book)
+		if err != nil {
+			eb.Notify(event.CreatedBookEntry{
+				Message: err.Error(),
+				Failed: true,
+			})
+		} else {
+			eb.Notify(event.CreatedBookEntry{
+				Failed: false,
+			})
+		}
+		return nil
+	})
+	cb.Register(command.UpdateBookEntry{}, func(v command.Command) error{
+		e := v.(command.UpdateBookEntry)
+		err := as.updateBook(&e.Book)
+		if err != nil {
+			eb.Notify(event.UpdatedBookEntry{
+				Failed: true,
+				Message: err.Error(),
+			})
+		} else {
+			eb.Notify(event.UpdatedBookEntry{
+				Failed: false,
+			})
+		}
+		return nil
+	})
+	cb.Register(command.DeleteBookEntry{}, func(v command.Command) error {
+		e := v.(command.DeleteBookEntry)
+		err := as.deleteBook(e.BookID)
+		if err != nil {
+			eb.Notify(event.DeletedBookEntry{
+				Message: err.Error(),
+				Failed: true,
+			})
+		} else {
+			eb.Notify(event.DeletedBookEntry{
+				Failed: false,
+			})
+		}
+		return nil
+	})
+
+	//
+	// File Import, and Export.
+	//
+	cb.Register(command.ImportFile{}, func(v command.Command) error {
+		e := v.(command.ImportFile)
+		w.Jobs <- NewJobImportFile(w, as, e.Path)
+		return nil
+	})
+	cb.Register(command.ExportFile{}, func(v command.Command) error {
+		e := v.(command.ExportFile)
+		w.Jobs <- NewJobExportFile(w, as, e.Path)
+		return nil
+	})
+
+
+	//
+	// TakeSnapshot
+	//
+	cb.Register(command.TakeSnapshot{}, func(_ command.Command) error {
+		w.Jobs <- NewJobTakeSnapshot(w, as)
+		return nil
+	})
 }
-
-

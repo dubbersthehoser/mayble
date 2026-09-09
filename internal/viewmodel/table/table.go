@@ -20,11 +20,6 @@ import (
 
 const ColumnAll = "All"
 
-type Point struct {
-	Col string
-	ID  int64
-}
-
 type Table struct {
 	worker *worker.Worker
 	eb     *event.EventBus
@@ -49,7 +44,7 @@ func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *
 		Selected:   newSelected(cb),
 		SearchSelection: newSearchSelection(eb, cb),
 	}
-	SetupCommands(t, eb, cb)
+	setupCommands(t, eb, cb)
 	t.Searchable.onChangedSearchBy = t.Searching.setSearchColumn
 	return t
 }
@@ -61,83 +56,63 @@ func (t *Table) HandleWorkerFinishedEvent(ev worker.Event) {
 		return
 	}
 	switch v.(type) {
-	case EventSnapshotSorted, EventSnapshotSearched:
+	case event.TableSorted, event.TableSearched:
 		t.eb.Notify(v)
 	default:
 		log.Println("Error: invalid worker event data")
 	}
 }
 
-func SetupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
+func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
 	// CommandSnapshotSelect
-	cb.Register(CommandSnapshotSelect{}, func(v command.Command) error{
+	cb.Register(command.CellSelect{}, func(v command.Command) error{
 
-		e := v.(CommandSnapshotSelect)
+		e := v.(command.CellSelect)
 
 		pp := snapshot.Current.Load()
 		if pp.Version() != e.Version {
-			log.Printf("Warning: de-synced versions: %d != %d", pp.Version(), e.Version)
+			log.Printf("Warning: snapshot select: de-synced versions: %d != %d", pp.Version(), e.Version)
 			return nil
 		}
 
 		if !e.Has {
-			eb.Notify(EventSelected{
+			eb.Notify(event.CellSelected{
 				Has: e.Has,
 			})
 			return nil
 		}
 
-		p, err := toSheetPoint(e.Point, t.Sheet.Header(), t.Sheet.IDToRow)
-		if err != nil {
-			log.Println("Error:", err)
-			return nil
+		p := models.Cell{
+			ID:  e.Point.ID,
+			Column: e.Point.Column,
 		}
 
-		eb.Notify(EventSelected {
+		eb.Notify(event.CellSelected {
 			Has: e.Has,
 			Point: p,
 		})
 		return nil
 	})
 
-	// CommandSheetSelect
-	cb.Register(CommandSheetSelect{}, func(v command.Command) error {
-		e := v.(CommandSheetSelect)
-
-		if !e.Has {
-			eb.Notify(EventSelected{
-				Has: e.Has,
-			})
-			return nil
-		}
-
-		eb.Notify(EventSelected{
-			Has:   e.Has,
-			Point: e.Point,
-		})
-		return nil
-	})
-
 	// CommandSearch
-	cb.Register(CommandSearch{}, func(v command.Command) error {
-		e := v.(CommandSearch)
+	cb.Register(command.TableSearch{}, func(v command.Command) error {
+		e := v.(command.TableSearch)
 		pattern := e.Pattern
 		column := e.Column
-		t.worker.Jobs <- NewJobSearchSnapshot(t.worker, pattern, column) 
+		t.worker.Jobs <- NewJobSearchTable(t.worker, pattern, column) 
 		return nil
 	})
 
 	// CommandSort
-	cb.Register(CommandSort{}, func(v command.Command) error {
-		e := v.(CommandSort)
+	cb.Register(command.TableSort{}, func(v command.Command) error {
+		e := v.(command.TableSort)
 		column := e.Column
 		asc := e.Asc
-		t.worker.Jobs <- NewJobSortSnapshot(t.worker, column, asc)
+		t.worker.Jobs <- NewJobSortTable(t.worker, column, asc)
 		return nil
 	})
 }
-
 
 //
 // Sheet
@@ -160,8 +135,8 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		OnSorted: func() {},
 		OnHeaderChanged: func() {},
 	}
-	eb.Subscribe(EventHiddenColumn{}, func(v event.Event) {
-		e := v.(EventHiddenColumn)
+	eb.Subscribe(event.HiddenColumn{}, func(v event.Event) {
+		e := v.(event.HiddenColumn)
 		header := make([]string, 0)
 		for i, label := range models.BookEntryFields() {
 			if !e.Hidden[i] {
@@ -171,9 +146,9 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		s.header = header
 		s.OnHeaderChanged()
 	})
-	eb.Subscribe(EventSnapshotSorted{}, func(v event.Event){
+	eb.Subscribe(event.TableSorted{}, func(v event.Event){
 		ss := snapshot.Current.Load()
-		e := v.(EventSnapshotSorted)
+		e := v.(event.TableSorted)
 		if ss.Version() == e.Version {
 			s.sorted = e.Sorted
 			s.OnSorted()
@@ -198,35 +173,31 @@ func (s *Sheet) IDToRow(id int64) (int, error) {
 	return row, nil
 }
 
-func (s *Sheet) Get(p Point) (string, error) {
+func (s *Sheet) Get(c models.Cell) (string, error) {
 	ss := snapshot.Current.Load()
-	ssp, err := toSnapshotPoint(p, s.header, s.sorted, ss.IDToRow)
-	if err != nil {
-		return "", err
-	}
-	return ss.Get(ssp)
+	return ss.Get(c)
 }
 
-func (s *Sheet) CordsToPoint(row, col int) (Point, error) {
+func (s *Sheet) CordsToCell(row, col int) (models.Cell, error) {
 	id, err := s.RowToID(row)
 	if err != nil {
-		return Point{}, err
+		return models.Cell{}, err
 	}
 	coll := s.Header()[col]
-	return Point{
+	return models.Cell{
 		ID: id,
-		Col: coll,
+		Column: coll,
 	}, nil
 }
 
-func (s *Sheet) PointToCords(p Point) (row, col int, err error) {
+func (s *Sheet) PointToCords(p models.Cell) (row, col int, err error) {
 	row, err = s.IDToRow(p.ID)
 	if err != nil {
 		return 0, 0, fmt.Errorf("cord %d to point: %w", err)
 	}
-	col = slices.Index(s.Header(), p.Col)
+	col = slices.Index(s.Header(), p.Column)
 	if col == -1 {
-		return 0, 0, fmt.Errorf("cord %s to point %s: invalid column label", p.Col)
+		return 0, 0, fmt.Errorf("cord %s to point %s: invalid column label", p.Column)
 	}
 	return row, col, nil
 }
@@ -262,7 +233,7 @@ func newSorting(cb *command.CommandBus, column string, asc bool) *Sorting {
 }
 
 func (s *Sorting) Sort() {
-	s.cb.Dispatch(CommandSort{
+	s.cb.Dispatch(command.TableSort{
 		Asc: s.Ascending,
 		Column: s.Column,
 	})
@@ -331,7 +302,7 @@ func (s *Searching) setSearchColumn(h string) {
 
 func (s *Searching) Search(pattern string) {
 	s.debounce(func() {
-		s.cb.Dispatch(CommandSearch{Pattern: pattern, Column: s.column})
+		s.cb.Dispatch(command.TableSearch{Pattern: pattern, Column: s.column})
 	})
 }
 
@@ -343,25 +314,36 @@ func (s *Searching) Search(pattern string) {
 type Selected struct {
 	cb         *command.CommandBus
 	eb         *event.Event
-	selected   int64
+	selected   models.Cell
 	has        bool
-	OnSelected func(Point, bool)
-	onSelected func(Point, bool)
+	OnSelected func(models.Cell, bool)
+	onSelected func(models.Cell, bool)
 }
+
 
 func newSelected(cb *command.CommandBus) *Selected {
 	es := &Selected{
 		cb: cb,
-		OnSelected: func(_ Point, _ bool) {},
+		OnSelected: func(_ models.Cell, _ bool) {},
 	}
-	es.onSelected = func(p Point, has bool) {
+	es.onSelected = func(p models.Cell, has bool) {
 		es.OnSelected(p, has)
 	}
 	return es
 }
 
-func (es *Selected) Set(p Point, ok bool) {
-	es.cb.Dispatch(CommandSheetSelect{Point: p, Has: ok})
+func (s *Selected) Get() (cell models.Cell, has bool) {
+	has = s.has
+	cell = s.selected
+	return
+}
+
+func (es *Selected) Set(p models.Cell, ok bool) {
+	c := models.Cell{
+		Column: p.Column,
+		ID: p.ID,
+	}
+	es.cb.Dispatch(command.CellSelect{Point: c, Has: ok})
 }
 
 //
@@ -369,10 +351,10 @@ func (es *Selected) Set(p Point, ok bool) {
 //
 
 type SearchSelection struct {
-	eb *event.EventBus
-	cb *command.CommandBus
+	eb        *event.EventBus
+	cb        *command.CommandBus
 	ssVersion int64
-	selection []snapshot.Point
+	selection []models.Cell
 	position  int
 }
 
@@ -382,8 +364,8 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		cb: cb,
 		position: -1,
 	}
-	eb.Subscribe(EventSnapshotSearched{}, func(v event.Event){
-		e := v.(EventSnapshotSearched)
+	eb.Subscribe(event.TableSearched{}, func(v event.Event){
+		e := v.(event.TableSearched)
 		sc.ssVersion = e.Version
 		sc.selection = e.Points
 		sc.position = 0
@@ -415,7 +397,7 @@ func (es *SearchSelection) Prev() {
 
 func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
-	es.cb.Dispatch(CommandSnapshotSelect{
+	es.cb.Dispatch(command.CellSelect{
 		Version: es.ssVersion,
 		Point: p,
 		Has: true,
@@ -430,6 +412,8 @@ func (es *SearchSelection) selected() {
 type Settings struct {
 	eb       *event.EventBus
 	cfg      *config.Config
+
+	OnColumnHidden func()
 }
 
 func newSettings(eb *event.EventBus, cfg *config.Config) *Settings {
@@ -437,10 +421,13 @@ func newSettings(eb *event.EventBus, cfg *config.Config) *Settings {
 		cfg: cfg,
 		eb: eb,
 	}
-	cs.eb.Subscribe(EventSnapshotSorted{}, func(v event.Event) {
-		e := v.(EventSnapshotSorted)
+	cs.eb.Subscribe(event.TableSorted{}, func(v event.Event) {
+		e := v.(event.TableSorted)
 		cfg.UI.TableSortBy = e.Column
 		cfg.UI.TableAscending = e.Asc
+	})
+	cs.eb.Subscribe(event.HiddenColumn{}, func(_ event.Event) {
+		cs.OnColumnHidden()
 	})
 	return cs
 }
@@ -562,7 +549,7 @@ func (ts *Settings) notifyHidden() {
 	for idx := range models.BookEntryFields() {
 		hidden[idx] = ts.cfg.UI.Headers[idx].IsHidden
 	}
-	ts.eb.Notify(EventHiddenColumn{
+	ts.eb.Notify(event.HiddenColumn{
 		Hidden: hidden,
 	})
 }
@@ -571,36 +558,18 @@ func (ts *Settings) notifyHidden() {
 // Functions and Helpers
 //
 
-func snapshotSearchWithContext(ctx context.Context, ss *snapshot.Snapshot, by string, pattern string) ([]snapshot.Point, []int, error) {
+func getSnapshotTraverser(ss *snapshot.Snapshot, by string) (search.Traverser, error) {
 	var trv search.Traverser
 	if by == ColumnAll {
 		trv = newTableTraverse(ss)
 	} else {
 		idx := slices.Index(models.BookEntryFields(), by)
 		if idx == -1 {
-			return nil, nil, fmt.Errorf("search %s: invalid column label", by)
+			return nil, fmt.Errorf("search %s: invalid column label", by)
 		}
 		trv = newColumnTraverse(ss, idx)
 	}
-	srch := (&search.Searcher{}).Set(trv, pattern)
-
-	//points, score := searchSearcherWithContext(ctx, srch)
-	results := searchSearcherWithContext(ctx, srch)
-
-	scores := make([]int, len(results))
-	points := make([]snapshot.Point, len(results))
-	for i, r := range results {
-		if ctx.Err() != nil {
-			return points, scores, nil
-		}
-		scores[i] = r.Score
-		p := snapshot.Point{
-			Row: r.Point.Row,
-			Col: r.Point.Col,
-		}
-		points[i] = p
-	}
-	return points, scores, nil
+	return trv, nil
 }
 
 type SearchResult struct {
@@ -691,75 +660,4 @@ func snapshotSort(ss *snapshot.Snapshot, column string, asc bool) ([]int64, erro
 		return comp(*ba, *bb)
 	})
 	return  ids, nil
-}
-
-func toSnapshotPoint(
-	p Point, 
-	header []string, 
-	sorted []int64, 
-	getRowByID func(int64) (int, error),
-) (snapshot.Point, error) {
-
-	col, err := toSnapshotColumn(header, p.Col)
-	if err != nil {
-		return snapshot.Point{}, err
-	}
-	row, err := toSnapshotRow(sorted, p.Row, getRowByID)
-	if err !=nil {
-		return snapshot.Point{}, err
-	}
-	return snapshot.Point{
-		Row: row,
-		Col: col,
-		ID: sorted[row],
-	}, err
-}
-
-func toSnapshotColumn(header []string, column int) (int, error) {
-	if column >= len(header) || column < 0 {
-		return 0, fmt.Errorf("to_snapshot_column %d: index out of range", column)
-	}
-	return slices.Index(models.BookEntryFields(), header[column]), nil
-}
-
-func toSnapshotRow(sorted []int64, row int, getRowByID func(int64) (int, error)) (int, error) {
-	if row >= len(sorted) || row < 0 {
-		return 0, fmt.Errorf("to_snapshot_row %d: index out of range", row)
-	}
-	id := sorted[row]
-	return getRowByID(id)
-}
-
-func toSheetPoint(
-	p snapshot.Point,
-	header []string,
-	getRowByID func(int64) (int, error),
-) (Point, error) {
-
-	col, err := toSheetColumn(header, p.Col)
-	if err != nil {
-		return Point{}, err
-	}
-
-	row, err := getRowByID(p.ID)
-	if err != nil {
-		return Point{}, err
-	}
-
-	return Point{
-		Row: row,
-		Col: col,
-	}, err
-}
-
-func toSheetColumn(header []string, column int) (int, error) {
-	if column >= len(models.BookEntryFields()) || column < 0 {
-		return 0, fmt.Errorf("to_sheet_column %d: index out of range", column)
-	}
-	label := models.BookEntryFields()[column]
-	col := slices.Index(header, label)
-	if col == -1 {
-		return 0, fmt.Errorf("to_sheet_column %s: label not found", label)
-	}
-	return col, nil
 }

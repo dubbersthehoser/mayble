@@ -12,7 +12,7 @@ import (
 )
 
 // CreateBook insert b into database.
-func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
+func (db *Database) CreateBookWithContext(ctx context.Context, b *models.BookEntry) (int64, error) {
 
 	params := database.CreateBookParams{
 		Title:  b.Title,
@@ -20,7 +20,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 		Genre:  b.Genre,
 	}
 
-	row, err := db.Queries.CreateBook(context.Background(), params)
+	row, err := db.Queries.CreateBook(ctx, params)
 	if err != nil {
 		return -1, fmt.Errorf("database: %w", err)
 	}
@@ -33,7 +33,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 			Name:   b.Borrower,
 			Date:   date,
 		}
-		_, err := db.Queries.CreateLoan(context.Background(), params)
+		_, err := db.Queries.CreateLoan(ctx, params)
 		if err != nil {
 			return -1, fmt.Errorf("database: %w", err)
 		}
@@ -46,7 +46,7 @@ func (db *Database) CreateBook(b *models.BookEntry) (int64, error) {
 			Rating:        int64(b.Rating),
 			DateCompleted: date,
 		}
-		_, err := db.Queries.CreateRead(context.Background(), params)
+		_, err := db.Queries.CreateRead(ctx, params)
 		if err != nil {
 			return -1, fmt.Errorf("database: %w", err)
 		}
@@ -184,30 +184,33 @@ func (db *Database) UpdateBook(b *models.BookEntry) error {
 
 // GetAllBooks returns all books from database when v is zero, otherwise filters for variant.
 func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
+	return db.GetAllBooksWithContext(context.Background())
+}
 
-	books, err := db.Queries.GetAllBooks(context.Background())
+func (db *Database) GetAllBooksWithContext(ctx context.Context) ([]models.BookEntry, error) {
+
+	books, err := db.Queries.GetAllBooks(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("database: %w", err)
+		return nil, fmt.Errorf("getting book entries: %w", err)
 	}
 	var entries []models.BookEntry
 	for _, book := range books {
 		hasLoaned := true
 		hasRead := true
-		loan, err := db.Queries.GetLoanByBookID(context.Background(), book.ID)
+		loan, err := db.Queries.GetLoanByBookID(ctx, book.ID)
 		if err != nil { // only return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
-				return nil, fmt.Errorf("database: %w", err)
+				return nil, fmt.Errorf("getting book entries: %w", err)
 			}
 			hasLoaned = false
 		}
-		read, err := db.Queries.GetReadByBookID(context.Background(), book.ID)
+		read, err := db.Queries.GetReadByBookID(ctx, book.ID)
 		if err != nil { // only return error when err is not ErrNoRows.
 			if !errors.Is(err, sql.ErrNoRows) {
-				return nil, fmt.Errorf("database: %w", err)
+				return nil, fmt.Errorf("getting book entries: %w", err)
 			}
 			hasRead = false
 		}
-
 		builder := models.NewBookEntryBuilder()
 
 		builder.SetID(book.ID).
@@ -226,7 +229,7 @@ func (db *Database) GetAllBooks() ([]models.BookEntry, error) {
 		}
 		book, err := builder.Build()
 		if err != nil {
-			return nil, fmt.Errorf("database: %w", err)
+			return nil, fmt.Errorf("getting book entries: %w", err)
 		}
 		entries = append(entries, *book)
 	}

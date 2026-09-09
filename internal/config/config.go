@@ -109,16 +109,18 @@ func (c *Config) Save() error {
 
 // Load config file form file path.
 func Load(path string) (*Config, error) {
+	
+	Op := fmt.Sprintf("loading config %s", path)
 
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+		return nil, fmt.Errorf("%s: %w", Op, err)
 	}
 	defer file.Close()
 
 	raw, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+		return nil, fmt.Errorf("%s: %w", Op, err)
 	}
 
 	if isOld(raw) {
@@ -129,7 +131,7 @@ func Load(path string) (*Config, error) {
 
 	err = json.Unmarshal(raw, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+		return nil, fmt.Errorf("%s: %w", Op, err)
 	}
 	return cfg, err
 }

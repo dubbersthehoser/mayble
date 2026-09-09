@@ -13,45 +13,51 @@ var version atomic.Int64
 
 var Current atomic.Pointer[Snapshot]
 
-type Point struct {
-	Col  string
-	ID   int64
+func init() {
+	ss := NewSnapshot([]models.BookEntry{})
+	Current.Store(ss)
 }
-
 
 // Snapshot is a inmutable table of BookEntry data.
 type Snapshot struct {
-	data    []models.BookEntry
-	version int64
+	data         []models.BookEntry
+	uniqueGenres []string
+	version      int64
 
 	rowToID map[int]int64
 	idToRow map[int64]int
 }
 
 func NewSnapshot(data []models.BookEntry) *Snapshot {
-	s := &Snapshot{
+	ss := &Snapshot{
 		data: data,
+		uniqueGenres: make([]string, 0),
 		version: version.Load(),
 		rowToID: make(map[int]int64),
 		idToRow: make(map[int64]int),
 	}
+
+	for _, book := range data {
+		ss.uniqueGenres = append(ss.uniqueGenres, book.Genre)
+	}
+
 	version.Add(1)
-	return s
+	return ss
 }
 
 func (ss *Snapshot) Version() int64 {
 	return ss.version
 }
 
-func (ss *Snapshot) Get(p Point) (string, error) {
+func (ss *Snapshot) Get(p models.Cell) (string, error) {
 	row, err := ss.IDToRow(p.ID)
 	if err != nil {
 		return "", fmt.Errorf("get %d: %w", row, err)
 	}
 	fields := display.EntryValues(&ss.data[row])
-	idx := slices.Index(fields, p.Col)
+	idx := slices.Index(fields, p.Column)
 	if idx == -1 {
-		return "", fmt.Errorf("get %s: invalid column", p.Col)
+		return "", fmt.Errorf("get %s: invalid column", p.Column)
 	}
 	return fields[idx], nil
 }
@@ -98,5 +104,9 @@ func (ss *Snapshot) Size() (rows, cols int) {
 
 func (ss *Snapshot) Length() int {
 	return len(ss.data)
+}
+
+func (ss *Snapshot) UniqueGenres() []string {
+	return ss.uniqueGenres
 }
 

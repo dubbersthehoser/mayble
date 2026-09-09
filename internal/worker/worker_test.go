@@ -12,10 +12,9 @@ func TestWorker(t *testing.T) {
 
 	totalTime := time.Second * 2
 
-	run := func(ctx context.Context, ch chan <- Event) error {
+	run := func(ctx context.Context, ch chan <- Event) {
 			t.Log("Running")
 			time.Sleep(totalTime)
-			return nil
 		}
 
 	job := worker.NewJob("test-one", run)

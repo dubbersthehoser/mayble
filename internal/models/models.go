@@ -16,6 +16,11 @@ const (
 	IdxBorrower
 )
 
+type Cell struct {
+	Column string
+	ID     int64
+}
+
 // BookEntryFields returns the names of each field name of BookEntry.
 func BookEntryFields() []string {
 	return []string{

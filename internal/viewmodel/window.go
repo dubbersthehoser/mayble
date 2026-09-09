@@ -14,6 +14,7 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/worker"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
 
@@ -21,6 +22,7 @@ type Window struct {
 	cfg *config.Config
 	eb  *event.EventBus
 	cb  *command.CommandBus
+	srv *app.Service
 
 	Body         *Body
 	StatusLine   *StatusLine
@@ -38,13 +40,14 @@ type Window struct {
 func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	switch ev.Type {
 	case worker.Started:
-
+		log.Println(ev.Message)
 	case worker.Finished:
-		w.Table.HandleWorkerFinishedEvent(ev)
+		log.Println(ev.Message)
+		w.eb.Notify(ev.Data)
 
 	case worker.Failed:
 		log.Printf("Error: job %d %s: %s", ev.JobID, ev.Message, ev.Err)
-		
+		w.StatusLine.sendError(ev.Message)
 	default:
 		log.Printf("Error: %d unknown worker event type", ev.Type)
 	}
@@ -52,57 +55,34 @@ func (w *Window) HandleWorkerEvent(ev worker.Event) {
 
 func NewWindow(cfg *config.Config) *Window {
 
-	srv := app.NewService(cfg)
+	worker := worker.NewWorker()
+	eb := event.NewEventBus()
+	cb := command.NewCommandBus()
+	srv := app.NewService(worker, eb, cb)
 
 	w := &Window{
 		cfg:          cfg,
-		eb:           event.NewEventBus(),
-		cb:           command.NewCommandBus(),
+		eb:           eb,
+		cb:           cb,
+		srv:          srv,
 		Body:         &Body{},
 		StatusLine:   newStatusLine(),
 		DBPath:       newDBPath(cfg),
-		Table:        nil, // assgned latter down
-		UniqueGenres: newUniqueGenres(srv),
+		Table:        table.NewTable(cfg, worker, cb, eb),
+		UniqueGenres: newUniqueGenres(eb),
 		NoData:       &NoDataBody{},
 		ShowError:    &ShowError{},
-		Worker:       worker.NewWorker(),
+		Worker:       worker,
 	}
 
-	// start with table view at start up.
-	w.Body.Set(BodyTable)
+	w.Body.Set(BodyNoData)
 
-	// only when body can change to NoData is with NoData calls.
-	w.NoData.AddListener(func() {
-		// The only place this function should be called durring run time.
-		w.Body.Set(BodyNoData)
-	})
+	setupStatusLineToEvents(w.StatusLine, eb)
+	setupBodyToEvents(w.Body, eb)
 
-
-	// try and load database at first start.
-	if err := srv.OpenDatabase(w.cfg.DBFile); err != nil {
-		log.Println("Warning:", err)
-		if w.cfg.DBFile == "" {
-			w.NoData.SetNoDB()
-		} else {
-			w.StatusLine.sendError(err.Error())
-			w.NoData.SetDataErr(w.DBPath.Get(), err)
-		}
-	}
-
-	tbl := table.NewTable(cfg, w.Worker, w.cb, w.eb)
-
-	// Todo: fix this
-	if err := tbl.Sheet.Load(); err != nil {
-		log.Println("error:", err)
-	}
-
-
-	//
 	// Set Up Handlers
-	//
-
-	w.Form = newBookForm(
-		func() {
+	w.Form = newBookForm(eb,
+		func() { // OnUpdate
 			book, err := w.Form.GetBookEntry()
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -110,25 +90,19 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			row := w.Table.Selected.Get().Row
-
-			id, err := w.Table.Sheet.RowToID(row)
-			if err != nil {
-				log.Printf("Error: %s", err)
-				return
-			}
-			book.ID = id
-			if err := srv.UpdateBook(book); err != nil {
+			cell, has := w.Table.Selected.Get()
+			if !has {
+				err := fmt.Errorf("updating book entry: nothing selected")
 				log.Println("Error:", err)
 				w.StatusLine.sendError(err.Error())
 				return
 			}
-			w.StatusLine.sendSuccess("Updated!")
-			w.Form.Reset()
-			w.Body.Set(BodyTable)
+
+			book.ID = cell.ID
+			cb.Dispatch(command.UpdateBookEntry{Book: *book})
 		},
 
-		func() {
+		func() { // OnCreate
 			book, err := w.Form.GetBookEntry()
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -136,47 +110,51 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			if _, err := srv.CreateBook(book); err != nil {
-				log.Println("Error:", err)
-				w.StatusLine.sendError(err.Error())
-				return
-			}
-			w.StatusLine.sendSuccess("Created!")
-			w.Form.Reset()
+			cb.Dispatch(command.CreateBookEntry{Book: *book})
 		},
 	)
 
 	w.Controls = &TableControl{
 		OnUnselect: func() {
-			w.Table.Selected.Unselect()
+			w.Table.Selected.Set(models.Cell{}, false)
 		},
 		OnEdit: func() {
-			row := w.Table.Selected.Get().Row
-			id, _ := w.Table.Sheet.RowToID(row)
-			book, err := srv.GetBookByID(id)
-			if err != nil {
+			cell, has := w.Table.Selected.Get()
+			if !has {
+				err := fmt.Errorf("edit book entry: nothing selected")
 				log.Println("Error:", err)
 				w.StatusLine.sendError(err.Error())
 				return
 			}
-			w.Form.Set(&book)
+			book, err := snapshot.Current.Load().GetBookEntryByID(cell.ID)
+			if err != nil {
+				err := fmt.Errorf("edit book entry: %w", err)
+				log.Println(err)
+				w.StatusLine.sendError(err.Error())
+				return
+			}
+			w.Form.Set(book)
 			w.Body.Set(BodyBookEdit)
 		},
 		OnCreate: func() {
 			w.Body.Set(BodyBookCreate)
 		},
+
 		OnDelete: func() {
-			row := w.Table.Selected.Get().Row
-			id, _ := w.Table.Sheet.RowToID(row)
-			err := srv.DeleteBook(id)
-			if err != nil {
-				w.StatusLine.sendError(err.Error())
+			cell, has := w.Table.Selected.Get()
+			if !has {
+				err := fmt.Errorf("delete book entry: nothing selected")
 				log.Println("Error:", err)
+				w.StatusLine.sendError(err.Error())
+				return
 			}
+			cb.Dispatch(command.DeleteBookEntry{BookID: cell.ID})
 		},
 	}
 
 	w.FileManage = &FileManage{
+
+		// Opening and Creating Database
 		CreateDatabase: func(path string, err error) {
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -192,15 +170,7 @@ func NewWindow(cfg *config.Config) *Window {
 				!strings.HasSuffix(path, ".sqlite3") {
 				path += ".db"
 			}
-			if err := srv.CreateDatabase(path); err != nil {
-				w.StatusLine.sendError(err.Error())
-				log.Println("Error:", err)
-				w.NoData.SetDataErr(w.DBPath.Get(), err)
-				return
-			}
-			w.DBPath.Set(path)
-			w.StatusLine.sendInfo(fmt.Sprintf("created: %s", w.DBPath.Get()))
-			w.Body.Set(BodyTable)
+			cb.Dispatch(command.CreateDatabase{Path: path})
 		},
 
 		OpenDatabase: func(path string, err error) {
@@ -214,16 +184,10 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 			w.DBPath.Set(path)
-			if err := srv.OpenDatabase(path); err != nil {
-				w.StatusLine.sendError(err.Error())
-				log.Println("Error:", err)
-				w.NoData.SetDataErr(w.DBPath.Get(), err)
-				return
-			}
-			w.StatusLine.sendInfo(fmt.Sprintf("opened: %s", w.DBPath.Get()))
-			w.Body.Set(BodyTable)
+			cb.Dispatch(command.OpenDatabase{Path: path})
 		},
 
+		// Importing and Exporting
 		ImportFile: func(path string, err error) {
 			if err != nil {
 				w.StatusLine.sendError(err.Error())
@@ -235,14 +199,7 @@ func NewWindow(cfg *config.Config) *Window {
 				return
 			}
 
-			if err := srv.ImportFile(path); err != nil {
-				w.StatusLine.sendError(err.Error())
-				log.Println("Error:", err)
-				w.ShowError.Show(err)
-				return
-			}
-			w.StatusLine.sendSuccess("Imported: " + path)
-			w.Table.Sheet.Load()
+			cb.Dispatch(command.ImportFile{Path: path})
 		},
 
 		ExportFile: func(path string, err error) {
@@ -254,39 +211,23 @@ func NewWindow(cfg *config.Config) *Window {
 			if path == "" {
 				return
 			}
-
 			if !strings.HasSuffix(path, ".csv") {
 				path += ".csv"
 			}
 
-			if err := srv.ExportFile(path); err != nil {
-				w.StatusLine.sendError(err.Error())
-				log.Println("Error:", err)
-				return
-			}
-			w.StatusLine.sendSuccess("Exported: " + path)
+			cb.Dispatch(command.ExportFile{Path: path})
 		},
 	}
-
-	// Allow table sheet to load data from database when there is a change.
-	// Be it from regular CRUD operations, and the opening, and creation of a database file.
-	srv.AddListener(func() {
-		w.Table.Message <- table.MessageLoadingSnapshot
-		go func() {
-			books, err := srv.GetAllBooks()
-			if err != nil {
-				log.Println("Error:", err)
-				return
-			}
-			snapshot := snapshot.NewSnapshot(books)
-			w.Table.Snapshot <- snapshot
-			w.Table.Message <- table.MessageNewSnapshot
-		}()
-	})
-
-
 	return w
 }
+
+
+func FirstLoad(w *Window) {
+	w.cb.Dispatch(command.OpenDatabase{
+		Path: w.cfg.DBFile,
+	})
+}
+
 
 type TableControl struct {
 	OnCreate   func()
@@ -303,7 +244,7 @@ type FileManage struct {
 	ExportFile func(path string, err error)
 }
 
-// Note: I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
+// NOTE: I didn't want to be too depended on Fyne, so I wrap the file open and create functions for their file dialogs.
 
 func WrapFyneFileOpen(fn func(string, error)) func(fyne.URIReadCloser, error) {
 	return func(r fyne.URIReadCloser, err error) {
@@ -334,3 +275,87 @@ func WrapFyneFileCreate(fn func(string, error)) func(fyne.URIWriteCloser, error)
 	}
 }
 
+func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
+	eb.Subscribe(event.CreatedBookEntry{}, func(v event.Event){
+		e := v.(event.CreatedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Added!")
+		}
+	})
+
+	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event){
+		e := v.(event.UpdatedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Updated!")
+		}
+	})
+	eb.Subscribe(event.DeletedBookEntry{}, func(v event.Event){
+		e := v.(event.DeletedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Removed!")
+		}
+	})
+	eb.Subscribe(event.ImportedFile{}, func(v event.Event){
+		e := v.(event.ImportedFile)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Imported %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.ExportedFile{}, func(v event.Event) {
+		e := v.(event.ExportedFile)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Exported to %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
+		e := v.(event.OpenedDatabase)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Opened %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.CreatedDatabase{}, func(v event.Event) {
+		e := v.(event.CreatedDatabase)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Created %s", e.Path))
+		}
+	})
+}
+
+func setupBodyToEvents(b *Body, eb *event.EventBus) {
+	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event) {
+		e := v.(event.UpdatedBookEntry)
+		if !e.Failed {
+			b.Set(BodyTable)
+		}
+	})
+	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
+		e := v.(event.OpenedDatabase)
+		if e.Failed && b.Value() != BodyTable {
+			b.Set(BodyNoData)
+		} else {
+			b.Set(BodyTable)
+		}
+	})
+	eb.Subscribe(event.CreatedDatabase{}, func(v event.Event) {
+		e := v.(event.CreatedDatabase)
+		if e.Failed && b.Value() != BodyTable {
+			b.Set(BodyNoData)
+		} else {
+			b.Set(BodyTable)
+		}
+	})
+}
