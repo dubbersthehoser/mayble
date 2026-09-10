@@ -40,13 +40,14 @@ type Window struct {
 func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	switch ev.Type {
 	case worker.Started:
-		log.Println(ev.Message)
+		log.Printf("job %d %s: %s", ev.JobID, ev.Message, ev.JobName)
+
 	case worker.Finished:
 		log.Println(ev.Message)
 		w.eb.Notify(ev.Data)
 
 	case worker.Failed:
-		log.Printf("Error: job %d %s: %s", ev.JobID, ev.Message, ev.Err)
+		log.Printf("Error: job %d %s, %s: %s", ev.JobID, ev.JobName, ev.Message, ev.Err)
 		w.StatusLine.sendError(ev.Message)
 	default:
 		log.Printf("Error: %d unknown worker event type", ev.Type)

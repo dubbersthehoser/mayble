@@ -8,32 +8,35 @@ import (
 
 func TestWorker(t *testing.T) {
 	
-	worker := NewWorker()
+	w := NewWorker()
 
 	totalTime := time.Second * 2
 
-	run := func(ctx context.Context, ch chan <- Event) {
+	newRun := func(name string, id int, d time.Duration) Handler {
+		return func(ctx context.Context, ch chan <- Event) {
 			t.Log("Running")
-			time.Sleep(totalTime)
+			time.Sleep(d)
+			ch <- NewFinishedEvent(name, id, nil)
 		}
+	}
 
-	job := worker.NewJob("test-one", run)
+	job := w.NewJob("job-one", nil)
+	job.Run = newRun(job.Name, job.ID, totalTime)
 
-	worker.Jobs <- job
+	w.Jobs <- job
 
 	go func() {
-		job := worker.NewJob("test-two", run)
+		job := w.NewJob("job-two", nil)
+		job.Run = newRun(job.Name, job.ID, totalTime / 2)
 		time.Sleep(totalTime / 2)
 		t.Logf("passing job: %d", job.ID)
-		worker.Jobs <- job
+		w.Jobs <- job
 	}()
 
 	finished := 0
 	canceled := 0
-
-	for event := range worker.Events {
+	for event := range w.Events {
 		t.Log(event.Message)
-
 		switch {
 		case event.Message == "job canceled":
 			canceled+=1

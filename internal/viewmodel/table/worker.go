@@ -18,6 +18,7 @@ const (
 func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.Job {
 	job := w.NewJob(JobSearchTable, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		defer close(events)
 		ss := snapshot.Current.Load()
 		trv, err := getSnapshotTraverser(ss, column)
 		if err != nil {
@@ -44,10 +45,8 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 			Points:  points,
 			Scores:  scores,
 		}
-		if ctx.Err() != nil {
-			return
-		}
 		events <- worker.NewFinishedEvent(job.Name, job.ID, data)
+		return
 	}
 	return job
 }
@@ -55,6 +54,7 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 func NewJobSortTable(w *worker.Worker, column string, asc bool) worker.Job {
 	job := w.NewJob(JobSortTable, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		defer close(events)
 		ss := snapshot.Current.Load()
 		sorted, err := snapshotSort(ss, column, asc)
 		if err != nil {
