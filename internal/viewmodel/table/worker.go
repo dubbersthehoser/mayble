@@ -19,6 +19,7 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 	job := w.NewJob(JobSearchTable, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
 		defer close(events)
+		println("debug: searching", pattern)
 		ss := snapshot.Current.Load()
 		trv, err := getSnapshotTraverser(ss, column)
 		if err != nil {

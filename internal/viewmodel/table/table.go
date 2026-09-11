@@ -1,12 +1,10 @@
 package table
 
 import (
-	"cmp"
 	"log"
 	"fmt"
 	"slices"
 	"time"
-	"context"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/event"
@@ -193,11 +191,11 @@ func (s *Sheet) CordsToCell(row, col int) (models.Cell, error) {
 func (s *Sheet) PointToCords(p models.Cell) (row, col int, err error) {
 	row, err = s.IDToRow(p.ID)
 	if err != nil {
-		return 0, 0, fmt.Errorf("cord %d to point: %w", err)
+		return 0, 0, fmt.Errorf("point %d to cord: %w", p.ID, err)
 	}
 	col = slices.Index(s.Header(), p.Column)
 	if col == -1 {
-		return 0, 0, fmt.Errorf("cord %s to point %s: invalid column label", p.Column)
+		return 0, 0, fmt.Errorf("point %s to cord: invalid column label", p.Column)
 	}
 	return row, col, nil
 }
@@ -570,45 +568,6 @@ func getSnapshotTraverser(ss *snapshot.Snapshot, by string) (search.Traverser, e
 		trv = newColumnTraverse(ss, idx)
 	}
 	return trv, nil
-}
-
-type SearchResult struct {
-	Point search.Point
-	Score int
-}
-
-func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]SearchResult) {
-	
-	results := make([]SearchResult, 0)
-
-	for srch.Next() {
-		if ctx.Err() != nil {
-			return []SearchResult{}
-		}
-		point := srch.Point()
-		score := srch.Score()
-		if score == -1 {
-			continue
-		}
-		r := SearchResult{
-			Score: score,
-			Point: point,
-		}
-		results = append(results, r)
-	}
-
-	if len(results) == 0 {
-		return []SearchResult{}
-	}
-
-	slices.SortFunc(results, func(a, b SearchResult) int {
-		r := cmp.Compare(a.Score, b.Score)
-		if r == 0 {
-			return cmp.Compare(a.Point.Row, b.Point.Row)
-		}
-		return r * -1
-	})
-	return results
 }
 
 func isLoanHidden(cfg *config.Config) bool {

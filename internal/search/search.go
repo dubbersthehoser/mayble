@@ -11,6 +11,8 @@ type Point struct {
 }
 
 type Traverser interface {
+	// Next returns the next value, and boolean status.
+	// Status being false for no more values, true for a found value.
 	Next() (string, bool)
 	Point() Point
 }
