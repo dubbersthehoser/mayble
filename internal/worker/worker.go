@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 )
 
 type EventType int
@@ -12,10 +13,7 @@ const (
 	Failed
 )
 
-type Done struct{}
-
 type Handler func(context.Context, chan <- Event) 
-
 
 type Job struct {
 	ID    int
@@ -30,6 +28,11 @@ type Event struct {
 	Message string
 	Err     error
 	Data    any
+}
+
+func (e *Event) Format() string {
+	return fmt.Sprintf("job %d: %s %s", e.JobID, e.JobName, e.Message)
+	
 }
 
 type Worker struct {
@@ -71,14 +74,9 @@ func (w *Worker) run() {
 		ctx, cancel := context.WithCancel(context.Background())
 		w.cancel = cancel
 
-		w.Events <- Event{
-			JobID: job.ID,
-			Type:  Started,
-			Message: "job started",
-		}
+		w.Events <- NewStartedEvent(job.Name, job.ID)
 
 		go w.runJob(ctx, job)
-
 	}
 }
 
@@ -104,21 +102,11 @@ func (w *Worker) runJob(ctx context.Context, job Job) {
 				case w.Events <- e:
 				case <- ctx.Done():
 					hasCanceled = true
-					w.Events <- Event{
-						JobID: job.ID,
-						Type:  Failed,
-						Err: ctx.Err(),
-						Message: "job canceled",
-					}
+					w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
 				}
 			case <- ctx.Done():
 				hasCanceled = true
-				w.Events <- Event{
-					JobID: job.ID,
-					Type:  Failed,
-					Err: ctx.Err(),
-					Message: "job canceled",
-				}
+				w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
 				for range out {
 				}
 				return
@@ -126,12 +114,28 @@ func (w *Worker) runJob(ctx context.Context, job Job) {
 		}
 }
 
+func NewStartedEvent(name string, jobID int) Event {
+	return Event{
+		JobID: jobID,
+		Type:  Started,
+		JobName: name,
+		Message: "started",
+	}
+
+}
+
+func NewCanceledEvent(name string, jobID int, err error) Event {
+	e := NewFailedEvent(name, jobID, nil, err)
+	e.Message = "canceled"
+	return e
+}
+
 func NewFailedEvent(name string, jobID int, data any, err error) Event{
 	return Event{
 		JobID: jobID,
 		JobName: name,
 		Type: Failed,
-		Message: "job failed",
+		Message: "failed",
 		Data: data,
 		Err: err,
 	}
@@ -142,7 +146,7 @@ func NewFinishedEvent(name string, jobID int, data any) Event{
 		JobID: jobID,
 		JobName: name,
 		Type: Finished,
-		Message: "job finished",
+		Message: "finished",
 		Err: nil,
 		Data: data,
 	}

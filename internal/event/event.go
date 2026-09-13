@@ -10,7 +10,7 @@ type NameHandler func(v any) (string, error)
 type Event any
 
 type EventBus struct {
-	mu sync.Mutex
+	mu sync.RWMutex
 	handlers map[string][]func(v Event)
 }
 
@@ -36,8 +36,8 @@ func (eb *EventBus) Subscribe(e Event, h func(v Event)) error {
 }
 
 func (eb *EventBus) Notify(v Event) error {
-	eb.mu.Lock()
-	defer eb.mu.Unlock()
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
 
 	name := fmt.Sprintf("%T", v)
 	handlers, ok := eb.handlers[name]

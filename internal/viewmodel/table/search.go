@@ -50,7 +50,7 @@ func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]Se
 }
 
 type tableTraverse struct {
-	snapshot    *snapshot.Snapshot
+	snapshot *snapshot.Snapshot
 	row, col int
 	isDone   bool
 	setDone  func()
@@ -71,10 +71,10 @@ func newTableTraverse(ss *snapshot.Snapshot) *tableTraverse {
 
 func (tt *tableTraverse) Next() (string, bool) {
 	rows, cols := tt.snapshot.Size()
-	println("debug:", rows)
 	if rows == 0 {
 		return tt.retDone()
 	}
+	tt.col += 1
 	if cols <= tt.col {
 		tt.row += 1
 		tt.col = 0

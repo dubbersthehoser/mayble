@@ -39,31 +39,24 @@ func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *
 		Searching:  newSearching(ColumnAll, cb),
 		Sorting:    newSorting(cb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
 		Settings:   newSettings(eb, cfg),
-		Selected:   newSelected(cb),
+		Selected:   newSelected(eb, cb),
 		SearchSelection: newSearchSelection(eb, cb),
 	}
 	setupCommands(t, eb, cb)
 	t.Searchable.onChangedSearchBy = t.Searching.setSearchColumn
+	eb.Subscribe(event.StoredSnapshot{}, func(v event.Event) {
+		e := v.(event.StoredSnapshot)
+		if e.Failed{
+			return
+		}
+		t.Sorting.Sort()
+	})
 	return t
-}
-
-func (t *Table) HandleWorkerFinishedEvent(ev worker.Event) {
-	v, ok := ev.Data.(event.Event)
-	if !ok {
-		log.Println("Error: invalid worker event data")
-		return
-	}
-	switch v.(type) {
-	case event.TableSorted, event.TableSearched:
-		t.eb.Notify(v)
-	default:
-		log.Println("Error: invalid worker event data")
-	}
 }
 
 func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
-	// CommandSnapshotSelect
+	// CommandCellSelect
 	cb.Register(command.CellSelect{}, func(v command.Command) error{
 
 		e := v.(command.CellSelect)
@@ -130,6 +123,7 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 	s := &Sheet{
 		header: header,
 		sorted: make([]int64, 0),
+		idToRow: make(map[int64]int),
 		OnSorted: func() {},
 		OnHeaderChanged: func() {},
 	}
@@ -149,6 +143,10 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		e := v.(event.TableSorted)
 		if ss.Version() == e.Version {
 			s.sorted = e.Sorted
+			clear(s.idToRow)
+			for row, id := range s.sorted {
+				s.idToRow[id] = row
+			}
 			s.OnSorted()
 		}
 	})
@@ -211,6 +209,7 @@ func (s *Sheet) Header() []string {
 	return s.header
 }
 
+
 //
 // Sorting
 //
@@ -240,7 +239,6 @@ func (s *Sorting) Sort() {
 //
 // Searchable
 //
-
 
 type Searchable struct {
 	headers  []string
@@ -311,22 +309,23 @@ func (s *Searching) Search(pattern string) {
 // Selected 
 type Selected struct {
 	cb         *command.CommandBus
-	eb         *event.Event
 	selected   models.Cell
 	has        bool
 	OnSelected func(models.Cell, bool)
-	onSelected func(models.Cell, bool)
 }
 
 
-func newSelected(cb *command.CommandBus) *Selected {
+func newSelected(eb *event.EventBus, cb *command.CommandBus) *Selected {
 	es := &Selected{
 		cb: cb,
 		OnSelected: func(_ models.Cell, _ bool) {},
 	}
-	es.onSelected = func(p models.Cell, has bool) {
-		es.OnSelected(p, has)
-	}
+	eb.Subscribe(event.CellSelected{}, func(v event.Event) {
+		e := v.(event.CellSelected)
+		es.selected = e.Point
+		es.has = e.Has
+		es.OnSelected(e.Point, e.Has)
+	})
 	return es
 }
 
@@ -367,6 +366,12 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		sc.ssVersion = e.Version
 		sc.selection = e.Points
 		sc.position = 0
+
+		println("debug: points =", len(e.Points))
+
+		if len(e.Points) != 0 {
+			sc.selected()
+		}
 	})
 	return sc
 }
@@ -588,13 +593,17 @@ func isReadHidden(cfg *config.Config) bool {
 	return rating.IsHidden && completed.IsHidden
 }
 
-
 func getShownHeader(cfg *config.Config) []string {	
-	set := make([]string, 0)
-	for _, h := range cfg.UI.Headers {
+	keys := make([]int, 0)
+	for k, h := range cfg.UI.Headers {
 		if !h.IsHidden {
-			set = append(set, h.Name)
+			keys = append(keys, k)
 		}
+	}
+	slices.Sort(keys)
+	set := make([]string, len(keys))
+	for i, k := range keys {
+		set[i] = cfg.UI.Headers[k].Name
 	}
 	return set
 }

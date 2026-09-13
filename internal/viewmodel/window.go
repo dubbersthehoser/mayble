@@ -40,14 +40,14 @@ type Window struct {
 func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	switch ev.Type {
 	case worker.Started:
-		log.Printf("job %d %s: %s", ev.JobID, ev.Message, ev.JobName)
+		log.Print(ev.Format())
 
 	case worker.Finished:
-		log.Println(ev.Message)
+		log.Print(ev.Format())
 		w.eb.Notify(ev.Data)
 
 	case worker.Failed:
-		log.Printf("Error: job %d %s, %s: %s", ev.JobID, ev.JobName, ev.Message, ev.Err)
+		log.Printf("Warning: %s: %s", ev.Format(), ev.Err)
 		w.StatusLine.sendError(ev.Message)
 	default:
 		log.Printf("Error: %d unknown worker event type", ev.Type)
@@ -110,7 +110,6 @@ func NewWindow(cfg *config.Config) *Window {
 				log.Println("Waring:", err)
 				return
 			}
-
 			cb.Dispatch(command.CreateBookEntry{Book: *book})
 		},
 	)
@@ -360,3 +359,5 @@ func setupBodyToEvents(b *Body, eb *event.EventBus) {
 		}
 	})
 }
+
+

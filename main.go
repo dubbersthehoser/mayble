@@ -88,4 +88,5 @@ func main() {
 	window.SetContent(content)
 	window.Resize(fyne.NewSize(cfg.UI.WindowWidth, cfg.UI.WindowHeight))
 	window.ShowAndRun()
+	log.Println("Exiting Program")
 }

@@ -186,6 +186,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 				Path: e.Path,
 				Failed: false,
 			})
+			w.Jobs <- NewJobTakeSnapshot(w, as)
 		}
 		return nil
 	})
@@ -203,6 +204,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 				Path: e.Path,
 				Failed: false,
 			})
+			w.Jobs <- NewJobTakeSnapshot(w, as)
 		}
 		return nil
 	})
@@ -222,6 +224,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 			eb.Notify(event.CreatedBookEntry{
 				Failed: false,
 			})
+			w.Jobs <- NewJobTakeSnapshot(w, as)
 		}
 		return nil
 	})
@@ -237,6 +240,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 			eb.Notify(event.UpdatedBookEntry{
 				Failed: false,
 			})
+			w.Jobs <- NewJobTakeSnapshot(w, as)
 		}
 		return nil
 	})
@@ -252,6 +256,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 			eb.Notify(event.DeletedBookEntry{
 				Failed: false,
 			})
+			w.Jobs <- NewJobTakeSnapshot(w, as)
 		}
 		return nil
 	})
@@ -267,15 +272,6 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 	cb.Register(command.ExportFile{}, func(v command.Command) error {
 		e := v.(command.ExportFile)
 		w.Jobs <- NewJobExportFile(w, as, e.Path)
-		return nil
-	})
-
-
-	//
-	// TakeSnapshot
-	//
-	cb.Register(command.TakeSnapshot{}, func(_ command.Command) error {
-		w.Jobs <- NewJobTakeSnapshot(w, as)
 		return nil
 	})
 }

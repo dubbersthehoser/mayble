@@ -11,15 +11,14 @@ import (
 )
 
 const (
-	JobSearchTable  string = "job searching table"
-	JobSortTable    string = "job sorting table"
+	JobSearchTable  string = "searching table"
+	JobSortTable    string = "sorting table"
 )
 
 func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.Job {
 	job := w.NewJob(JobSearchTable, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
 		defer close(events)
-		println("debug: searching", pattern)
 		ss := snapshot.Current.Load()
 		trv, err := getSnapshotTraverser(ss, column)
 		if err != nil {
@@ -47,7 +46,6 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 			Scores:  scores,
 		}
 		events <- worker.NewFinishedEvent(job.Name, job.ID, data)
-		return
 	}
 	return job
 }

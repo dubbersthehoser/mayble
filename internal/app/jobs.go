@@ -11,12 +11,13 @@ import (
 const (
 	JobImportFile     string = "importing file"
 	JobExportDatabase string = "exporting database"
-	JobTakeSnapshot   string ="loading into snapshot"
+	JobTakeSnapshot   string = "loading snapshot"
 )
 
 func NewJobTakeSnapshot(w *worker.Worker, srv *Service) worker.Job {
 	job := w.NewJob(JobTakeSnapshot, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		defer close(events)
 		books, err := srv.getAllBooksWithContext(ctx)
 		if err != nil {
 			events <- worker.NewFailedEvent(job.Name, job.ID, event.StoredSnapshot{
@@ -38,6 +39,7 @@ func NewJobTakeSnapshot(w *worker.Worker, srv *Service) worker.Job {
 func NewJobImportFile(w *worker.Worker, srv *Service, path string) worker.Job {
 	job := w.NewJob(JobImportFile, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		defer close(events)
 		err := srv.importFileWithContext(ctx, path)
 		var e worker.Event
 		if err != nil {
@@ -60,6 +62,7 @@ func NewJobImportFile(w *worker.Worker, srv *Service, path string) worker.Job {
 func NewJobExportFile(w *worker.Worker, srv *Service, path string) worker.Job {
 	job := w.NewJob(JobExportDatabase, nil)
 	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+		defer close(events)
 		err := srv.exportFileWithContext(ctx, path)
 		var e worker.Event
 		if err != nil {

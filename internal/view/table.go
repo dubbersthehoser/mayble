@@ -107,6 +107,7 @@ func newTable(vm *viewmodel.Window) *Table {
 		return tbl.header.NewHeaderButton()
 	}
 
+
 	tbl.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
@@ -155,6 +156,10 @@ func newTable(vm *viewmodel.Window) *Table {
 	tbl.OnUnselected = func(id widget.TableCellID) {
 		vm.Table.Selected.Set(models.Cell{}, false)
 		tbl.UnselectAll()
+	}
+
+	vm.Table.Sheet.OnSorted = func() {
+		tbl.Refresh()
 	}
 
 	// Listen for select events, then select, or unselect.

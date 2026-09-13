@@ -31,14 +31,16 @@ type Snapshot struct {
 func NewSnapshot(data []models.BookEntry) *Snapshot {
 	ss := &Snapshot{
 		data: data,
-		uniqueGenres: make([]string, 0),
 		version: version.Load(),
+		uniqueGenres: make([]string, 0),
 		rowToID: make(map[int]int64),
 		idToRow: make(map[int64]int),
 	}
 
-	for _, book := range data {
+	for row, book := range data {
 		ss.uniqueGenres = append(ss.uniqueGenres, book.Genre)
+		ss.rowToID[row] = book.ID
+		ss.idToRow[book.ID] = row
 	}
 
 	version.Add(1)
@@ -55,7 +57,7 @@ func (ss *Snapshot) Get(p models.Cell) (string, error) {
 		return "", fmt.Errorf("get %d: %w", row, err)
 	}
 	fields := display.EntryValues(&ss.data[row])
-	idx := slices.Index(fields, p.Column)
+	idx := slices.Index(models.BookEntryFields(), p.Column)
 	if idx == -1 {
 		return "", fmt.Errorf("get %s: invalid column", p.Column)
 	}
