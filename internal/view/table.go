@@ -145,8 +145,16 @@ func newTable(vm *viewmodel.Window) *Table {
 		tbl.SetColumnWidth(i, width)
 	}
 
+	
 	// Selection Events
+
+	// To prevent OnSelected being ran when Select is from VM.
+	fromVM := false
 	tbl.OnSelected = func(cell widget.TableCellID) {
+		if fromVM {
+			fromVM = false
+			return
+		}
 		col := vm.Table.Sheet.Header()[cell.Col]
 		id, _ := vm.Table.Sheet.RowToID(cell.Row)
 		point := models.Cell{ID: id, Column: col}
@@ -182,6 +190,7 @@ func newTable(vm *viewmodel.Window) *Table {
 			tbl.Unselect(cell)
 			return
 		}
+		fromVM = true // prevent OnSelected being ran within Select function call.
 		tbl.Select(widget.TableCellID{Row: row, Col: col})
 	}
 	return tbl

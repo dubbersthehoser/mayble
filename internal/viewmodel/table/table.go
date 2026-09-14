@@ -61,6 +61,8 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
 		e := v.(command.CellSelect)
 
+		println("command.cell_select:", e.Version)
+
 		pp := snapshot.Current.Load()
 		if pp.Version() != e.Version {
 			log.Printf("Warning: snapshot select: de-synced versions: %d != %d", pp.Version(), e.Version)
@@ -82,6 +84,7 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 		eb.Notify(event.CellSelected {
 			Has: e.Has,
 			Point: p,
+			Version: e.Version,
 		})
 		return nil
 	})
@@ -366,8 +369,7 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		sc.ssVersion = e.Version
 		sc.selection = e.Points
 		sc.position = 0
-
-		println("debug: points =", len(e.Points))
+		println("event.table_search: listener:", e.Version)
 
 		if len(e.Points) != 0 {
 			sc.selected()
@@ -400,6 +402,7 @@ func (es *SearchSelection) Prev() {
 
 func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
+	println("dispatch.cell_search:", es.ssVersion)
 	es.cb.Dispatch(command.CellSelect{
 		Version: es.ssVersion,
 		Point: p,
