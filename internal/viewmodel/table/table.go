@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"time"
+	"strings"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
 	"github.com/dubbersthehoser/mayble/internal/event"
@@ -158,6 +159,10 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		}
 	})
 	return s
+}
+
+func (s *Sheet) Version() int64 {
+	return s.ssVersion
 }
 
 func (s *Sheet) RowToID(row int) (int64, error) {
@@ -315,23 +320,24 @@ func (s *Searching) Search(pattern string) {
 
 // Selected 
 type Selected struct {
-	cb         *command.CommandBus
-	selected   models.Cell
-	has        bool
-	OnSelected func(models.Cell, bool)
+	cb        *command.CommandBus
+	selected  models.Cell
+	has       bool
+	ssVersion int64
+	l         []func()
 }
 
 
 func newSelected(eb *event.EventBus, cb *command.CommandBus) *Selected {
 	es := &Selected{
 		cb: cb,
-		OnSelected: func(_ models.Cell, _ bool) {},
 	}
 	eb.Subscribe(event.CellSelected{}, func(v event.Event) {
 		e := v.(event.CellSelected)
 		es.selected = e.Point
+		es.ssVersion = e.Version
 		es.has = e.Has
-		es.OnSelected(e.Point, e.Has)
+		es.notify()
 	})
 	return es
 }
@@ -350,6 +356,19 @@ func (es *Selected) Set(version int64, p models.Cell, ok bool) {
 	es.cb.Dispatch(command.CellSelect{Point: c, Has: ok, Version: version})
 }
 
+func (es *Selected) AddListener(fn func()) {
+	if es.l == nil {
+		es.l = make([]func(), 0)
+	}
+	es.l = append(es.l, fn)
+}
+
+func (es *Selected) notify() {
+	for _, fn := range es.l {
+		fn()
+	}
+}
+
 //
 // Search Selection
 //
@@ -360,6 +379,8 @@ type SearchSelection struct {
 	ssVersion int64
 	selection []models.Cell
 	position  int
+
+	OnChanged func()
 }
 
 func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelection {
@@ -367,7 +388,9 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		eb: eb,
 		cb: cb,
 		position: -1,
+		OnChanged: func(){},
 	}
+
 	eb.Subscribe(event.TableSearched{}, func(v event.Event){
 		e := v.(event.TableSearched)
 		sc.ssVersion = e.Version
@@ -375,7 +398,9 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		sc.position = 0
 		println("event.table_search: listener:", e.Version)
 
-		if len(e.Points) != 0 && e.Pattern != "" {
+		pattern := strings.TrimSpace(e.Pattern)
+
+		if len(e.Points) != 0 && pattern != "" {
 			sc.selected()
 		} else {
 			sc.unselected()
@@ -409,21 +434,17 @@ func (es *SearchSelection) Prev() {
 func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
 	println("dispatch.cell_search:", es.ssVersion)
-	es.cb.Dispatch(command.CellSelect{
-		
-		Version: es.ssVersion,
-		Point: p,
-		Has: true,
-	})
+	es.cb.Dispatch(command.CellSelect{ Version: es.ssVersion, Point: p, Has: true })
+	es.OnChanged()
 }
 
 func (es *SearchSelection) unselected() {
 	es.selection = es.selection[:0]
 	es.position = -1
-	es.cb.Dispatch(command.CellSelect{
-		Has: false,
-	})
+	es.cb.Dispatch(command.CellSelect{ Has: false, Version: es.ssVersion })
+	es.OnChanged()
 }
+
 
 
 //

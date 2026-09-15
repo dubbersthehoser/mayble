@@ -14,7 +14,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/dubbersthehoser/mayble/doc"
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
@@ -196,7 +195,8 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		selectedLbl,
 	)
 
-	vm.Table.Selected.OnSelected = func(cell models.Cell, has bool) {
+	vm.Table.Selected.AddListener(func(){
+		cell, has := vm.Table.Selected.Get()
 		// update display of the selection.
 		if has {
 			data, err := vm.Table.Sheet.Get(cell)
@@ -225,7 +225,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 			edit.Disable()
 			unselect.Disable()
 		}
-	}
+	})
 
 	vm.Body.AddListener(func(){
 		if vm.Body.Value() != viewmodel.BodyTable {

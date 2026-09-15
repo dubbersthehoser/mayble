@@ -116,7 +116,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	w.Controls = &TableControl{
 		OnUnselect: func() {
-			w.Table.Selected.Set(models.Cell{}, false)
+			w.Table.Selected.Set(w.Table.Sheet.Version(), models.Cell{}, false)
 		},
 		OnEdit: func() {
 			cell, has := w.Table.Selected.Get()

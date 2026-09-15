@@ -147,18 +147,21 @@ func newTable(vm *viewmodel.Window) *Table {
 
 	
 	// Selection Events
-	fromVM := false
-
-	// To prevent OnSelected being ran when Select is from VM.
+	fromVM := false // OnSelected is coupled to Table.Select.
 	tbl.OnSelected = func(cell widget.TableCellID) {
 		if fromVM {
 			fromVM = false
 			return
 		}
+		maxRow, maxCol := vm.Table.Sheet.Size()
+		if cell.Row >= maxRow || cell.Col >= maxCol { // (A) unselect the hidden cell if selected.
+			tbl.Unselect(cell)
+			return
+		}
 		col := vm.Table.Sheet.Header()[cell.Col]
 		id, _ := vm.Table.Sheet.RowToID(cell.Row)
 		point := models.Cell{ID: id, Column: col}
-		vm.Table.Selected.Set(point, true)
+		vm.Table.Selected.Set(vm.Table.Sheet.Version(), point, true)
 	}
 
 	tbl.OnUnselected = func(id widget.TableCellID) {
@@ -166,39 +169,54 @@ func newTable(vm *viewmodel.Window) *Table {
 			fromVM = false
 			return
 		}
-		vm.Table.Selected.Set(models.Cell{}, false)
+		vm.Table.Selected.Set(vm.Table.Sheet.Version(), models.Cell{}, false)
 		tbl.UnselectAll()
 	}
+
+	vm.Table.SearchSelection.OnChanged = func() {
+		p, has := vm.Table.Selected.Get()
+		if !has {
+			tbl.UnselectAll()
+			return
+		}
+		row, col, err := vm.Table.Sheet.PointToCords(p)
+		if err != nil {
+			log.Println("Error:", err)
+			return
+		}
+		fromVM = true
+		tbl.Select(widget.TableCellID{Row: row, Col: col})
+	}
+
+	// Listen for select events, then select, or unselect.
+	//vm.Table.Selected.OnSelected = func(c models.Cell, has bool) {
+	//	if !has {
+	//		tbl.UnselectAll()
+	//		return
+	//	}
+	//	row, col, err := vm.Table.Sheet.PointToCords(c)
+	//	if err != nil {
+	//		log.Println(err)
+	//		return
+	//	}
+	//	maxRow, maxCol := vm.Table.Sheet.Size()
+
+	//	fromVM = true
+
+	//	// I don't know if the below line is needed.
+	//	// TODO check this is needed.
+	//	if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
+	//		cell := widget.TableCellID{Row: row, Col: col}
+	//		tbl.Unselect(cell)
+	//		return
+	//	}
+	//	tbl.Select(widget.TableCellID{Row: row, Col: col})
+	//}
 
 	vm.Table.Sheet.OnSorted = func() {
 		tbl.Refresh()
 	}
 
-	// Listen for select events, then select, or unselect.
-	vm.Table.Selected.OnSelected = func(c models.Cell, has bool) {
-		
-		if !has {
-			tbl.UnselectAll()
-			return
-		}
-		row, col, err := vm.Table.Sheet.PointToCords(c)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		maxRow, maxCol := vm.Table.Sheet.Size()
-
-		fromVM = true
-
-		// I don't know if the below line is needed.
-		// TODO check this is needed.
-		if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
-			cell := widget.TableCellID{Row: row, Col: col}
-			tbl.Unselect(cell)
-			return
-		}
-		tbl.Select(widget.TableCellID{Row: row, Col: col})
-	}
 	return tbl
 }
 
