@@ -46,7 +46,6 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 			Scores:  scores,
 			Pattern: pattern,
 		}
-		println("event.table_searched:", data.Version)
 		events <- worker.NewFinishedEvent(job.Name, job.ID, data)
 	}
 	return job

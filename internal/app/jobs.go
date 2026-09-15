@@ -51,6 +51,7 @@ func NewJobImportFile(w *worker.Worker, srv *Service, path string) worker.Job {
 		} else {
 			e =  worker.NewFinishedEvent(job.Name, job.ID, event.ImportedFile{
 				Failed: false,
+				Message: "imported",
 				Path: path,
 			})
 		}
@@ -68,14 +69,14 @@ func NewJobExportFile(w *worker.Worker, srv *Service, path string) worker.Job {
 		if err != nil {
 			e = worker.NewFailedEvent(job.Name, job.ID, event.ExportedFile{
 				Failed: true,
-				Message: err.Error(),
+				Message: "exported",
 				Path: path,
 			}, err)
 		} else {
-			e = worker.NewFailedEvent(job.Name, job.ID, event.ExportedFile{
+			e = worker.NewFinishedEvent(job.Name, job.ID, event.ExportedFile{
 				Failed: false,
 				Path: path,
-			}, err)
+			})
 		}
 		events <- e
 	}

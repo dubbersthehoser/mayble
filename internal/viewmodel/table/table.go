@@ -62,8 +62,6 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
 		e := v.(command.CellSelect)
 
-		println("command.cell_select:", e.Version)
-
 		pp := snapshot.Current.Load()
 		if pp.Version() != e.Version {
 			log.Printf("Warning: snapshot select: de-synced versions: %d != %d", pp.Version(), e.Version)
@@ -211,9 +209,8 @@ func (s *Sheet) PointToCords(p models.Cell) (row, col int, err error) {
 }
 
 func (s *Sheet) Size() (rows, cols int) {
-	ss := snapshot.Current.Load()
-	rows, _  = ss.Size()
 	cols = len(s.header)
+	rows = len(s.sorted)
 	return
 }
 
@@ -396,7 +393,6 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		sc.ssVersion = e.Version
 		sc.selection = e.Points
 		sc.position = 0
-		println("event.table_search: listener:", e.Version)
 
 		pattern := strings.TrimSpace(e.Pattern)
 
@@ -433,7 +429,6 @@ func (es *SearchSelection) Prev() {
 
 func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
-	println("dispatch.cell_search:", es.ssVersion)
 	es.cb.Dispatch(command.CellSelect{ Version: es.ssVersion, Point: p, Has: true })
 	es.OnChanged()
 }
