@@ -147,9 +147,9 @@ func newTable(vm *viewmodel.Window) *Table {
 
 	
 	// Selection Events
+	fromVM := false
 
 	// To prevent OnSelected being ran when Select is from VM.
-	fromVM := false
 	tbl.OnSelected = func(cell widget.TableCellID) {
 		if fromVM {
 			fromVM = false
@@ -162,6 +162,10 @@ func newTable(vm *viewmodel.Window) *Table {
 	}
 
 	tbl.OnUnselected = func(id widget.TableCellID) {
+		if fromVM {
+			fromVM = false
+			return
+		}
 		vm.Table.Selected.Set(models.Cell{}, false)
 		tbl.UnselectAll()
 	}
@@ -172,6 +176,7 @@ func newTable(vm *viewmodel.Window) *Table {
 
 	// Listen for select events, then select, or unselect.
 	vm.Table.Selected.OnSelected = func(c models.Cell, has bool) {
+		
 		if !has {
 			tbl.UnselectAll()
 			return
@@ -183,6 +188,8 @@ func newTable(vm *viewmodel.Window) *Table {
 		}
 		maxRow, maxCol := vm.Table.Sheet.Size()
 
+		fromVM = true
+
 		// I don't know if the below line is needed.
 		// TODO check this is needed.
 		if row >= maxRow || col >= maxCol { // (A) unselect the hidden cell if selected.
@@ -190,7 +197,6 @@ func newTable(vm *viewmodel.Window) *Table {
 			tbl.Unselect(cell)
 			return
 		}
-		fromVM = true // prevent OnSelected being ran within Select function call.
 		tbl.Select(widget.TableCellID{Row: row, Col: col})
 	}
 	return tbl

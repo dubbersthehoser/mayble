@@ -115,6 +115,7 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 // Sheet a refrence view for table. 
 // Methods should only be called by UI thread.
 type Sheet struct {
+	ssVersion       int64
 	header          []string
 	sorted          []int64
 	idToRow         map[int64]int
@@ -145,12 +146,15 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		ss := snapshot.Current.Load()
 		e := v.(event.TableSorted)
 		if ss.Version() == e.Version {
+			s.ssVersion = e.Version
 			s.sorted = e.Sorted
 			clear(s.idToRow)
 			for row, id := range s.sorted {
 				s.idToRow[id] = row
 			}
 			s.OnSorted()
+		} else {
+			log.Printf("sheet.table_sorted: de-syned versions: %d != %d", ss.Version(), e.Version)
 		}
 	})
 	return s
@@ -338,12 +342,12 @@ func (s *Selected) Get() (cell models.Cell, has bool) {
 	return
 }
 
-func (es *Selected) Set(p models.Cell, ok bool) {
+func (es *Selected) Set(version int64, p models.Cell, ok bool) {
 	c := models.Cell{
 		Column: p.Column,
 		ID: p.ID,
 	}
-	es.cb.Dispatch(command.CellSelect{Point: c, Has: ok})
+	es.cb.Dispatch(command.CellSelect{Point: c, Has: ok, Version: version})
 }
 
 //
@@ -371,8 +375,10 @@ func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelec
 		sc.position = 0
 		println("event.table_search: listener:", e.Version)
 
-		if len(e.Points) != 0 {
+		if len(e.Points) != 0 && e.Pattern != "" {
 			sc.selected()
+		} else {
+			sc.unselected()
 		}
 	})
 	return sc
@@ -404,9 +410,18 @@ func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
 	println("dispatch.cell_search:", es.ssVersion)
 	es.cb.Dispatch(command.CellSelect{
+		
 		Version: es.ssVersion,
 		Point: p,
 		Has: true,
+	})
+}
+
+func (es *SearchSelection) unselected() {
+	es.selection = es.selection[:0]
+	es.position = -1
+	es.cb.Dispatch(command.CellSelect{
+		Has: false,
 	})
 }
 

@@ -4,6 +4,11 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
 
+type SelectedFrom int
+const (
+	SelectedFromUser   SelectedFrom = iota
+	SelectedFromSearch
+)
 
 type CellSelected struct {
 	Has     bool
@@ -20,6 +25,7 @@ type TableSorted struct {
 
 type TableSearched struct {
 	Version int64
+	Pattern string
 	Points  []models.Cell
 	Scores  []int
 }
