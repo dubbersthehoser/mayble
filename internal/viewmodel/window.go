@@ -49,6 +49,7 @@ func (w *Window) HandleWorkerEvent(ev worker.Event) {
 	case worker.Failed:
 		log.Printf("Warning: %s: %s", ev.Format(), ev.Err)
 		w.StatusLine.sendError(ev.Message)
+
 	default:
 		log.Printf("Error: %d unknown worker event type", ev.Type)
 	}
@@ -338,6 +339,7 @@ func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
 func setupBodyToEvents(b *Body, eb *event.EventBus) {
 	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event) {
 		e := v.(event.UpdatedBookEntry)
+		// when updating an entry go back to table when completed successfully.
 		if !e.Failed {
 			b.Set(BodyTable)
 		}
@@ -359,5 +361,3 @@ func setupBodyToEvents(b *Body, eb *event.EventBus) {
 		}
 	})
 }
-
-

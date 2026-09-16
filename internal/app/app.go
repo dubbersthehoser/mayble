@@ -180,6 +180,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 				Path: e.Path,
 				Failed: true,
 				Message: err.Error(),
+				Err: err,
 			})
 		} else {
 			eb.Notify(event.OpenedDatabase{
@@ -198,6 +199,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 				Path: e.Path,
 				Failed: true,
 				Message: err.Error(),
+				Err: err,
 			})
 		} else {
 			eb.Notify(event.CreatedDatabase{

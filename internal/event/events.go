@@ -91,9 +91,13 @@ type OpenedDatabase struct {
 	Path    string
 	Message string
 	Failed  bool
+	Err     error
 }
+
 type CreatedDatabase struct {
 	Path string
 	Message string
 	Failed bool
+	Err     error
 }
+
