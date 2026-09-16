@@ -2,6 +2,7 @@ package viewmodel
 
 import (
 	"fmt"
+	"github.com/dubbersthehoser/mayble/internal/event"
 )
 
 type NoDataState int
@@ -14,7 +15,29 @@ const (
 type NoDataBody struct {
 	s NoDataState
 	m string
-	l []func()
+	OnChanged func()
+}
+
+func newNoDataBody(eb *event.EventBus) *NoDataBody {
+	nb := &NoDataBody{
+		s:         DataNoDB,
+		m:         "Error: message not set",
+		OnChanged: func() {},
+	}
+
+	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
+		e := v.(event.OpenedDatabase)
+		if !e.Failed {
+			return
+		}
+		if e.Path == "" {
+			nb.SetNoDB()
+		} else {
+			nb.SetDataErr(e.Path, e.Err)
+		}
+	})
+
+	return nb
 }
 
 func (nb *NoDataBody) State() NoDataState {
@@ -24,29 +47,15 @@ func (nb *NoDataBody) State() NoDataState {
 func (nb *NoDataBody) SetDataErr(path string, err error) {
 	nb.s = DataErr
 	nb.m = fmt.Sprintf("Something when wrong when opening database: \"%s\"\nError: %s", path, err)
-	nb.notify()
+	nb.OnChanged()
 }
 
 func (nb *NoDataBody) SetNoDB() {
 	nb.s = DataNoDB
 	nb.m = "Create, or Open a new database from the File drop-down."
-	nb.notify()
+	nb.OnChanged()
 }
 
 func (nb *NoDataBody) Message() string {
 	return nb.m
-}
-
-func (nb *NoDataBody) AddListener(fn func()) {
-	if nb.l == nil {
-		nb.l = make([]func(), 0)
-	}
-
-	nb.l = append(nb.l, fn)
-}
-
-func (nb *NoDataBody) notify() {
-	for _, fn := range nb.l {
-		fn()
-	}
 }

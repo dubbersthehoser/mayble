@@ -145,6 +145,9 @@ func newNoData(vm *viewmodel.Window) fyne.CanvasObject {
 	view.TextStyle = fyne.TextStyle{
 		Bold: false,
 	}
+	vm.NoData.OnChanged = func() {
+		view.SetText(vm.NoData.Message())
+	}
 	view.SetText(vm.NoData.Message())
 	return view
 }

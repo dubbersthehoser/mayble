@@ -72,7 +72,7 @@ func NewWindow(cfg *config.Config) *Window {
 		DBPath:       newDBPath(cfg),
 		Table:        table.NewTable(cfg, worker, cb, eb),
 		UniqueGenres: newUniqueGenres(eb),
-		NoData:       &NoDataBody{},
+		NoData:       newNoDataBody(eb),
 		ShowError:    &ShowError{},
 		Worker:       worker,
 	}
