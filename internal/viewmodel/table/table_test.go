@@ -3,64 +3,61 @@ package table
 import (
 	"testing"
 
-	//"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
-func TestRoundTrip_toColumn(t *testing.T) {
+func TestTable(t *testing.T) {
+	eb := event.NewEventBus()
+	cb := command.NewCommandBus()
+	cfg := config.NewConfigWithDefaults("/tmp/mayble.test.config")
+	w := worker.NewWorker()
+
+	table := NewTable(cfg, w, cb, eb)
+	testSelected(t, table)
+}
+
+func testSelected(t *testing.T, table *Table) {
+	t.Helper()
+
+	notifyCalls := 0
+	table.Selected.AddListener(func() {
+		notifyCalls += 1
+	})
+
+	// Check setting selected.
+	cell := models.Cell{ID: 1, Column: "Author"}
+	table.Selected.Set(0, cell, true)
 	
-	//tests := []struct{
-	//	name        string
-	//	header      []string
-	//	sheetCol    int
-	//	snapshotCol int
-	//	willErr     bool
-	//}{
-	//	{
-	//		name: "test-0: with only Title and Author",
-	//		header: []string{
-	//			models.BookEntryFields()[models.IdxTitle],
-	//			models.BookEntryFields()[models.IdxAuthor],
-	//		},
-	//		sheetCol: 0,
-	//		snapshotCol: models.IdxTitle,
-	//		willErr: false,
-	//	},
-	//	{
-	//		name: "test-1: with only Title and Completed",
-	//		header: []string{
-	//			models.BookEntryFields()[models.IdxTitle],
-	//			models.BookEntryFields()[models.IdxCompletedAt],
-	//		},
-	//		sheetCol: 1,
-	//		snapshotCol: models.IdxCompletedAt,
-	//		willErr: false,
-	//	},
-	//}
+	if notifyCalls != 1 {
+		t.Fatalf("expected notify calls %d, got %d", 1, notifyCalls)
+	}
 
-	//for _, tt := range tests {
-	//	t.Run(tt.name, func(t *testing.T) {
-	//		actual, err := toSheetColumn(tt.header, tt.snapshotCol)
-	//		if tt.willErr {
-	//			if err == nil {
-	//				t.Fatal("expected err")
-	//			}
-	//			return
-	//		}
-	//		if actual != tt.sheetCol {
-	//			t.Fatalf("expect %d, got %d", tt.sheetCol, actual)
-	//		}
+	if table.Selected.has != true {
+		t.Fatalf("expected has %t, got %t", true, table.Selected.has)
+	}
 
-	//		actual, err = toSnapshotColumn(tt.header, tt.sheetCol)
-	//		if tt.willErr {
-	//			if err == nil {
-	//				t.Fatal("expected err")
-	//			}
-	//			return
-	//		}
-	//		if actual != tt.snapshotCol {
-	//			t.Fatalf("expect %d, got %d", tt.snapshotCol, actual)
-	//		}
-	//	})
-	//}
+	if table.Selected.selected != cell {
+		t.Fatalf("expected cell %v, got %v", cell, table.Selected.selected)
+	}
+
+	// Check for unselecting cell.
+	cell = models.Cell{}
+	table.Selected.Set(0, cell, false)
+
+	if notifyCalls != 2 {
+		t.Fatalf("expected notify calls %d got %d", 2, notifyCalls)
+	}
+
+	if table.Selected.has != false {
+		t.Fatalf("expected has %t, got %t", false, table.Selected.has)
+	}
+
+	if table.Selected.selected != cell {
+		t.Fatalf("expected cell %v, got %v", cell, table.Selected.selected)
+	}
 }
 

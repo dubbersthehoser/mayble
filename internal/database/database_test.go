@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"context"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
@@ -23,7 +24,7 @@ func TestOpenMem(t *testing.T) {
 		},
 	}
 
-	id, err := db.CreateBook(&book)
+	id, err := db.CreateBookWithContext(context.Background(), &book)
 	if err != nil {
 		t.Fatalf("unexpected error: '%s'", err)
 	}
@@ -48,6 +49,18 @@ func TestOpen(t *testing.T) {
 	path := filepath.Join(dir, "test.db")
 
 	db, err := Open(path)
+	if err == nil {
+		t.Fatalf("expected error when opening %s which dose not exists", path)
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("unexpected error: '%s'", err)
+	}
+	file.Close()
+	file = nil
+
+	db, err = Open(path)
 	if err != nil {
 		t.Fatalf("unexpected error: '%s'", err)
 	}
@@ -67,7 +80,7 @@ func TestOpen(t *testing.T) {
 		},
 	}
 
-	id, err := db.CreateBook(&book)
+	id, err := db.CreateBookWithContext(context.Background(), &book)
 	if err != nil {
 		t.Fatalf("unexpected error: '%s'", err)
 	}

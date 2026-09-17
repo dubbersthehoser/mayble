@@ -32,6 +32,8 @@ type BookForm struct {
 	OnCreate    func()
 }
 
+
+
 func newBookForm(eb *event.EventBus, onUpdate, onCreate func()) *BookForm {
 	bf := &BookForm{
 		OnUpdate: onUpdate,

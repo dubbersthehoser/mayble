@@ -3,6 +3,7 @@ package database
 import (
 	"testing"
 	"time"
+	"context"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 )
@@ -269,7 +270,7 @@ func testDatabaseCreateBook(db *Database, t *testing.T) {
 
 	for _, c := range tests {
 		t.Run(c.name, func(t *testing.T) {
-			id, err := db.CreateBook(&c.input)
+			id, err := db.CreateBookWithContext(context.Background(), &c.input)
 			if c.willErr {
 				if err == nil {
 					t.Fatalf("expected error")

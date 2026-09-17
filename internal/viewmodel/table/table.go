@@ -594,7 +594,6 @@ func (ts *Settings) notifyHidden() {
 //
 // Functions and Helpers
 //
-
 func getSnapshotTraverser(ss *snapshot.Snapshot, by string) (search.Traverser, error) {
 	var trv search.Traverser
 	if by == ColumnAll {
@@ -613,7 +612,6 @@ func isLoanHidden(cfg *config.Config) bool {
 	loaned := cfg.UI.Headers[models.IdxLoanedAt]
 	borrower := cfg.UI.Headers[models.IdxBorrower]
 	return loaned.IsHidden && borrower.IsHidden
-
 }
 
 func isIDHidden(cfg *config.Config) bool {

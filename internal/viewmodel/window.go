@@ -66,7 +66,7 @@ func NewWindow(cfg *config.Config) *Window {
 		eb:           eb,
 		cb:           cb,
 		srv:          srv,
-		Body:         &Body{},
+		Body:         newBody(eb),
 		StatusLine:   newStatusLine(eb),
 		DBPath:       newDBPath(cfg),
 		Table:        table.NewTable(cfg, worker, cb, eb),
@@ -276,28 +276,3 @@ func WrapFyneFileCreate(fn func(string, error)) func(fyne.URIWriteCloser, error)
 }
 
 
-func setupBodyToEvents(b *Body, eb *event.EventBus) {
-	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event) {
-		e := v.(event.UpdatedBookEntry)
-		// when updating an entry go back to table when completed successfully.
-		if !e.Failed {
-			b.Set(BodyTable)
-		}
-	})
-	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
-		e := v.(event.OpenedDatabase)
-		if e.Failed && b.Value() != BodyTable {
-			b.Set(BodyNoData)
-		} else {
-			b.Set(BodyTable)
-		}
-	})
-	eb.Subscribe(event.CreatedDatabase{}, func(v event.Event) {
-		e := v.(event.CreatedDatabase)
-		if e.Failed && b.Value() != BodyTable {
-			b.Set(BodyNoData)
-		} else {
-			b.Set(BodyTable)
-		}
-	})
-}

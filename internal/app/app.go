@@ -152,7 +152,7 @@ func hasDatabase(as *Service) bool {
 	return as.db != nil
 }
 
-// swap database. Should only be called in [Service.openDatabase], and [Service.CreateDatabase].
+// swap database. Should only be called in [Service.openDatabase], and [Service.createDatabase].
 func swap(as *Service, db *database.Database) error {
 	if as.db == nil {
 		as.db = db
