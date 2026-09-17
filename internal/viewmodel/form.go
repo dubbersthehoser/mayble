@@ -70,7 +70,6 @@ func newBookForm(eb *event.EventBus, onUpdate, onCreate func()) *BookForm {
 		bf.Reset()
 	})
 
-
 	return bf
 }
 

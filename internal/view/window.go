@@ -243,10 +243,9 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 	label := widget.NewLabel("")
 
-	vm.Text.AddListener(binding.NewDataListener(func() {
-		text, _ := vm.Text.Get()
+	vm.OnChanged = func(text string, typ int) {
 		var importance widget.Importance
-		switch vm.Type {
+		switch typ {
 		case viewmodel.StatusInfo:
 			importance = widget.MediumImportance
 		case viewmodel.StatusSuccess:
@@ -258,7 +257,7 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 		}
 		label.Importance = importance
 		label.SetText(text)
-	}))
+	}
 
 	vm.DoOnClear = func() {
 		fyne.Do(func() {

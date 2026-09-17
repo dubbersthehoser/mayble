@@ -2,8 +2,9 @@ package viewmodel
 
 import (
 	"time"
+	"fmt"
 
-	"fyne.io/fyne/v2/data/binding"
+	"github.com/dubbersthehoser/mayble/internal/event"
 )
 
 const (
@@ -13,62 +14,103 @@ const (
 )
 
 type StatusLine struct {
-	Text      binding.String
 	DoOnClear func()
+	OnChanged func(string, int)
 	Type      int
 	clrTimer  *time.Timer
-	start     chan struct{}
 }
 
-func newStatusLine() *StatusLine {
+func newStatusLine(eb *event.EventBus) *StatusLine {
 	sl := &StatusLine{
 		clrTimer: time.NewTimer(0),
-		start:    make(chan struct{}),
-
-		Text: binding.NewString(),
+		DoOnClear: func(){},
+		OnChanged: func(_ string, _ int) {},
 	}
 
-	countDown := time.Duration(time.Minute / 10)
 
-	go func() {
-		for {
-			select {
-			case <-sl.start:
-				_ = sl.clrTimer.Reset(countDown)
-			case <-sl.clrTimer.C:
-				sl.Clear()
-			}
-		}
-	}()
-
+	setupStatusLineToEvents(sl, eb)
 	return sl
 }
 
-func (sl *StatusLine) Clear() {
-	sl.Text.Set("")
-	if sl.DoOnClear != nil {
-		sl.DoOnClear()
-	}
-}
-
 func (sl *StatusLine) startClearTimer() {
-	sl.start <- struct{}{}
+	countDown := time.Duration(time.Minute / 10)
+	if sl.clrTimer != nil {
+		sl.clrTimer.Stop()
+	}
+	sl.clrTimer = time.AfterFunc(countDown, sl.DoOnClear)
 }
 
 func (sl *StatusLine) sendError(msg string) {
-	sl.Type = StatusError
-	_ = sl.Text.Set(msg)
+	sl.OnChanged(msg, StatusError)
 	sl.startClearTimer()
 }
 
 func (sl *StatusLine) sendInfo(msg string) {
-	sl.Type = StatusInfo
-	_ = sl.Text.Set(msg)
+	sl.OnChanged(msg, StatusInfo)
 	sl.startClearTimer()
 }
 
 func (sl *StatusLine) sendSuccess(msg string) {
-	sl.Type = StatusSuccess
-	_ = sl.Text.Set(msg)
+	sl.OnChanged(msg, StatusSuccess)
 	sl.startClearTimer()
+}
+
+func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
+	eb.Subscribe(event.CreatedBookEntry{}, func(v event.Event){
+		e := v.(event.CreatedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Added!")
+		}
+	})
+
+	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event){
+		e := v.(event.UpdatedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Updated!")
+		}
+	})
+	eb.Subscribe(event.DeletedBookEntry{}, func(v event.Event){
+		e := v.(event.DeletedBookEntry)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendSuccess("Entry Removed!")
+		}
+	})
+	eb.Subscribe(event.ImportedFile{}, func(v event.Event){
+		e := v.(event.ImportedFile)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Imported %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.ExportedFile{}, func(v event.Event) {
+		e := v.(event.ExportedFile)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Exported to %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
+		e := v.(event.OpenedDatabase)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Opened %s", e.Path))
+		}
+	})
+	eb.Subscribe(event.CreatedDatabase{}, func(v event.Event) {
+		e := v.(event.CreatedDatabase)
+		if e.Failed {
+			sl.sendError(e.Message)
+		} else {
+			sl.sendInfo(fmt.Sprintf("Created %s", e.Path))
+		}
+	})
 }

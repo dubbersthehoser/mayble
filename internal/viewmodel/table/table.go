@@ -296,7 +296,7 @@ func newSearching(column string, cb *command.CommandBus) *Searching {
 	sr := &Searching{
 		column: column,
 		cb: cb,
-		debounce: worker.Debounce(time.Millisecond * 300),
+		debounce: worker.Debounce(time.Millisecond * 250),
 	}
 	return sr
 }

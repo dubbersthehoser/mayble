@@ -14,7 +14,6 @@ import (
 	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/worker"
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
 )
 
@@ -68,7 +67,7 @@ func NewWindow(cfg *config.Config) *Window {
 		cb:           cb,
 		srv:          srv,
 		Body:         &Body{},
-		StatusLine:   newStatusLine(),
+		StatusLine:   newStatusLine(eb),
 		DBPath:       newDBPath(cfg),
 		Table:        table.NewTable(cfg, worker, cb, eb),
 		UniqueGenres: newUniqueGenres(eb),
@@ -117,7 +116,7 @@ func NewWindow(cfg *config.Config) *Window {
 
 	w.Controls = &TableControl{
 		OnUnselect: func() {
-			w.Table.Selected.Set(w.Table.Sheet.Version(), models.Cell{}, false)
+			cb.Dispatch(command.CellSelect{Has: false, Version: w.Table.Sheet.Version()})
 		},
 		OnEdit: func() {
 			cell, has := w.Table.Selected.Get()
@@ -276,65 +275,6 @@ func WrapFyneFileCreate(fn func(string, error)) func(fyne.URIWriteCloser, error)
 	}
 }
 
-func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
-	eb.Subscribe(event.CreatedBookEntry{}, func(v event.Event){
-		e := v.(event.CreatedBookEntry)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendSuccess("Entry Added!")
-		}
-	})
-
-	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event){
-		e := v.(event.UpdatedBookEntry)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendSuccess("Entry Updated!")
-		}
-	})
-	eb.Subscribe(event.DeletedBookEntry{}, func(v event.Event){
-		e := v.(event.DeletedBookEntry)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendSuccess("Entry Removed!")
-		}
-	})
-	eb.Subscribe(event.ImportedFile{}, func(v event.Event){
-		e := v.(event.ImportedFile)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendInfo(fmt.Sprintf("Imported %s", e.Path))
-		}
-	})
-	eb.Subscribe(event.ExportedFile{}, func(v event.Event) {
-		e := v.(event.ExportedFile)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendInfo(fmt.Sprintf("Exported to %s", e.Path))
-		}
-	})
-	eb.Subscribe(event.OpenedDatabase{}, func(v event.Event) {
-		e := v.(event.OpenedDatabase)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendInfo(fmt.Sprintf("Opened %s", e.Path))
-		}
-	})
-	eb.Subscribe(event.CreatedDatabase{}, func(v event.Event) {
-		e := v.(event.CreatedDatabase)
-		if e.Failed {
-			sl.sendError(e.Message)
-		} else {
-			sl.sendInfo(fmt.Sprintf("Created %s", e.Path))
-		}
-	})
-}
 
 func setupBodyToEvents(b *Body, eb *event.EventBus) {
 	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event) {
