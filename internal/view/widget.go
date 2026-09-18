@@ -84,6 +84,17 @@ func (eb *SearchEntry) TypedShortcut(cut fyne.Shortcut) {
 		if short.Key() == fyne.KeyReturn {
 			eb.OnPrev()
 		}
+		if short.Key() == fyne.KeyBackspace {
+			eb.BackspaceWord()
+		}
+	}
+}
+
+func (eb *SearchEntry) BackspaceWord() {
+	text := eb.Text
+	cur := eb.CursorTextOffset()
+	for range backspaceWord(text, cur) {
+		eb.TypedKey(&fyne.KeyEvent{Name: fyne.KeyBackspace})
 	}
 }
 
@@ -106,4 +117,13 @@ func (c *Check) TypedKey(ev *fyne.KeyEvent) {
 	default:
 		c.Check.TypedKey(ev)
 	}
+}
+
+func backspaceWord(text string, cur int) int {
+	left := text[:cur]
+	count := 0
+	i := len(left)-1
+	for ; i >= 0 && left[i] == ' '; i, count = i-1, count+1 {}
+	for ; i >= 0 && left[i] != ' '; i, count = i-1, count+1 {}
+	return count
 }
