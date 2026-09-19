@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
 	"github.com/dubbersthehoser/mayble/internal/command"
@@ -223,9 +224,11 @@ func NewWindow(cfg *config.Config) *Window {
 
 
 func FirstLoad(w *Window) {
+	w.Table.Selected.Set(0, models.Cell{}, false)
 	w.cb.Dispatch(command.OpenDatabase{
 		Path: w.cfg.DBFile,
 	})
+
 }
 
 
