@@ -6,6 +6,7 @@ import (
 )
 
 type EventType int
+
 const (
 	Started EventType = iota
 	Progress
@@ -13,10 +14,10 @@ const (
 	Failed
 )
 
-type Handler func(context.Context, chan <- Event) 
+type Handler func(context.Context, chan<- Event)
 
 type Job struct {
-	ID    int
+	ID   int
 	Name string
 	Run  Handler
 }
@@ -32,7 +33,7 @@ type Event struct {
 
 func (e *Event) Format() string {
 	return fmt.Sprintf("job %d: %s %s", e.JobID, e.JobName, e.Message)
-	
+
 }
 
 type Worker struct {
@@ -46,7 +47,7 @@ func NewWorker() *Worker {
 	jobs := make(chan Job)
 	events := make(chan Event)
 	w := &Worker{
-		Jobs: jobs,
+		Jobs:   jobs,
 		Events: events,
 	}
 	go w.run()
@@ -57,12 +58,11 @@ func (w *Worker) NewJob(name string, fn Handler) Job {
 	id := w.nextID
 	w.nextID += 1
 	return Job{
-		ID: id,
+		ID:   id,
 		Name: name,
-		Run: fn,
+		Run:  fn,
 	}
 }
-
 
 func (w *Worker) run() {
 	for job := range w.Jobs {
@@ -82,42 +82,42 @@ func (w *Worker) run() {
 
 func (w *Worker) runJob(ctx context.Context, job Job) {
 
-		out := make(chan Event)
-		go func() {
-			job.Run(ctx, out)
-		}()
+	out := make(chan Event)
+	go func() {
+		job.Run(ctx, out)
+	}()
 
-		hasCanceled := false
+	hasCanceled := false
 
-		for {
-			select {
-			case e, ok := <- out:
-				if !ok {
-					return
-				}
-				if hasCanceled {
-					continue
-				}
-				select {
-				case w.Events <- e:
-				case <- ctx.Done():
-					hasCanceled = true
-					w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
-				}
-			case <- ctx.Done():
-				hasCanceled = true
-				w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
-				for range out {
-				}
+	for {
+		select {
+		case e, ok := <-out:
+			if !ok {
 				return
 			}
+			if hasCanceled {
+				continue
+			}
+			select {
+			case w.Events <- e:
+			case <-ctx.Done():
+				hasCanceled = true
+				w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
+			}
+		case <-ctx.Done():
+			hasCanceled = true
+			w.Events <- NewCanceledEvent(job.Name, job.ID, ctx.Err())
+			for range out {
+			}
+			return
 		}
+	}
 }
 
 func NewStartedEvent(name string, jobID int) Event {
 	return Event{
-		JobID: jobID,
-		Type:  Started,
+		JobID:   jobID,
+		Type:    Started,
 		JobName: name,
 		Message: "started",
 	}
@@ -130,24 +130,24 @@ func NewCanceledEvent(name string, jobID int, err error) Event {
 	return e
 }
 
-func NewFailedEvent(name string, jobID int, data any, err error) Event{
+func NewFailedEvent(name string, jobID int, data any, err error) Event {
 	return Event{
-		JobID: jobID,
+		JobID:   jobID,
 		JobName: name,
-		Type: Failed,
+		Type:    Failed,
 		Message: "failed",
-		Data: data,
-		Err: err,
+		Data:    data,
+		Err:     err,
 	}
 }
 
-func NewFinishedEvent(name string, jobID int, data any) Event{
+func NewFinishedEvent(name string, jobID int, data any) Event {
 	return Event{
-		JobID: jobID,
+		JobID:   jobID,
 		JobName: name,
-		Type: Finished,
+		Type:    Finished,
 		Message: "finished",
-		Err: nil,
-		Data: data,
+		Err:     nil,
+		Data:    data,
 	}
 }

@@ -1,16 +1,16 @@
 package app
 
 import (
-	"os"
 	"context"
+	"os"
 	"sync"
 
 	"github.com/dubbersthehoser/mayble/internal/command"
-	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/csv"
 	"github.com/dubbersthehoser/mayble/internal/database"
-	"github.com/dubbersthehoser/mayble/internal/worker"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
 type Service struct {
@@ -21,7 +21,7 @@ type Service struct {
 
 func NewService(w *worker.Worker, eb *event.EventBus, cb *command.CommandBus) *Service {
 	as := &Service{
-		db:  nil,
+		db: nil,
 	}
 	as.setupCommands(w, eb, cb)
 	return as
@@ -177,14 +177,14 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 		err := as.openDatabase(e.Path)
 		if err != nil {
 			eb.Notify(event.OpenedDatabase{
-				Path: e.Path,
-				Failed: true,
+				Path:    e.Path,
+				Failed:  true,
 				Message: err.Error(),
-				Err: err,
+				Err:     err,
 			})
 		} else {
 			eb.Notify(event.OpenedDatabase{
-				Path: e.Path,
+				Path:   e.Path,
 				Failed: false,
 			})
 			w.Jobs <- NewJobTakeSnapshot(w, as)
@@ -196,14 +196,14 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 		err := as.createDatabase(e.Path)
 		if err != nil {
 			eb.Notify(event.CreatedDatabase{
-				Path: e.Path,
-				Failed: true,
+				Path:    e.Path,
+				Failed:  true,
 				Message: err.Error(),
-				Err: err,
+				Err:     err,
 			})
 		} else {
 			eb.Notify(event.CreatedDatabase{
-				Path: e.Path,
+				Path:   e.Path,
 				Failed: false,
 			})
 			w.Jobs <- NewJobTakeSnapshot(w, as)
@@ -214,13 +214,13 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 	//
 	// Create, Update, and Delete Book Entry.
 	//
-	cb.Register(command.CreateBookEntry{}, func(v command.Command) error{
+	cb.Register(command.CreateBookEntry{}, func(v command.Command) error {
 		e := v.(command.CreateBookEntry)
 		_, err := as.createBook(&e.Book)
 		if err != nil {
 			eb.Notify(event.CreatedBookEntry{
 				Message: err.Error(),
-				Failed: true,
+				Failed:  true,
 			})
 		} else {
 			eb.Notify(event.CreatedBookEntry{
@@ -230,12 +230,12 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 		}
 		return nil
 	})
-	cb.Register(command.UpdateBookEntry{}, func(v command.Command) error{
+	cb.Register(command.UpdateBookEntry{}, func(v command.Command) error {
 		e := v.(command.UpdateBookEntry)
 		err := as.updateBook(&e.Book)
 		if err != nil {
 			eb.Notify(event.UpdatedBookEntry{
-				Failed: true,
+				Failed:  true,
 				Message: err.Error(),
 			})
 		} else {
@@ -252,7 +252,7 @@ func (as *Service) setupCommands(w *worker.Worker, eb *event.EventBus, cb *comma
 		if err != nil {
 			eb.Notify(event.DeletedBookEntry{
 				Message: err.Error(),
-				Failed: true,
+				Failed:  true,
 			})
 		} else {
 			eb.Notify(event.DeletedBookEntry{

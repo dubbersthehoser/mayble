@@ -1,8 +1,8 @@
 package viewmodel
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/event"
 )
@@ -22,11 +22,10 @@ type StatusLine struct {
 
 func newStatusLine(eb *event.EventBus) *StatusLine {
 	sl := &StatusLine{
-		clrTimer: time.NewTimer(0),
-		DoOnClear: func(){},
+		clrTimer:  time.NewTimer(0),
+		DoOnClear: func() {},
 		OnChanged: func(_ string, _ int) {},
 	}
-
 
 	setupStatusLineToEvents(sl, eb)
 	return sl
@@ -56,7 +55,7 @@ func (sl *StatusLine) sendSuccess(msg string) {
 }
 
 func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
-	eb.Subscribe(event.CreatedBookEntry{}, func(v event.Event){
+	eb.Subscribe(event.CreatedBookEntry{}, func(v event.Event) {
 		e := v.(event.CreatedBookEntry)
 		if e.Failed {
 			sl.sendError(e.Message)
@@ -65,7 +64,7 @@ func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
 		}
 	})
 
-	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event){
+	eb.Subscribe(event.UpdatedBookEntry{}, func(v event.Event) {
 		e := v.(event.UpdatedBookEntry)
 		if e.Failed {
 			sl.sendError(e.Message)
@@ -73,7 +72,7 @@ func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
 			sl.sendSuccess("Entry Updated!")
 		}
 	})
-	eb.Subscribe(event.DeletedBookEntry{}, func(v event.Event){
+	eb.Subscribe(event.DeletedBookEntry{}, func(v event.Event) {
 		e := v.(event.DeletedBookEntry)
 		if e.Failed {
 			sl.sendError(e.Message)
@@ -81,7 +80,7 @@ func setupStatusLineToEvents(sl *StatusLine, eb *event.EventBus) {
 			sl.sendSuccess("Entry Removed!")
 		}
 	})
-	eb.Subscribe(event.ImportedFile{}, func(v event.Event){
+	eb.Subscribe(event.ImportedFile{}, func(v event.Event) {
 		e := v.(event.ImportedFile)
 		if e.Failed {
 			sl.sendError(e.Message)

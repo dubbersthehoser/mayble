@@ -2,11 +2,11 @@ package table
 
 import (
 	"cmp"
-	"slices"
 	"context"
+	"slices"
 
-	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
 )
 
@@ -15,8 +15,8 @@ type SearchResult struct {
 	Score int
 }
 
-func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) ([]SearchResult) {
-	
+func searchSearcherWithContext(ctx context.Context, srch *search.Searcher) []SearchResult {
+
 	results := make([]SearchResult, 0)
 
 	for srch.Next() {
@@ -59,8 +59,8 @@ type tableTraverse struct {
 func newTableTraverse(ss *snapshot.Snapshot) *tableTraverse {
 	tt := &tableTraverse{
 		snapshot: ss,
-		row: 0,
-		col: -1,
+		row:      0,
+		col:      -1,
 	}
 	tt.setDone = func() {
 		tt.isDone = true
@@ -107,16 +107,15 @@ func (tt *tableTraverse) retDone() (string, bool) {
 type columnTraverse struct {
 	snapshot *snapshot.Snapshot
 	row, col int
-	setDone func()
-	isDone  bool
+	setDone  func()
+	isDone   bool
 }
 
 func newColumnTraverse(ss *snapshot.Snapshot, col int) *columnTraverse {
 	ct := &columnTraverse{
 		snapshot: ss,
-		row: -1,
-		col: col,
-
+		row:      -1,
+		col:      col,
 	}
 	return ct
 }

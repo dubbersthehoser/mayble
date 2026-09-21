@@ -48,6 +48,4 @@ type OpenDatabase struct {
 	Path string
 }
 
-type TakeSnapshot struct {}
-
-
+type TakeSnapshot struct{}

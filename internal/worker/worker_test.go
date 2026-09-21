@@ -1,19 +1,19 @@
 package worker
 
 import (
-	"testing"
 	"context"
+	"testing"
 	"time"
 )
 
 func TestWorker(t *testing.T) {
-	
+
 	w := NewWorker()
 
 	totalTime := time.Second * 2
 
 	newRun := func(name string, id int, d time.Duration) Handler {
-		return func(ctx context.Context, ch chan <- Event) {
+		return func(ctx context.Context, ch chan<- Event) {
 			defer close(ch)
 			t.Logf("Running: %s", name)
 			time.Sleep(d)
@@ -29,7 +29,7 @@ func TestWorker(t *testing.T) {
 
 	go func() {
 		w.Jobs <- firstJob
-		time.Sleep(totalTime/2)
+		time.Sleep(totalTime / 2)
 		w.Jobs <- secondJob
 	}()
 
@@ -39,7 +39,7 @@ func TestWorker(t *testing.T) {
 		t.Log(event.Message)
 		switch {
 		case event.Message == "canceled":
-			canceled+=1
+			canceled += 1
 			continue
 		case event.Type == Finished:
 			finished += 1

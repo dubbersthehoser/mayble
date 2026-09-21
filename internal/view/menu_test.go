@@ -14,36 +14,36 @@ func TestFileMenu(t *testing.T) {
 		viewmodel.BodyBookCreate,
 		viewmodel.BodyManual,
 	}
-	tests := []struct{
+	tests := []struct {
 		Label        string
 		BodyDisabled []bool
 		DialogName   string
 	}{
 		{
-			Label: "Current Database",
+			Label:        "Current Database",
 			BodyDisabled: []bool{false, false, false, false, false},
-			DialogName: "ShowDatabasePath",
-		},     
+			DialogName:   "ShowDatabasePath",
+		},
 		{
-			Label: "Open",
+			Label:        "Open",
 			BodyDisabled: []bool{false, false, true, true, true},
-			DialogName: "OpenDatabase",
-		},     
+			DialogName:   "OpenDatabase",
+		},
 		{
-			Label: "Create",
+			Label:        "Create",
 			BodyDisabled: []bool{false, false, true, true, true},
-			DialogName: "CreateDatabase",
-		},     
+			DialogName:   "CreateDatabase",
+		},
 		{
-			Label: "Import",
+			Label:        "Import",
 			BodyDisabled: []bool{false, true, true, true, true},
-			DialogName: "ImportCSV",
-		},     
+			DialogName:   "ImportCSV",
+		},
 		{
-			Label: "Export",
+			Label:        "Export",
 			BodyDisabled: []bool{false, true, true, true, true},
-			DialogName: "ExportCSV",
-		},     
+			DialogName:   "ExportCSV",
+		},
 	}
 
 	cb := NewCommandBus()

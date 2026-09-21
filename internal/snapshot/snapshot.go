@@ -1,9 +1,9 @@
 package snapshot
 
 import (
-	"sync/atomic"
-	"slices"
 	"fmt"
+	"slices"
+	"sync/atomic"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
@@ -30,11 +30,11 @@ type Snapshot struct {
 
 func NewSnapshot(data []models.BookEntry) *Snapshot {
 	ss := &Snapshot{
-		data: data,
-		version: version.Load(),
+		data:         data,
+		version:      version.Load(),
 		uniqueGenres: make([]string, 0),
-		rowToID: make(map[int]int64),
-		idToRow: make(map[int64]int),
+		rowToID:      make(map[int]int64),
+		idToRow:      make(map[int64]int),
 	}
 
 	for row, book := range data {
@@ -111,4 +111,3 @@ func (ss *Snapshot) Length() int {
 func (ss *Snapshot) UniqueGenres() []string {
 	return ss.uniqueGenres
 }
-

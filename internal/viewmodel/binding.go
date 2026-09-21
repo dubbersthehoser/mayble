@@ -1,9 +1,9 @@
 package viewmodel
 
 import (
-	"github.com/dubbersthehoser/mayble/internal/snapshot"
-	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
 )
 
 type UniqueGenres struct {

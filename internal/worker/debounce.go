@@ -9,7 +9,7 @@ type Debouncer struct {
 	mu    sync.Mutex
 	timer *time.Timer
 	delay time.Duration
-	fn     func()
+	fn    func()
 }
 
 func NewDebouncer(delay time.Duration, fn func()) *Debouncer {

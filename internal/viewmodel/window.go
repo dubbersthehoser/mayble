@@ -9,13 +9,13 @@ import (
 	"fyne.io/fyne/v2"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
-	"github.com/dubbersthehoser/mayble/internal/models"
-	"github.com/dubbersthehoser/mayble/internal/config"
-	"github.com/dubbersthehoser/mayble/internal/snapshot"
 	"github.com/dubbersthehoser/mayble/internal/command"
+	"github.com/dubbersthehoser/mayble/internal/config"
 	"github.com/dubbersthehoser/mayble/internal/event"
-	"github.com/dubbersthehoser/mayble/internal/worker"
+	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/snapshot"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/table"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
 type Window struct {
@@ -222,7 +222,6 @@ func NewWindow(cfg *config.Config) *Window {
 	return w
 }
 
-
 func FirstLoad(w *Window) {
 	w.Table.Selected.Set(0, models.Cell{}, false)
 	w.cb.Dispatch(command.OpenDatabase{
@@ -230,7 +229,6 @@ func FirstLoad(w *Window) {
 	})
 
 }
-
 
 type TableControl struct {
 	OnCreate   func()
@@ -277,5 +275,3 @@ func WrapFyneFileCreate(fn func(string, error)) func(fyne.URIWriteCloser, error)
 		fn(path, err)
 	}
 }
-
-

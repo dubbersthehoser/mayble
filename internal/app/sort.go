@@ -1,6 +1,5 @@
 package app
 
-
 import (
 	"cmp"
 	"errors"
@@ -13,7 +12,7 @@ import (
 
 type BookCompare func(a, b models.BookEntry) int
 
-func CompareBookEntry(index int, ascending bool) (BookCompare, error)  {
+func CompareBookEntry(index int, ascending bool) (BookCompare, error) {
 	if !(models.IdxID <= index && models.IdxBorrower >= index) {
 		return nil, fmt.Errorf("compare_books %d: invalid index", index)
 	}
@@ -67,7 +66,6 @@ func CompareBookEntry(index int, ascending bool) (BookCompare, error)  {
 	}, nil
 }
 
-
 // SortBooks sort slice of book entries.
 func SortBooks(books []models.BookEntry, index int, ascending bool) error {
 	comp, err := CompareBookEntry(index, ascending)
@@ -91,5 +89,3 @@ func SortIndexsThroughBooks(idxs []int, books []models.BookEntry, index int, asc
 	})
 	return nil
 }
-
-

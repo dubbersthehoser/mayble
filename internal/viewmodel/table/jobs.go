@@ -3,21 +3,21 @@ package table
 import (
 	"context"
 
-	"github.com/dubbersthehoser/mayble/internal/worker"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
-	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
 const (
-	JobSearchTable  string = "searching table"
-	JobSortTable    string = "sorting table"
+	JobSearchTable string = "searching table"
+	JobSortTable   string = "sorting table"
 )
 
 func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.Job {
 	job := w.NewJob(JobSearchTable, nil)
-	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+	job.Run = func(ctx context.Context, events chan<- worker.Event) {
 		defer close(events)
 		ss := snapshot.Current.Load()
 		trv, err := getSnapshotTraverser(ss, column)
@@ -53,7 +53,7 @@ func NewJobSearchTable(w *worker.Worker, pattern string, column string) worker.J
 
 func NewJobSortTable(w *worker.Worker, column string, asc bool) worker.Job {
 	job := w.NewJob(JobSortTable, nil)
-	job.Run = func(ctx context.Context, events chan <- worker.Event) {
+	job.Run = func(ctx context.Context, events chan<- worker.Event) {
 		defer close(events)
 		ss := snapshot.Current.Load()
 		sorted, err := snapshotSort(ss, column, asc)

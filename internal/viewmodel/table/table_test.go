@@ -3,10 +3,10 @@ package table
 import (
 	"testing"
 
-	"github.com/dubbersthehoser/mayble/internal/models"
-	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
@@ -31,7 +31,7 @@ func testSelected(t *testing.T, table *Table) {
 	// Check setting selected.
 	cell := models.Cell{ID: 1, Column: "Author"}
 	table.Selected.Set(0, cell, true)
-	
+
 	if notifyCalls != 1 {
 		t.Fatalf("expected notify calls %d, got %d", 1, notifyCalls)
 	}
@@ -60,4 +60,3 @@ func testSelected(t *testing.T, table *Table) {
 		t.Fatalf("expected cell %v, got %v", cell, table.Selected.selected)
 	}
 }
-

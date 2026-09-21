@@ -7,8 +7,8 @@ import (
 
 	"fyne.io/fyne/v2/data/binding"
 
-	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/viewmodel/display"
 )
 
@@ -31,8 +31,6 @@ type BookForm struct {
 	OnUpdate    func()
 	OnCreate    func()
 }
-
-
 
 func newBookForm(eb *event.EventBus, onUpdate, onCreate func()) *BookForm {
 	bf := &BookForm{

@@ -1,8 +1,8 @@
 package table
 
 import (
-	"testing"
 	"context"
+	"testing"
 	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/models"
@@ -11,7 +11,7 @@ import (
 )
 
 func Test_tableTraverse(t *testing.T) {
-	
+
 	books := []models.BookEntry{}
 
 	pattern := "author"

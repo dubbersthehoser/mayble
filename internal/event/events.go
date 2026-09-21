@@ -5,8 +5,9 @@ import (
 )
 
 type SelectedFrom int
+
 const (
-	SelectedFromUser   SelectedFrom = iota
+	SelectedFromUser SelectedFrom = iota
 	SelectedFromSearch
 )
 
@@ -17,10 +18,10 @@ type CellSelected struct {
 }
 
 type TableSorted struct {
-	Version  int64
-	Sorted   []int64
-	Column   string
-	Asc      bool
+	Version int64
+	Sorted  []int64
+	Column  string
+	Asc     bool
 }
 
 type TableSearched struct {
@@ -31,7 +32,7 @@ type TableSearched struct {
 }
 
 type HiddenColumn struct {
-	Hidden  []bool
+	Hidden []bool
 }
 
 func (hc *HiddenColumn) ShownColumns() []string {
@@ -56,23 +57,23 @@ func (hc *HiddenColumn) HiddenColumns() []string {
 
 type StoredSnapshot struct {
 	Version int64
-	Failed bool
+	Failed  bool
 	Message string
 }
 
 type CreatedBookEntry struct {
 	Message string
-	Failed bool
+	Failed  bool
 }
 
 type DeletedBookEntry struct {
 	Message string
-	Failed bool
+	Failed  bool
 }
 
 type UpdatedBookEntry struct {
 	Message string
-	Failed bool
+	Failed  bool
 }
 
 type ImportedFile struct {
@@ -95,9 +96,8 @@ type OpenedDatabase struct {
 }
 
 type CreatedDatabase struct {
-	Path string
+	Path    string
 	Message string
-	Failed bool
+	Failed  bool
 	Err     error
 }
-

@@ -3,8 +3,8 @@ package view
 import (
 	"fmt"
 	"log"
-	"time"
 	"slices"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -198,7 +198,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		selectedLbl,
 	)
 
-	vm.Table.Selected.AddListener(func(){
+	vm.Table.Selected.AddListener(func() {
 		cell, has := vm.Table.Selected.Get()
 		// update display of the selection.
 		if has {
@@ -230,7 +230,7 @@ func newControls(vm *viewmodel.Window) fyne.CanvasObject {
 		}
 	})
 
-	vm.Body.AddListener(func(){
+	vm.Body.AddListener(func() {
 		if vm.Body.Value() != viewmodel.BodyTable {
 			view.Hide()
 		} else {
@@ -267,5 +267,3 @@ func newStatusLine(vm *viewmodel.StatusLine) fyne.CanvasObject {
 
 	return label
 }
-
-

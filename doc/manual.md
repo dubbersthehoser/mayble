@@ -12,14 +12,14 @@ This manual contains information on hidden features and non-obvious details abou
 
 Once text has been entered into the search box, will create a grouping of nearest matches and select highest scored cell with that search. You can cycle through them by:
 
-- Pressing ENTER to move down to the next search result, or
+- Pressing ENTER to move down to the next search results, or
 
-- Pressing CTRL+ENTER to move back up the search result.
+- Pressing CTRL+ENTER to move back up the search results.
 
 These hotkeys only work when you focus is in the search entry. 
 And searches are **case insensitive**.
 
-## CSV Format Rules
+## CSV Importing Format Rules
 
 - The header row is for the CSV file is '`Title,Author,Genre,Completed,Rating,Loaned,Borrower`'.
 

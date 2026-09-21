@@ -1,19 +1,19 @@
 package table
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"slices"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/dubbersthehoser/mayble/internal/app"
-	"github.com/dubbersthehoser/mayble/internal/event"
+	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/config"
+	"github.com/dubbersthehoser/mayble/internal/event"
 	"github.com/dubbersthehoser/mayble/internal/models"
 	"github.com/dubbersthehoser/mayble/internal/search"
 	"github.com/dubbersthehoser/mayble/internal/snapshot"
-	"github.com/dubbersthehoser/mayble/internal/command"
 	"github.com/dubbersthehoser/mayble/internal/worker"
 )
 
@@ -34,20 +34,20 @@ type Table struct {
 
 func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *event.EventBus) *Table {
 	t := &Table{
-		worker:     w,
-		Sheet:      newSheet(eb, getShownHeader(cfg)),
-		Searchable: newSearchable(getShownHeader(cfg)),
-		Searching:  newSearching(ColumnAll, cb),
-		Sorting:    newSorting(cb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
-		Settings:   newSettings(eb, cfg),
-		Selected:   newSelected(eb, cb),
+		worker:          w,
+		Sheet:           newSheet(eb, getShownHeader(cfg)),
+		Searchable:      newSearchable(getShownHeader(cfg)),
+		Searching:       newSearching(ColumnAll, cb),
+		Sorting:         newSorting(cb, cfg.UI.TableSortBy, cfg.UI.TableAscending),
+		Settings:        newSettings(eb, cfg),
+		Selected:        newSelected(eb, cb),
 		SearchSelection: newSearchSelection(eb, cb),
 	}
 	setupCommands(t, eb, cb)
 	t.Searchable.onChangedSearchBy = t.Searching.setSearchColumn
 	eb.Subscribe(event.StoredSnapshot{}, func(v event.Event) {
 		e := v.(event.StoredSnapshot)
-		if e.Failed{
+		if e.Failed {
 			return
 		}
 		t.Sorting.Sort()
@@ -58,7 +58,7 @@ func NewTable(cfg *config.Config, w *worker.Worker, cb *command.CommandBus, eb *
 func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 
 	// CommandCellSelect
-	cb.Register(command.CellSelect{}, func(v command.Command) error{
+	cb.Register(command.CellSelect{}, func(v command.Command) error {
 
 		e := v.(command.CellSelect)
 
@@ -76,13 +76,13 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 		}
 
 		p := models.Cell{
-			ID:  e.Point.ID,
+			ID:     e.Point.ID,
 			Column: e.Point.Column,
 		}
 
-		eb.Notify(event.CellSelected {
-			Has: e.Has,
-			Point: p,
+		eb.Notify(event.CellSelected{
+			Has:     e.Has,
+			Point:   p,
 			Version: e.Version,
 		})
 		return nil
@@ -93,7 +93,7 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 		e := v.(command.TableSearch)
 		pattern := e.Pattern
 		column := e.Column
-		t.worker.Jobs <- NewJobSearchTable(t.worker, pattern, column) 
+		t.worker.Jobs <- NewJobSearchTable(t.worker, pattern, column)
 		return nil
 	})
 
@@ -111,7 +111,7 @@ func setupCommands(t *Table, eb *event.EventBus, cb *command.CommandBus) {
 // Sheet
 //
 
-// Sheet a refrence view for table. 
+// Sheet a refrence view for table.
 // Methods should only be called by UI thread.
 type Sheet struct {
 	ssVersion       int64
@@ -124,10 +124,10 @@ type Sheet struct {
 
 func newSheet(eb *event.EventBus, header []string) *Sheet {
 	s := &Sheet{
-		header: header,
-		sorted: make([]int64, 0),
-		idToRow: make(map[int64]int),
-		OnSorted: func() {},
+		header:          header,
+		sorted:          make([]int64, 0),
+		idToRow:         make(map[int64]int),
+		OnSorted:        func() {},
 		OnHeaderChanged: func() {},
 	}
 	eb.Subscribe(event.HiddenColumn{}, func(v event.Event) {
@@ -141,7 +141,7 @@ func newSheet(eb *event.EventBus, header []string) *Sheet {
 		s.header = header
 		s.OnHeaderChanged()
 	})
-	eb.Subscribe(event.TableSorted{}, func(v event.Event){
+	eb.Subscribe(event.TableSorted{}, func(v event.Event) {
 		ss := snapshot.Current.Load()
 		e := v.(event.TableSorted)
 		if ss.Version() == e.Version {
@@ -191,7 +191,7 @@ func (s *Sheet) CordsToCell(row, col int) (models.Cell, error) {
 	}
 	coll := s.Header()[col]
 	return models.Cell{
-		ID: id,
+		ID:     id,
 		Column: coll,
 	}, nil
 }
@@ -218,7 +218,6 @@ func (s *Sheet) Header() []string {
 	return s.header
 }
 
-
 //
 // Sorting
 //
@@ -231,8 +230,8 @@ type Sorting struct {
 
 func newSorting(cb *command.CommandBus, column string, asc bool) *Sorting {
 	s := &Sorting{
-		cb: cb,
-		Column: column,
+		cb:        cb,
+		Column:    column,
 		Ascending: asc,
 	}
 	return s
@@ -240,7 +239,7 @@ func newSorting(cb *command.CommandBus, column string, asc bool) *Sorting {
 
 func (s *Sorting) Sort() {
 	s.cb.Dispatch(command.TableSort{
-		Asc: s.Ascending,
+		Asc:    s.Ascending,
 		Column: s.Column,
 	})
 }
@@ -250,17 +249,16 @@ func (s *Sorting) Sort() {
 //
 
 type Searchable struct {
-	headers  []string
+	headers           []string
 	OnChangedOptions  func()
 	onChangedSearchBy func(s string)
 }
 
 func newSearchable(headers []string) *Searchable {
 	s := &Searchable{
-		headers: headers,
-		OnChangedOptions: func() {},
+		headers:           headers,
+		OnChangedOptions:  func() {},
 		onChangedSearchBy: func(_ string) {},
-
 	}
 	return s
 }
@@ -294,8 +292,8 @@ type Searching struct {
 
 func newSearching(column string, cb *command.CommandBus) *Searching {
 	sr := &Searching{
-		column: column,
-		cb: cb,
+		column:   column,
+		cb:       cb,
 		debounce: worker.Debounce(time.Millisecond * 250),
 	}
 	return sr
@@ -315,7 +313,7 @@ func (s *Searching) Search(pattern string) {
 // Selected
 //
 
-// Selected 
+// Selected
 type Selected struct {
 	cb        *command.CommandBus
 	selected  models.Cell
@@ -323,7 +321,6 @@ type Selected struct {
 	ssVersion int64
 	l         []func()
 }
-
 
 func newSelected(eb *event.EventBus, cb *command.CommandBus) *Selected {
 	es := &Selected{
@@ -348,7 +345,7 @@ func (s *Selected) Get() (cell models.Cell, has bool) {
 func (es *Selected) Set(version int64, p models.Cell, ok bool) {
 	c := models.Cell{
 		Column: p.Column,
-		ID: p.ID,
+		ID:     p.ID,
 	}
 	es.cb.Dispatch(command.CellSelect{Point: c, Has: ok, Version: version})
 }
@@ -382,13 +379,13 @@ type SearchSelection struct {
 
 func newSearchSelection(eb *event.EventBus, cb *command.CommandBus) *SearchSelection {
 	sc := &SearchSelection{
-		eb: eb,
-		cb: cb,
-		position: -1,
-		OnChanged: func(){},
+		eb:        eb,
+		cb:        cb,
+		position:  -1,
+		OnChanged: func() {},
 	}
 
-	eb.Subscribe(event.TableSearched{}, func(v event.Event){
+	eb.Subscribe(event.TableSearched{}, func(v event.Event) {
 		e := v.(event.TableSearched)
 		sc.ssVersion = e.Version
 		sc.selection = e.Points
@@ -422,33 +419,31 @@ func (es *SearchSelection) Prev() {
 	}
 	es.position -= 1
 	if es.position < 0 {
-		es.position = len(es.selection)-1
+		es.position = len(es.selection) - 1
 	}
 	es.selected()
 }
 
 func (es *SearchSelection) selected() {
 	p := es.selection[es.position]
-	es.cb.Dispatch(command.CellSelect{ Version: es.ssVersion, Point: p, Has: true })
+	es.cb.Dispatch(command.CellSelect{Version: es.ssVersion, Point: p, Has: true})
 	es.OnChanged()
 }
 
 func (es *SearchSelection) unselected() {
 	es.selection = es.selection[:0]
 	es.position = -1
-	es.cb.Dispatch(command.CellSelect{ Has: false, Version: es.ssVersion })
+	es.cb.Dispatch(command.CellSelect{Has: false, Version: es.ssVersion})
 	es.OnChanged()
 }
-
-
 
 //
 // Settings
 //
 
 type Settings struct {
-	eb       *event.EventBus
-	cfg      *config.Config
+	eb  *event.EventBus
+	cfg *config.Config
 
 	OnColumnHidden func()
 }
@@ -456,7 +451,7 @@ type Settings struct {
 func newSettings(eb *event.EventBus, cfg *config.Config) *Settings {
 	cs := &Settings{
 		cfg: cfg,
-		eb: eb,
+		eb:  eb,
 	}
 	cs.eb.Subscribe(event.TableSorted{}, func(v event.Event) {
 		e := v.(event.TableSorted)
@@ -591,9 +586,7 @@ func (ts *Settings) notifyHidden() {
 	})
 }
 
-//
 // Functions and Helpers
-//
 func getSnapshotTraverser(ss *snapshot.Snapshot, by string) (search.Traverser, error) {
 	var trv search.Traverser
 	if by == ColumnAll {
@@ -625,7 +618,7 @@ func isReadHidden(cfg *config.Config) bool {
 	return rating.IsHidden && completed.IsHidden
 }
 
-func getShownHeader(cfg *config.Config) []string {	
+func getShownHeader(cfg *config.Config) []string {
 	keys := make([]int, 0)
 	for k, h := range cfg.UI.Headers {
 		if !h.IsHidden {
@@ -659,5 +652,5 @@ func snapshotSort(ss *snapshot.Snapshot, column string, asc bool) ([]int64, erro
 		bb, _ := ss.GetBookEntryByID(b)
 		return comp(*ba, *bb)
 	})
-	return  ids, nil
+	return ids, nil
 }

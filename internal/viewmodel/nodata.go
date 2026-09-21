@@ -13,8 +13,8 @@ const (
 )
 
 type NoDataBody struct {
-	s NoDataState
-	m string
+	s         NoDataState
+	m         string
 	OnChanged func()
 }
 

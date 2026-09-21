@@ -1,8 +1,8 @@
 package event
 
 import (
-	"sync"
 	"fmt"
+	"sync"
 )
 
 type NameHandler func(v any) (string, error)
@@ -10,7 +10,7 @@ type NameHandler func(v any) (string, error)
 type Event any
 
 type EventBus struct {
-	mu sync.RWMutex
+	mu       sync.RWMutex
 	handlers map[string][]func(v Event)
 }
 

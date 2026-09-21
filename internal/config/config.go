@@ -109,7 +109,7 @@ func (c *Config) Save() error {
 
 // Load config file form file path.
 func Load(path string) (*Config, error) {
-	
+
 	Op := fmt.Sprintf("loading config %s", path)
 
 	file, err := os.Open(path)

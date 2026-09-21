@@ -4,12 +4,12 @@ import (
 	"log"
 
 	"fyne.io/fyne/v2"
-	_ "fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/container"
+	_ "fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 	"github.com/dubbersthehoser/mayble/internal/models"
+	"github.com/dubbersthehoser/mayble/internal/viewmodel"
 )
 
 func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
@@ -19,7 +19,7 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 		vm.Table.SearchSelection.Prev,
 	)
 	search.OnChanged = vm.Table.Searching.Search
-	
+
 	searchBy := widget.NewSelect(
 		vm.Table.Searchable.Options(),
 		vm.Table.Searchable.SetSearchBy,
@@ -107,7 +107,6 @@ func newTable(vm *viewmodel.Window) *Table {
 		return tbl.header.NewHeaderButton()
 	}
 
-
 	tbl.UpdateHeader = func(cellID widget.TableCellID, object fyne.CanvasObject) {
 		if cellID.Row != -1 {
 			return
@@ -130,7 +129,7 @@ func newTable(vm *viewmodel.Window) *Table {
 
 			object.(*HeaderButton).Update(
 				label,
-				vm.Table.Sorting.Column, 
+				vm.Table.Sorting.Column,
 				vm.Table.Sorting.Ascending,
 			)
 			object.(*HeaderButton).Show()
@@ -145,7 +144,6 @@ func newTable(vm *viewmodel.Window) *Table {
 		tbl.SetColumnWidth(i, width)
 	}
 
-	
 	// Selection Events
 	fromVM := false // OnSelected is coupled to Table.Select.
 	tbl.OnSelected = func(cell widget.TableCellID) {
