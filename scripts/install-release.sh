@@ -41,5 +41,10 @@ printf "Extracting:\n  - %s\n" "${ARCHIVE}"
 tar -xf "$ARCIVE"
 
 # install package to user install.
+NAME="$(grep '^Name' | cut -d'"' -f 2)"
+BIN="$(grep '^Exec' | cut -d'"' -f 2)"
+ICON="$(grep '^Icon' | cut -d'"' -f 2)"
 
 make user-install # make may not be installed?
+                  # may need to inline make code to this file.
+		  # I'm only going to use just the user install code anyway.
