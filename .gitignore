@@ -2,7 +2,9 @@
 /cover.out
 /cover.html
 /dist
-/fyne-cross/*
+/fyne-cross
+/bin
+/staging
 *.db
 *.sqlite
 *.sqlite3
