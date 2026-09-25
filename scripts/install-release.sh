@@ -2,15 +2,13 @@
 
 set -eu
 
-if "$(uname)" != Linux; then
+if "$(uname -o)" != Linux; then
   printf "Invalid OS $(uname). Linux only\n"
 fi
 
-ARCH=${-:NONE}
-
 case "$(arch)" in 
   x86_64)  ARCH=amd64 ;;
-  aarch64) ARCH=amd64 ;;
+  aarch64) ARCH=arm64 ;;
   *) 
     printf "Invalid CPU architecture $(arch)\n" 1>&2
     exit 1
@@ -23,7 +21,7 @@ dl_url="$(curl -s https://api.github.com/repos/dubbersthehoser/mayble/releases/l
   grep ${ARCH})"
 
 DL_DIR="mayble-dist"
-ARCHIVE="mayble.tar.xz"
+ARCHIVE="mayble-${ARCH}.tar.gz"
 
 mkdir -vp "$DL_DIR"
 

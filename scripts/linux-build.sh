@@ -2,9 +2,6 @@
 
 set -eu
 
-DIST="./dist"
-VERSION="$(sh ./scripts/version.sh --version)"
-
 [ ! -d "$DIST" ] && mkdir -v "$DIST"
 
 go clean -cache
