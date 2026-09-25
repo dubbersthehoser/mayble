@@ -95,7 +95,7 @@ echo "Completed."
 if [ -f "./bin/${ARM64_NAME}" ]; then
 	echo
 	echo "[ ARM64 ]"
-	package_linux "./bin/${AMD64_NAME}" "${AMD64_NAME}"
+	package_linux "./bin/${ARM64_NAME}" "${ARM64_NAME}"
 	echo "Completed."
 fi
 

@@ -24,7 +24,7 @@ config_get() {
 		grep '^Name' ./FyneApp.toml | cut -d'"' -f 2
 	;;
 	*)
-		printf "%"
+		printf "config_get %s: key not found"
 		exit 1
 	;;
 	esac
@@ -79,6 +79,24 @@ ubuntu_packages() {
 	printf "%s\n" "${items}"
 }
 
+package_linux() {
+	local bin="${1:-}"
+	local name="${2:-}"
+
+	[ -z "$bin" ] && log_fatal "binary argumnet was not given"
+	[ ! -f "$bin" ] && log_fatal " '${bin}' binary does not exists or is a directory"
+
+
+	echo "-- setting up staging --"
+	setup_staging_to_linux
+	echo "-- files to staging --"
+	linux_files_to_staging "$bin"
+	echo "-- packing up staging --"
+	packup_linux_to_dist "$name"
+	echo "-- clearing staging --"
+	clear_staging
+}
+
 linux_files_to_staging() {
 	local bin_path="${1}"
 	local version
@@ -87,6 +105,7 @@ linux_files_to_staging() {
 	version="$(config_get app-version)"
 	icon="$(config_get app-icon)"
 	name="$(config_get app-name)"
+
 	cp -va "./${icon}" "./staging/${name}/share/pixmaps/${name}.${icon##*.}"
 	cp -va "$bin_path" "./staging/${name}/share/bin/${name}"
 
@@ -104,18 +123,6 @@ Keywords=books;office;
 EOF
 }
 
-package_linux() {
-	local bin="${1:-}"
-	local name="${2:-}"
-
-	[ -z "$bin" ] && log_fatal "binary argumnet was not given"
-	[ ! -f "$bin" ] && log_fatal " '${bin}' binary does not exists or is a directory"
-
-	setup_staging_to_linux
-	linux_files_to_staging "$bin"
-	packup_linux_to_dist "$name"
-	clear_staging
-}
 
 packup_linux_to_dist() {
 	local name="${1}"
@@ -125,10 +132,12 @@ packup_linux_to_dist() {
 
 
 clear_staging() {
-	[ -d ./staging ] && rm -vrf ./staging 
+	[ -d ./staging ] && rm -vrf ./staging
+	mkdir -v ./staging
 }
 
 setup_staging_to_linux() {
+	echo "debug: before clear"
 	clear_staging
 	local name
 	name="$(config_get app-name)"
