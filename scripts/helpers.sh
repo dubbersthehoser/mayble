@@ -79,24 +79,6 @@ ubuntu_packages() {
 	printf "%s\n" "${items}"
 }
 
-package_linux() {
-	local bin="${1:-}"
-	local name="${2:-}"
-
-	[ -z "$bin" ] && log_fatal "binary argumnet was not given"
-	[ ! -f "$bin" ] && log_fatal " '${bin}' binary does not exists or is a directory"
-
-
-	echo "-- setting up staging --"
-	setup_staging_to_linux
-	echo "-- files to staging --"
-	linux_files_to_staging "$bin"
-	echo "-- packing up staging --"
-	packup_linux_to_dist "$name"
-	echo "-- clearing staging --"
-	clear_staging
-}
-
 linux_files_to_staging() {
 	local bin_path="${1}"
 	local version
@@ -137,7 +119,6 @@ clear_staging() {
 }
 
 setup_staging_to_linux() {
-	echo "debug: before clear"
 	clear_staging
 	local name
 	name="$(config_get app-name)"
@@ -151,4 +132,3 @@ log_fatal() {
 	printf "%s: %s %s\n" "$(date '+F %R')" "${0##*/}" "$msg" 1>&2
 	exit 1
 }
-

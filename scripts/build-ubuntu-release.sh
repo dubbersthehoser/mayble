@@ -9,6 +9,24 @@
 
 set -eu
 
+package_linux() {
+	local bin="${1:-}"
+	local name="${2:-}"
+
+	[ -z "$bin" ] && log_fatal "binary argumnet was not given"
+	[ ! -f "$bin" ] && log_fatal " '${bin}' binary does not exists or is a directory"
+
+
+	echo "-- setting up staging --"
+	setup_staging_to_linux
+	echo "-- files to staging --"
+	linux_files_to_staging "$bin"
+	echo "-- packing up staging --"
+	packup_linux_to_dist "$name"
+	echo "-- clearing staging --"
+	clear_staging
+}
+
 echo "------------------------------------------"
 echo "Building and Packaging for Linux on Debian"
 echo "------------------------------------------"
