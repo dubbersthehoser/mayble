@@ -8,8 +8,8 @@ on:
 jobs:
 
   build:
-    name: Build Ubuntu AMD64 with ARM64
-    run-on: ubuntu-latest
+    name: build
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
