@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [! -x ./scripts/build-ubuntu-release.sh ] && chmod 744 ./scripts/build-ubuntu-release.sh
+          [ ! -x ./scripts/build-ubuntu-release.sh ] && chmod 744 ./scripts/build-ubuntu-release.sh
           ./scripts/build-ubuntu-release.sh
 
       - name: Upload Build Artifact
