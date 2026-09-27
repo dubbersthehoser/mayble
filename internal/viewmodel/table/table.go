@@ -21,7 +21,6 @@ const ColumnAll = "All"
 
 type Table struct {
 	worker *worker.Worker
-	eb     *event.EventBus
 
 	Searching       *Searching
 	Selected        *Selected

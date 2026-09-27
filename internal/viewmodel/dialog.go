@@ -1,9 +1,8 @@
 package viewmodel
 
 type ShowError struct {
-	isOpen bool
-	Err    error
-	l      []func()
+	Err error
+	l   []func()
 }
 
 func (se *ShowError) Show(err error) {

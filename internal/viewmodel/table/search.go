@@ -107,7 +107,6 @@ func (tt *tableTraverse) retDone() (string, bool) {
 type columnTraverse struct {
 	snapshot *snapshot.Snapshot
 	row, col int
-	setDone  func()
 	isDone   bool
 }
 

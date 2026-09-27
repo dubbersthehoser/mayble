@@ -48,7 +48,6 @@ func newBodyTable(vm *viewmodel.Window) fyne.CanvasObject {
 
 type Table struct {
 	widget.Table
-	vm     *viewmodel.Window
 	header *Header
 }
 

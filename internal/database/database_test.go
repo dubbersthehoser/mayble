@@ -48,7 +48,7 @@ func TestOpen(t *testing.T) {
 
 	path := filepath.Join(dir, "test.db")
 
-	db, err := Open(path)
+	_, err := Open(path)
 	if err == nil {
 		t.Fatalf("expected error when opening %s which dose not exists", path)
 	}
@@ -60,7 +60,7 @@ func TestOpen(t *testing.T) {
 	file.Close()
 	file = nil
 
-	db, err = Open(path)
+	db, err := Open(path)
 	if err != nil {
 		t.Fatalf("unexpected error: '%s'", err)
 	}
