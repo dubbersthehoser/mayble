@@ -79,6 +79,15 @@ ubuntu_packages() {
 	printf "%s\n" "${items}"
 }
 
+setup_staging_to_linux() {
+	clear_staging
+	local name
+	name="$(config_get app-name)"
+	mkdir -vp "./staging/${name}/share/applications" \
+	          "./staging/${name}/share/icons/pixmaps"      \
+	          "./staging/${name}/bin"
+}
+
 #######################################
 # Add files for linux build
 # Arguments:
@@ -200,14 +209,6 @@ clear_staging() {
 	mkdir -v ./staging
 }
 
-setup_staging_to_linux() {
-	clear_staging
-	local name
-	name="$(config_get app-name)"
-	mkdir -vp "./staging/${name}/share/applications" \
-	          "./staging/${name}/share/pixmaps"      \
-	          "./staging/${name}/bin"
-}
 
 log_fatal() {
 	local msg="$1"
