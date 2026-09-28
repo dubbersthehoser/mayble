@@ -79,6 +79,11 @@ ubuntu_packages() {
 	printf "%s\n" "${items}"
 }
 
+#######################################
+# Add files for linux build
+# Arguments:
+#   The binary path from a build.
+#
 linux_files_to_staging() {
 	local bin_path="${1}"
 	local version
@@ -110,7 +115,11 @@ Keywords=books;office;
 EOF
 }
 
-
+#######################################
+# Tar staging to dist for linux build.
+# Arguments:
+#   The name for archive.
+#
 packup_linux_to_dist() {
 	local name="${1}"
 	mkdir -p ./dist
