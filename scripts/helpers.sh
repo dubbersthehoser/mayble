@@ -93,14 +93,8 @@ linux_files_to_staging() {
 	icon="$(config_get app-icon)"
 	name="$(config_get app-name)"
 
-	cp -va "./${icon}" "./staging/${name}/share/pixmaps/${name}.${icon##*.}"
-	cp -va "$bin_path" "./staging/${name}/share/bin/${name}"
-
-	# add version file
-	printf "%s\n" "v${version}" > "./staging/${name}/version.txt"
-
-	# add license
-	cp -va "./LICENSE" "./staging/${name}/LICENSE"
+	cp -va "./${icon}" "./staging/${name}/share/icons/pixmaps/${name}.${icon##*.}"
+	cp -va "$bin_path" "./staging/${name}/bin/${name}"
 
 	# create dot desktop file
 	cat << EOF > "./staging/${name}/share/applications/${name}.desktop"
@@ -112,6 +106,79 @@ Icon=${name}.${icon##*.}
 GenericName=Book Management
 Categories=Office;Database;
 Keywords=books;office;
+EOF
+
+	# add version file
+	printf "%s\n" "v${version}" > "./staging/${name}/version.txt"
+
+	# add license
+	cp -va "./LICENSE" "./staging/${name}/LICENSE"
+
+	# add install script
+	#cp -va "./scripts/linux_install.sh" "./staging/${name}/install.sh"
+
+	gen_linux_installer "./bin"                                     \
+	                    "./share/icons/pixmaps/${name}.${icon##*.}" \
+			    "./share/applications/${name}.desktop"      \
+			    "./staging/${name}/install.sh"
+
+}
+
+gen_linux_installer() {
+	local exec_path="${1}"
+	local icon_path="${2}"
+	local dot_desktop_path="${3}"
+	local outfile="${4}"
+
+	for v in "$exec_path" "$icon_path" "$dot_desktop_path"; do
+		if [ -z "$v" ] || [ "$v" = '/' ]; then
+			printf "gen_linux_installer $v: invalid file path for generation"
+			exit 1
+		fi
+	done
+
+	cat << EOF > "${outfile}"
+set -eu
+
+CMD="\${1:-}"
+
+ACTION=""
+PREFIX=""
+
+case \${CMD} in
+	user-install)
+		ACTION="install"
+		PREFIX="\$HOME/.local"
+	;;
+	user-uninstall)
+		ACTION="uninstall"
+		PREFIX="\$HOME/.local"
+	;;
+	install)
+		ACTION="install"
+		PREFIX="/"
+	;;
+	uninstall)
+		ACTION="uninstall"
+		PREFIX="/"
+	;;
+	*)
+		printf "%s %s: invalid argument" "\${1:-}"
+		exit 1
+	;;
+esac
+
+if [ "\$ACTION" = "install" ]; then
+	install -D00644 ${icon_path} \${PREFIX}/${icon_path}
+	install -D00644 ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
+	install -D00755 ${exec_path} \${PREFIX}/${exec_path} 
+fi
+
+if [ "\$ACTION" = "uninstall" ]; then
+	rm ${icon_path} \${PREFIX}/${icon_path}
+	rm ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
+	rm ${exec_path} \${PREFIX}/${exec_path} 
+fi
 EOF
 }
 
@@ -127,6 +194,7 @@ packup_linux_to_dist() {
 }
 
 
+
 clear_staging() {
 	[ -d ./staging ] && rm -vrf ./staging
 	mkdir -v ./staging
@@ -137,8 +205,8 @@ setup_staging_to_linux() {
 	local name
 	name="$(config_get app-name)"
 	mkdir -vp "./staging/${name}/share/applications" \
-	          "./staging/${name}/share/bin"          \
-	          "./staging/${name}/share/pixmaps"
+	          "./staging/${name}/share/pixmaps"      \
+	          "./staging/${name}/bin"
 }
 
 log_fatal() {
