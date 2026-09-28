@@ -69,7 +69,7 @@ if printf "%s" "$(dpkg --print-foreign-architectures)" | grep -q 'arm64'; then
 	echo "Installing ARM64 Depedencies"
 	echo "----------------------------"
 	# shellcheck disable=2046
-	sudo apt install $(ubuntu_packages arm64)
+	sudo apt install gcc-aarch64-linux-gnu $(ubuntu_packages arm64)
 	
 else 
 	echo "Warning: system is not set up for ARM64 cross compile"

@@ -37,9 +37,20 @@ case $ARG in
 		printf "%s\n" "$VERSION"
 		exit 0
 		;;
-	# Git tag current .
 	-t | --tag)
 		git tag -a "v${VERSION}" -m "application version ${VERSION}"
+		exit 0
+		;;
+	-dt | --delete-tag)
+		git tag -d "v${VERSION}"
+		exit 0
+		;;
+	-rt | --remote-tag)
+		git push origin "v${VERSION}"
+		exit 0
+		;;
+	-drt | --delete-remote-tag)
+		git push origin --delete "v${VERSION}"
 		exit 0
 		;;
 esac

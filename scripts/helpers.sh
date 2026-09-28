@@ -91,8 +91,13 @@ linux_files_to_staging() {
 	cp -va "./${icon}" "./staging/${name}/share/pixmaps/${name}.${icon##*.}"
 	cp -va "$bin_path" "./staging/${name}/share/bin/${name}"
 
-	printf "%s\n" "mayble-${version}" > "./staging/${name}/version.txt"
+	# add version file
+	printf "%s\n" "v${version}" > "./staging/${name}/version.txt"
 
+	# add license
+	cp -va "./LICENSE" "./staging/${name}/LICENSE"
+
+	# create dot desktop file
 	cat << EOF > "./staging/${name}/share/applications/${name}.desktop"
 [Desktop Entry]
 Type=Application
