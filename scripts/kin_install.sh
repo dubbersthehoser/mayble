@@ -1,19 +1,21 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 # remove the old version from kin's chrome book linux env.
-mayble_installed="$(apt-cache pkgnames | grep 'mayble')"
+mayble_installed="$(apt-cache pkgnames | awk 'mayble' )"
 if [ -n "$mayble_installed" ]; then
 	sudo apt remove mayble 
 	status="$?"
-	mayble_installed="$(apt-cache pkgnames | grep 'mayble')"
+	mayble_installed="$(apt-cache pkgnames | awk '/mayble/')"
 	if [ "$status" -ne 0 ] || [ -n "$mayble_intalled" ] ; then
 		echo "failed to be removed."
 		echo "aborting install."
 		exit 1;
 	fi
 fi
+
+ARCH=""
 
 case "$(arch)" in
 	x86_64) 
@@ -30,10 +32,10 @@ esac
 
 # 1. download release.
 echo "## Downloading Release ##"
-RELEASE_URL="$(curl -s https://api.github.com/repos/dubbersthehoser/mayble/releases/latest" \
-	| grep browser_download_url                                                         \
-	| cut -d'\"' -f 4                                                                   \
-	| grep $ARCH)"
+RELEASE_URL="$(curl -sL https://api.github.com/repos/dubbersthehoser/mayble/releases/latest \
+	| awk '/browser_download_url/'                                                      \
+	| cut -d\" -f4                                                                     \
+	| awk "/$ARCH/")"
 
 ARCHIVE="${RELEASE_URL##*/}"
 

@@ -178,9 +178,9 @@ case \${CMD} in
 esac
 
 if [ "\$ACTION" = "install" ]; then
-	install -D00644 ${icon_path} \${PREFIX}/${icon_path}
-	install -D00644 ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
-	install -D00755 ${exec_path} \${PREFIX}/${exec_path} 
+	install -Dm00644 ${icon_path} \${PREFIX}/${icon_path}
+	install -Dm00644 ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
+	install -Dm00755 ${exec_path} \${PREFIX}/${exec_path} 
 fi
 
 if [ "\$ACTION" = "uninstall" ]; then
