@@ -123,71 +123,44 @@ EOF
 	# add license
 	cp -va "./LICENSE" "./staging/${name}/LICENSE"
 
-	# add install script
-	#cp -va "./scripts/linux_install.sh" "./staging/${name}/install.sh"
-
-	gen_linux_installer "./bin"                                     \
-	                    "./share/icons/pixmaps/${name}.${icon##*.}" \
-			    "./share/applications/${name}.desktop"      \
-			    "./staging/${name}/install.sh"
+	gen_linux_installer "${name}" "staging/${name}/install.sh"
 
 }
 
 gen_linux_installer() {
-	local exec_path="${1}"
-	local icon_path="${2}"
-	local dot_desktop_path="${3}"
-	local outfile="${4}"
-
-	for v in "$exec_path" "$icon_path" "$dot_desktop_path"; do
-		if [ -z "$v" ] || [ "$v" = '/' ]; then
-			printf "gen_linux_installer $v: invalid file path for generation"
-			exit 1
-		fi
-	done
-
+	local name="${1}"
+	local outfile="${2}"
 	cat << EOF > "${outfile}"
 set -eu
 
 CMD="\${1:-}"
 
-ACTION=""
-PREFIX=""
-
 case \${CMD} in
 	user-install)
-		ACTION="install"
-		PREFIX="\$HOME/.local"
+		install -Dm00644 ./share/icons/${name}.png            \${HOME}/.local/share/icons/${name}.png
+		install -Dm00644 ./share/applications/${name}.desktop \${HOME}/.local/share/applications/${name}.desktop
+		install -Dm00755 ./share/bin/${name}                  \${HOME}/.local/bin/${name} 
 	;;
 	user-uninstall)
-		ACTION="uninstall"
-		PREFIX="\$HOME/.local"
+		rm \${HOME}/.local/share/icons/${name}.png
+		rm \${HOME}/.local/share/applications/${name}.desktop
+		rm \${HOME}/.local/bin/${name} 
 	;;
 	install)
-		ACTION="install"
-		PREFIX="/"
+		install -Dm00644 ./share/icons/${name}.png            /usr/local/share/icons/pixmaps/${name}.png
+		install -Dm00644 ./share/applications/${name}.desktop /usr/local/share/application/${name}.desktop
+		install -Dm00755 ./bin/${name}                        /usr/local/bin/${name} 
 	;;
 	uninstall)
-		ACTION="uninstall"
-		PREFIX="/"
+		rm /usr/local/share/icons/pixmaps/${name}.png
+		rm /usr/local/share/application/${name}.desktop
+		rm /usr/local/bin/${name} 
 	;;
 	*)
-		printf "%s %s: invalid argument" "\${1:-}"
+		printf "%s %s: invalid argument\\n" "\${1:-}"
 		exit 1
 	;;
 esac
-
-if [ "\$ACTION" = "install" ]; then
-	install -Dm00644 ${icon_path} \${PREFIX}/${icon_path}
-	install -Dm00644 ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
-	install -Dm00755 ${exec_path} \${PREFIX}/${exec_path} 
-fi
-
-if [ "\$ACTION" = "uninstall" ]; then
-	rm ${icon_path} \${PREFIX}/${icon_path}
-	rm ${dot_desktop_path} \${PREFIX}/${dot_desktop_path}
-	rm ${exec_path} \${PREFIX}/${exec_path} 
-fi
 EOF
 }
 
