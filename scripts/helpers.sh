@@ -157,7 +157,7 @@ case \${CMD} in
 		rm /usr/local/bin/${name} 
 	;;
 	*)
-		printf "%s %s: invalid argument\\n" "\${1:-}"
+		printf "%s %s: invalid argument\\n" "\${1:-}" 1>&2
 		exit 1
 	;;
 esac

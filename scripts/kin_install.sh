@@ -47,7 +47,7 @@ echo "  downloading: ${RELEASE_URL}"
 
 ARCHIVE="${RELEASE_URL##*/}"
 
-curl -sL "${RELEASE_URL}" -o "${ARCHIVE}"
+curl -sL "${RELEASE_URL}" -o "${ARCHIVE}" > /dev/null
 
 # 2. extract it.
 echo "  extracting: ${ARCHIVE}"
@@ -56,7 +56,9 @@ tar -xvf "$ARCHIVE"
 # 3. install
 cd ./mayble
 
+echo "-- Install"
 [ ! -x ./install.sh ] && chmod 744 ./install.sh
 ./install.sh user-install
 
 cd ..
+echo "  completed"
