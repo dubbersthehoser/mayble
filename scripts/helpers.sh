@@ -84,7 +84,7 @@ setup_staging_to_linux() {
 	local name
 	name="$(config_get app-name)"
 	mkdir -vp "./staging/${name}/share/applications" \
-	          "./staging/${name}/share/icons/pixmaps"      \
+	          "./staging/${name}/share/icons/"       \
 	          "./staging/${name}/bin"
 }
 
@@ -102,7 +102,7 @@ linux_files_to_staging() {
 	icon="$(config_get app-icon)"
 	name="$(config_get app-name)"
 
-	cp -va "./${icon}" "./staging/${name}/share/icons/pixmaps/${name}.${icon##*.}"
+	cp -va "./${icon}" "./staging/${name}/share/icons/${name}.${icon##*.}"
 	cp -va "$bin_path" "./staging/${name}/bin/${name}"
 
 	# create dot desktop file
@@ -139,7 +139,7 @@ case \${CMD} in
 	user-install)
 		install -Dm00644 ./share/icons/${name}.png            \${HOME}/.local/share/icons/${name}.png
 		install -Dm00644 ./share/applications/${name}.desktop \${HOME}/.local/share/applications/${name}.desktop
-		install -Dm00755 ./share/bin/${name}                  \${HOME}/.local/bin/${name} 
+		install -Dm00755 ./bin/${name}                        \${HOME}/.local/bin/${name} 
 	;;
 	user-uninstall)
 		rm \${HOME}/.local/share/icons/${name}.png
