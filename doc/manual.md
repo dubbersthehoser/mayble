@@ -1,6 +1,6 @@
 # Manual
 
-Mayble v2.0.2
+Mayble v2.0.3
 
 - Github: [https://github.com/dubbersthehoser/mayble/](https://github.com/dubbersthehoser/mayble/)
 

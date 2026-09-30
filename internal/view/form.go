@@ -33,7 +33,7 @@ func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasO
 
 	bookEntry := newBookEntry(vm)
 
-	top := container.NewVBox(
+	form := container.NewVBox(
 		bookEntry,
 		loanCheck,
 		newLoanEntry(vm),
@@ -42,7 +42,7 @@ func newBookForm(vm *viewmodel.Window, label string, submit func()) fyne.CanvasO
 		container.NewHBox(submitBtn, closeBtn),
 	)
 
-	return top
+	return container.NewVScroll(form)
 }
 
 func newBookEntry(vm *viewmodel.Window) *fyne.Container {
