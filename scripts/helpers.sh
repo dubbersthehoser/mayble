@@ -153,13 +153,13 @@ case \${CMD} in
 
 		sed "s,^Exec=,Exec=/usr/local/bin/${name}," ./share/applications/${name}.desktop > ./share/applications/${name}.sys.desktop
 
-		install -Dm00644 ./share/icons/${name}.png                /usr/local/share/icons/pixmaps/${name}.png
-		install -Dm00644 ./share/applications/${name}.sys.desktop /usr/local/share/application/${name}.desktop
+		install -Dm00644 ./share/icons/${name}.png                /usr/local/share/pixmaps/${name}.png
+		install -Dm00644 ./share/applications/${name}.sys.desktop /usr/local/share/applications/${name}.desktop
 		install -Dm00755 ./bin/${name}                            /usr/local/bin/${name} 
 	;;
 	uninstall)
-		rm /usr/local/share/icons/pixmaps/${name}.png
-		rm /usr/local/share/application/${name}.desktop
+		rm /usr/local/share/pixmaps/${name}.png
+		rm /usr/local/share/applications/${name}.desktop
 		rm /usr/local/bin/${name} 
 	;;
 	*)
