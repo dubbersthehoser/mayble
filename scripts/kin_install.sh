@@ -4,22 +4,26 @@ set -eu
 
 # remove the old version from kin's chrome book linux env.
 echo "-- Checking for Installed v1.0.0 Version"
-mayble_installed="$(apt-cache pkgnames | awk 'mayble' )"
-if [ -n "$mayble_installed" ]; then
-	echo "-- Unistalling v1.0.0"
-	sudo apt remove mayble 
-	status="$?"
-	mayble_installed="$(apt-cache pkgnames | awk '/mayble/')"
-	if [ "$status" -ne 0 ] || [ -n "$mayble_intalled" ] ; then
-		echo "  failed to be removed" 1>&2
+if apt-cache show 'mayble' > /dev/null; then
+	echo "  unistalling..."
+	if sudo apt remove -y 'mayble' ; then
+		:
+	else
+		echo "  failed to uninstall" 1>&2
 		echo "  aborting install." 1>&2
 		exit 1;
 	fi
+	if apt-cache show 'mayble' > /dev/null; then
+		echo "  failed to uninstall" 1>&2
+		echo "  aborting install." 1>&2
+		exit 1;
+	fi
+	echo "  uninstall completed"
 fi
 
 ARCH=""
 
-echo "-- Checking Arch"
+echo "-- Checking Architecture"
 
 case "$(arch)" in
 	x86_64) 
