@@ -110,8 +110,8 @@ linux_files_to_staging() {
 [Desktop Entry]
 Type=Application
 Name=${name}
-Exec=${name}
-Icon=${name}.${icon##*.}
+Exec=
+Icon=${name}
 GenericName=Book Management
 Categories=Office;Database;
 Keywords=books;office;
@@ -137,9 +137,12 @@ CMD="\${1:-}"
 
 case \${CMD} in
 	user-install)
-		install -Dm00644 ./share/icons/${name}.png            \${HOME}/.local/share/icons/${name}.png
-		install -Dm00644 ./share/applications/${name}.desktop \${HOME}/.local/share/applications/${name}.desktop
-		install -Dm00755 ./bin/${name}                        \${HOME}/.local/bin/${name} 
+		
+		sed "s,^Exec=.*,Exec=\${HOME}/.local/bin/${name}," ./share/applications/${name}.desktop > ./share/applications/${name}.user.desktop
+		
+		install -Dm00644 ./share/icons/${name}.png                 \${HOME}/.local/share/icons/${name}.png
+		install -Dm00644 ./share/applications/${name}.user.desktop \${HOME}/.local/share/applications/${name}.desktop
+		install -Dm00755 ./bin/${name}                             \${HOME}/.local/bin/${name} 
 	;;
 	user-uninstall)
 		rm \${HOME}/.local/share/icons/${name}.png
@@ -147,9 +150,12 @@ case \${CMD} in
 		rm \${HOME}/.local/bin/${name} 
 	;;
 	install)
-		install -Dm00644 ./share/icons/${name}.png            /usr/local/share/icons/pixmaps/${name}.png
-		install -Dm00644 ./share/applications/${name}.desktop /usr/local/share/application/${name}.desktop
-		install -Dm00755 ./bin/${name}                        /usr/local/bin/${name} 
+
+		sed "s,^Exec=,Exec=/usr/local/bin/${name}," ./share/applications/${name}.desktop > ./share/applications/${name}.sys.desktop
+
+		install -Dm00644 ./share/icons/${name}.png                /usr/local/share/icons/pixmaps/${name}.png
+		install -Dm00644 ./share/applications/${name}.sys.desktop /usr/local/share/application/${name}.desktop
+		install -Dm00755 ./bin/${name}                            /usr/local/bin/${name} 
 	;;
 	uninstall)
 		rm /usr/local/share/icons/pixmaps/${name}.png
