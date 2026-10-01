@@ -6,13 +6,18 @@ A simple desktop book management application.
 
 ## Motivation
 
-I was asked by a family member of mine, whom has a collection of physical books, and needed a way to keep track of them without needing pen and paper, and so I create this CRUD application for them. The application's aim is to keep track of what book has been read, and what has been loaned out, and to whom.
+I was asked by a family member of mine, whom has a collection of physical books, and needed a way to keep track of them without needing pen and paper. I create this CRUD application for them, and its aim is to keep track of what book has been read, what has been loaned out, and to whom.
 
 ## Quick Start
 
 There are pre-build packages in the [release page](https://github.com/dubbersthehoser/mayble/releases/latest).
 
-*note:* For the **Linux** package, once extracted you can run the binary directly from the `/usr/share/bin/` directory.
+### Installing Linux Release
+
+Once you extracted the tar archive `cd` into `./mayble` directory and run `./install.sh user-install` for current user install, or `sudo ./install.sh install` for system install. To uninstall run `./install.sh user-uninstall` or `sudo ./install.sh uninstall` restively. 
+
+The installer will place a dot desktop file with an icon, and can be ran with an application launcher.
+
 
 ### But my platform is not in the releases?
 
@@ -26,21 +31,17 @@ Then build from source.
      sudo apt-get install golang gcc libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev
      ```
 
-   - **MacOS:** As long you have `xcode` installed. 
-     ```
-     xcode-select --install
-     ```
-   - **Other:** Check [fyne quick start](https://docs.fyne.io/started/quick/).
+   - **Other:** [fyne quick start](https://docs.fyne.io/started/quick/).
 
-1. Install the Go language (v1.24.0 or higher), and a C Compiler for graphics libraries.
+1. Install the Go language (v1.24.0 or higher), and a C Compiler for the UI libraries needed for cgo.
 
-1. Finally `go run .` and try it out!
+1. Finally you can run `go run .`
 
 ## Usage
 
 The application starts without a database. You'll need to create a database which is done in the menu *File* drop down.
 
-Open the *help* menu to open the manual, or open [./doc/manual.md](./doc/manual.md).
+Open the *help* drop down menu to open the manual, or check [./doc/manual.md](./doc/manual.md).
 
 ## Contributing
 
